@@ -1,0 +1,10 @@
+FROM mariadb:latest
+
+# Copy custom configuration
+COPY maria-db/my-custom.cnf /etc/mysql/conf.d/
+
+EXPOSE 3306
+
+# Health check to ensure MariaDB is ready
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD mysqladmin ping -h localhost -u root -p${MYSQL_ROOT_PASSWORD} || exit 1
