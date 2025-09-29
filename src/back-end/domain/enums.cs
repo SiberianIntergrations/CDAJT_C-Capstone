@@ -7,6 +7,13 @@ namespace back_end.domain
         Suspended,
         Deleted
     }
+
+    public enum ServiceRequestStatus
+    {
+        Open,
+        Claimed,
+        Closed
+    }
     public enum UserRoles
     {
         Admin,

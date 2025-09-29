@@ -1,0 +1,37 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+namespace back_end.domain.Entities
+{
+    [Table("menu_item_assignment")]
+    public class MenuItemAssignment
+    {
+        //Composite Key
+        //Foreign Key to Menu ID
+        public int Menu_Id { get; set; }
+
+        public int Item_Id { get; set; }
+
+        public decimal Price { get; set; }
+
+        public int Total_Units_Ordered { get; set; }
+
+        public DateTime LastOrdered { get; set; }
+
+        public int Total_Views { get; set; }
+
+        public int Total_View_Seconds { get; set; }
+
+        public bool Is_Add_On { get; set; }
+
+        public MenuItemStatus Status { get; set; }
+
+        public int Adult_Limit { get; set; }
+
+        public int Child_limit { get; set; }
+
+        public int Senior_limit { get; set; }
+
+        public int Total_Limit { get; set; }
+    }
+
+}
