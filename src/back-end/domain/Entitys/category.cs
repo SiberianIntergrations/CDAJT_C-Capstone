@@ -34,5 +34,7 @@ namespace back_end.domain.Entities
         public int senior_limit { get; set; } = 0;
 
         public int total_limit { get; set; } = 0;
+
+        public ICollection<Menu_Item> MenuItems { get; set; } = new List<Menu_Item>();
     }
 }

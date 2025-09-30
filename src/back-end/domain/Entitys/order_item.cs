@@ -8,25 +8,27 @@ namespace back_end.domain.Entities
         [Key]
         public int Order_Item_Id { get; set; }
 
-        //TODO Foreign Key to session orders OrderId
+        [ForeignKey(nameof(SessionOrder))]
         public int Order_Key { get; set; }
 
-        //TODO Foreign Key to menu menu id
-
+        [ForeignKey(nameof(Menu))]
         public int Menu_Id { get; set; }
 
-        // TODO Foreign Key to Menu Item Item Id
+        [ForeignKey(nameof(MenuItem))]
         public int Item_Id { get; set; }
 
         public int Quantity { get; set; }
 
         public decimal Price_At_Time { get; set; }
 
-        public OrderStatus Order_Item { get; set; }
+        public OrderStatus Order_Item_Status { get; set; }
 
-        public DateTime Completed_At { get; set; }
+        public DateTime? Completed_At { get; set; }
 
-        
+
+        public SessionOrder SessionOrder { get; set; } = null!;
+        public Menu Menu { get; set; } = null!;
+        public Menu_Item MenuItem { get; set; } = null!;
 
     }
 

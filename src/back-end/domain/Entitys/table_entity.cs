@@ -18,6 +18,10 @@ namespace back_end.domain.Entities
         public int seat_count { get; set; }
 
         public bool is_active { get; set; } = false;
+
+
+        public ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
+        public ICollection<Sessions> Sessions { get; set; } = new List<Sessions>();
         
     }
 }

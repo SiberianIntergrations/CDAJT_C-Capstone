@@ -9,15 +9,19 @@ namespace back_end.domain.Entities
         [Key]
         public int Participant_Id { get; set; }
 
-        //Todo Requires a Foreign Key to dining session session id
+        [ForeignKey(nameof(DiningSession))]
         public int Session_Id { get; set; }
-        //ToDo: Requires a foreign key to User UserId
+        
+        [ForeignKey(nameof(User))]
         public int User_Id { get; set; }
 
-        public DateTime Joined_At { get; set; }
+        public DateTime Joined_At { get; set; } = DateTime.Now;
 
-        public DateTime Left_At { get; set; }
+        public DateTime? Left_At { get; set; }
 
+
+        public DiningSession DiningSession { get; set; } = null!;
+        public User User { get; set; } = null!;
         
     }
 
