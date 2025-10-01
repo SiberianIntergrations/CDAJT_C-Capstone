@@ -13,8 +13,6 @@ namespace back_end.domain.Entities
 
         public string Description { get; set; } = string.Empty;
 
-        public string? image_url { get; set; }
-
         public TimeOnly Start_time { get; set; }
 
         public TimeOnly End_time { get; set; }

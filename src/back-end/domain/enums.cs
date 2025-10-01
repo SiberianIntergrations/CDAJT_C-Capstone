@@ -10,14 +10,14 @@ namespace back_end.domain
 
     public enum ServiceRequestStatus
     {
-        Open,
+        Pending,
         Claimed,
-        Closed
+        Completed,
+        Cancelled
     }
     public enum UserRoles
     {
         Admin,
-        Manager,
         Employee,
         Customer
     }

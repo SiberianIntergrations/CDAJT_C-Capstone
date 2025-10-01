@@ -25,7 +25,7 @@ namespace back_end.domain.Entities
 
         public int total_view_seconds { get; set; } = 0;
 
-        public DateTime Created_at { get; set; } = DateTime.Now;
+        public DateTime last_viewed_at { get; set; }
 
         public int adult_limit { get; set; } = 0;
 
