@@ -1,33 +1,32 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/hooks/useDialogState.js
-import { useState } from 'react';
+import { useState } from "react";
 
 export const useDialogState = () => {
   const [dialogState, setDialogState] = useState({
     newSession: false,
     addTable: false,
     newBill: false,
-    currentSessionId: null
+    currentSessionId: null,
   });
 
   const openDialog = (dialogName, sessionId = null) => {
-    setDialogState(prev => ({
+    setDialogState((prev) => ({
       ...prev,
       [dialogName]: true,
-      currentSessionId: sessionId
+      currentSessionId: sessionId,
     }));
   };
 
   const closeDialog = (dialogName) => {
-    setDialogState(prev => ({
+    setDialogState((prev) => ({
       ...prev,
       [dialogName]: false,
-      currentSessionId: null
+      currentSessionId: null,
     }));
   };
 
   return {
     dialogState,
     openDialog,
-    closeDialog
+    closeDialog,
   };
 };

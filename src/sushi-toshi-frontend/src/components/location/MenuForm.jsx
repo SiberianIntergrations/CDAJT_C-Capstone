@@ -1,21 +1,20 @@
-// File: sushi-toshi-frontend/components/location/MenuForm.jsx
-import { useState } from 'react';
-import { 
+import { useState } from "react";
+import {
   Box,
   TextField,
   Button,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Stack 
-} from '@mui/material';
+  Stack,
+} from "@mui/material";
 
 const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    description: initialData?.description || '',
-    start_time: initialData?.start_time || '',
-    end_time: initialData?.end_time || '',
+    name: initialData?.name || "",
+    description: initialData?.description || "",
+    start_time: initialData?.start_time || "",
+    end_time: initialData?.end_time || "",
     is_active: initialData?.is_active || false,
   });
 
@@ -35,7 +34,7 @@ const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
   return (
     <form onSubmit={handleSubmit}>
       <DialogTitle>
-        {mode === 'create' ? 'Add New Menu' : 'Edit Menu'}
+        {mode === "create" ? "Add New Menu" : "Edit Menu"}
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 2 }}>
@@ -81,7 +80,7 @@ const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button type="submit" variant="contained">
-          {mode === 'create' ? 'Create' : 'Save'}
+          {mode === "create" ? "Create" : "Save"}
         </Button>
       </DialogActions>
     </form>

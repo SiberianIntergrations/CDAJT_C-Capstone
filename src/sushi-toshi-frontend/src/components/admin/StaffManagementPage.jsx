@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/admin/StaffManagementPage.jsx
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -12,10 +11,10 @@ import {
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { UserPlus } from "lucide-react";
-import StaffManagementForm from "./StaffManagementForm";
-import StaffList from "./StaffList";
-import PasswordChangeDialog from "./PasswordChangeDialog";
-import { axiosInstance, createApiUrl } from "../../config/api";
+import StaffManagementForm from "@/components/admin/StaffManagementForm";
+import StaffList from "@/components/admin/StaffList";
+import PasswordChangeDialog from "@/components/admin/PasswordChangeDialog";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const StaffManagementPage = () => {
   const [staff, setStaff] = useState([]);

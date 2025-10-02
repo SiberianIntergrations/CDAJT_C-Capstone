@@ -1,13 +1,13 @@
 "use client";
 
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "@/App/globals.css";
 
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { createTheme } from "@mui/material/styles";
 import { MenuProvider } from "@/contexts/MenuContext";
-import Layout from "../components/Layout.jsx";
-import "../styles/global.css";
+import Layout from "@/components/Layout.jsx";
+import "@/styles/global.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

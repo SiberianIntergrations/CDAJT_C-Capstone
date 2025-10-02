@@ -1,31 +1,30 @@
-// File: sushi-toshi-frontend/components/location/LocationForm.jsx
-import { useState } from 'react';
-import { 
+import { useState } from "react";
+import {
   Box,
   TextField,
   Button,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Stack
-} from '@mui/material';
+  Stack,
+} from "@mui/material";
 
 const LocationForm = ({ initialData, onSubmit, onClose, mode }) => {
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
-    address_one: initialData?.address_one || '',
-    address_two: initialData?.address_two || '',
-    city: initialData?.city || '',
-    province: initialData?.province || '',
-    postal_code: initialData?.postal_code || '',
-    phone_number: initialData?.phone_number || ''
+    name: initialData?.name || "",
+    address_one: initialData?.address_one || "",
+    address_two: initialData?.address_two || "",
+    city: initialData?.city || "",
+    province: initialData?.province || "",
+    postal_code: initialData?.postal_code || "",
+    phone_number: initialData?.phone_number || "",
   });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -37,7 +36,7 @@ const LocationForm = ({ initialData, onSubmit, onClose, mode }) => {
   return (
     <form onSubmit={handleSubmit}>
       <DialogTitle>
-        {mode === 'create' ? 'Add New Location' : 'Edit Location'}
+        {mode === "create" ? "Add New Location" : "Edit Location"}
       </DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 2 }}>
@@ -101,7 +100,7 @@ const LocationForm = ({ initialData, onSubmit, onClose, mode }) => {
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
         <Button type="submit" variant="contained">
-          {mode === 'create' ? 'Create' : 'Save'}
+          {mode === "create" ? "Create" : "Save"}
         </Button>
       </DialogActions>
     </form>

@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/pages/dashboard/orders.jsx
 import React, { useState, useEffect } from "react";
 import {
   Accordion,
@@ -13,9 +12,9 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/router";
-import BillSelect from "../../components/customer/OderDashboard/components/BillSelect";
-import { axiosInstance, createApiUrl } from "../../config/api";
+import { useRouter } from "next/navigation";
+import BillSelect from "@/components/customer/OderDashboard/components/BillSelect";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const OrdersAccordion = () => {
   const router = useRouter();
@@ -60,8 +59,8 @@ const OrdersAccordion = () => {
       } catch (err) {
         console.error("Error fetching session:", err);
         setError(
-          typeof err.response?.data?.detail === 'string' 
-            ? err.response.data.detail 
+          typeof err.response?.data?.detail === "string"
+            ? err.response.data.detail
             : "Error fetching session"
         );
       }
@@ -121,7 +120,7 @@ const OrdersAccordion = () => {
     } catch (err) {
       console.error("Error fetching orders:", err);
       setError(
-        typeof err.response?.data?.detail === 'string'
+        typeof err.response?.data?.detail === "string"
           ? err.response.data.detail
           : "Error loading orders"
       );
@@ -244,7 +243,9 @@ const OrdersAccordion = () => {
   if (error) {
     return (
       <Box p={2}>
-        <Alert severity="error">{typeof error === 'string' ? error : 'An unexpected error occurred'}</Alert>
+        <Alert severity="error">
+          {typeof error === "string" ? error : "An unexpected error occurred"}
+        </Alert>
       </Box>
     );
   }

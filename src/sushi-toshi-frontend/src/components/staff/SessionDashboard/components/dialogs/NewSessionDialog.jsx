@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/dialogs/NewSessionDialog.jsx
 import { useState, useEffect } from "react";
 import {
   Dialog,
@@ -14,7 +13,7 @@ import {
 } from "@mui/material";
 import { X } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
-import { axiosInstance, createApiUrl } from "../../../../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const NewSessionDialog = ({ open, onClose }) => {
   const { createSession } = useSession();

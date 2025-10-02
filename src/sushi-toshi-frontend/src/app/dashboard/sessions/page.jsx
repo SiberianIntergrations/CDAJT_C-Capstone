@@ -1,11 +1,10 @@
-// File: sushi-toshi-frontend/pages/dashboard/sessions.jsx
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import { Box, CircularProgress } from '@mui/material';
-import { ErrorBoundary } from 'react-error-boundary';
-import SessionDashboard from '../../components/staff/SessionDashboard';
-import styled from '@emotion/styled';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Head from "next/head";
+import { Box, CircularProgress } from "@mui/material";
+import { ErrorBoundary } from "react-error-boundary";
+import SessionDashboard from "@/components/staff/SessionDashboard";
+import styled from "@emotion/styled";
 
 const ErrorMessage = styled.div`
   padding: 16px;
@@ -14,7 +13,7 @@ const ErrorMessage = styled.div`
 
 const FullPageContainer = styled.div`
   position: fixed;
-  top: 64px; 
+  top: 64px;
   left: 0;
   right: 0;
   bottom: 0;
@@ -37,22 +36,22 @@ const SessionsPage = () => {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (!token) {
-        router.push('/auth/login');
+        router.push("/auth/login");
         return false;
       }
 
       try {
-        const tokenData = JSON.parse(atob(token.split('.')[1]));
-        if (!['staff', 'admin'].includes(tokenData.role)) {
-          router.push('/unauthorized');
+        const tokenData = JSON.parse(atob(token.split(".")[1]));
+        if (!["staff", "admin"].includes(tokenData.role)) {
+          router.push("/unauthorized");
           return false;
         }
         return true;
       } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/auth/login');
+        console.error("Error verifying token:", error);
+        router.push("/auth/login");
         return false;
       }
     };
@@ -64,7 +63,12 @@ const SessionsPage = () => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
       </Box>
     );

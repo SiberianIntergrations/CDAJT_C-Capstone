@@ -1,13 +1,12 @@
-// File: sushi-toshi-frontend/components/employee/Orders.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 const Orders = () => {
   const [orders, setOrders] = useState([]);
 
-    useEffect(() => {
-        const fetchOrders = async () => {
-            const response = await fetch('/api/orders'); // Adjust for the api being used
-            const data = await response.json();
+  useEffect(() => {
+    const fetchOrders = async () => {
+      const response = await fetch("/api/orders"); // Adjust for the api being used
+      const data = await response.json();
       setOrders(data);
     };
 
@@ -26,7 +25,7 @@ const Orders = () => {
           </tr>
         </thead>
         <tbody>
-          {orders.map(order => (
+          {orders.map((order) => (
             <tr key={order.id}>
               <td>{order.tableNumber}</td>
               <td>{order.details}</td>

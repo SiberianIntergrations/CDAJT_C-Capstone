@@ -1,11 +1,10 @@
-// File: sushi-toshi-frontend/components/Tags.jsx
-import { useEffect, useState } from 'react';
-import { Box } from '@mui/material';
-import TagChip from './tags/TagChip';
-import axios from 'axios';
-import { axiosInstance, createApiUrl } from '../config/api';
+import { useEffect, useState } from "react";
+import { Box } from "@mui/material";
+import TagChip from "./tags/TagChip";
+import axios from "axios";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
-const Tags = ({ item_id, size='l' }) => {
+const Tags = ({ item_id, size = "l" }) => {
   const [tags, setTags] = useState([]);
   const [error, setError] = useState(null);
 
@@ -21,7 +20,7 @@ const Tags = ({ item_id, size='l' }) => {
       try {
         const token = getToken();
         if (!token) {
-          setError('No authentication token found');
+          setError("No authentication token found");
           return;
         }
 
@@ -39,8 +38,8 @@ const Tags = ({ item_id, size='l' }) => {
           setError(null);
         }
       } catch (error) {
-        console.error('Error fetching tags:', error);
-        setError('Failed to load tags');
+        console.error("Error fetching tags:", error);
+        setError("Failed to load tags");
       }
     };
 
@@ -49,25 +48,21 @@ const Tags = ({ item_id, size='l' }) => {
     }
   }, [item_id]);
 
-  if (error) return null; 
+  if (error) return null;
   if (!tags.length) return null;
 
   return (
     <Box
       sx={{
-        display: 'flex',
-        flexWrap: 'wrap',
+        display: "flex",
+        flexWrap: "wrap",
         gap: 0.5,
         mt: 0.5,
-        maxWidth: '100%'
+        maxWidth: "100%",
       }}
     >
       {tags.map((tag) => (
-        <TagChip 
-          key={tag.tag_id} 
-          tag={tag} 
-          size={size}
-        />
+        <TagChip key={tag.tag_id} tag={tag} size={size} />
       ))}
     </Box>
   );

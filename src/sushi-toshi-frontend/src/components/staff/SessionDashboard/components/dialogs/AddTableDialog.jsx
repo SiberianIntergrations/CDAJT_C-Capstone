@@ -1,6 +1,5 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/dialogs/AddTableDialog.jsx
-import { useState, useEffect } from 'react';
-import { axiosInstance, createApiUrl } from '../../../../../config/api';
+import { useState, useEffect } from "react";
+import { axiosInstance, createApiUrl } from "@/config/api";
 import {
   Dialog,
   DialogTitle,
@@ -12,14 +11,14 @@ import {
   Select,
   MenuItem,
   IconButton,
-  Typography
-} from '@mui/material';
-import { X } from 'lucide-react';
-import { useSession } from '../../context/SessionContext';
+  Typography,
+} from "@mui/material";
+import { X } from "lucide-react";
+import { useSession } from "../../context/SessionContext";
 
 const AddTableDialog = ({ open, sessionId, onClose }) => {
   const { addTable } = useSession();
-  const [selectedTable, setSelectedTable] = useState('');
+  const [selectedTable, setSelectedTable] = useState("");
   const [availableTables, setAvailableTables] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -28,7 +27,7 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
     if (open) {
       fetchTables();
     } else {
-      setSelectedTable('');
+      setSelectedTable("");
       setError(null);
     }
   }, [open]);
@@ -37,64 +36,68 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // First, get all active tables
-      const tablesResponse = await axiosInstance.get(createApiUrl('/table-entities'));
+      const tablesResponse = await axiosInstance.get(
+        createApiUrl("/table-entities")
+      );
       const allTables = tablesResponse.data;
-  
+
       // Then, get tables in all active sessions
-      const sessionsResponse = await axiosInstance.get(createApiUrl('/dashboard/sessions'));
+      const sessionsResponse = await axiosInstance.get(
+        createApiUrl("/dashboard/sessions")
+      );
       const activeSessions = sessionsResponse.data;
-  
+
       // Gather all tables in use across all sessions
       const tablesInUse = new Set();
-      activeSessions.forEach(session => {
-        session.table_numbers.forEach(tableNum => {
+      activeSessions.forEach((session) => {
+        session.table_numbers.forEach((tableNum) => {
           tablesInUse.add(tableNum);
         });
       });
-  
+
       // Filter out tables that are active and not in use in any session
-      const availableTables = allTables.filter(table => 
-        table.is_active && !tablesInUse.has(table.table_number)
+      const availableTables = allTables.filter(
+        (table) => table.is_active && !tablesInUse.has(table.table_number)
       );
-  
+
       setAvailableTables(availableTables);
     } catch (err) {
-      console.error('Error fetching tables:', err);
-      setError('Failed to load available tables');
+      console.error("Error fetching tables:", err);
+      setError("Failed to load available tables");
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   const handleSubmit = async () => {
     if (!sessionId || !selectedTable) return;
-    
+
     try {
       const success = await addTable(sessionId, selectedTable);
       if (success) {
         // Remove the selected table from the available tables list
-        setAvailableTables(prevTables =>
-          prevTables.filter(table => table.table_id !== selectedTable)
+        setAvailableTables((prevTables) =>
+          prevTables.filter((table) => table.table_id !== selectedTable)
         );
-        
+
         // Reset the selected table
-        setSelectedTable('');
+        setSelectedTable("");
         onClose();
       }
     } catch (err) {
-      setError('Failed to add table');
+      setError("Failed to add table");
     }
   };
-  
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth>
       <DialogTitle>
         Add Table to Session
         <IconButton
           onClick={onClose}
-          sx={{ position: 'absolute', right: 8, top: 8 }}
+          sx={{ position: "absolute", right: 8, top: 8 }}
         >
           <X />
         </IconButton>
@@ -115,7 +118,7 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
           >
             {availableTables.length === 0 ? (
               <MenuItem disabled value="">
-                {isLoading ? 'Loading tables...' : 'No available tables'}
+                {isLoading ? "Loading tables..." : "No available tables"}
               </MenuItem>
             ) : (
               availableTables.map((table) => (
@@ -129,7 +132,7 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button 
+        <Button
           onClick={handleSubmit}
           variant="contained"
           disabled={!selectedTable || isLoading}

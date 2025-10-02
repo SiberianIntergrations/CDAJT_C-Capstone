@@ -1,10 +1,17 @@
-// File: sushi-toshi-frontend/components/auth/ResetPasswordForm.jsx
 import React, { useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Button, TextField, Typography, Paper, Alert, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Paper,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
 import { KeyRound } from "lucide-react";
-import { axiosInstance, createApiUrl } from "../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const ResetPasswordForm = () => {
   const router = useRouter();
@@ -53,22 +60,64 @@ const ResetPasswordForm = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'gray.100', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 1 }}>
-      <Paper sx={{ padding: 1, width: '100%', maxWidth: 400, backgroundColor: 'white', borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-          <KeyRound className="w-12 h-12 text-primary" sx={{ fontSize: 48, color: 'primary.main' }} />
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundColor: "gray.100",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 1,
+      }}
+    >
+      <Paper
+        sx={{
+          padding: 1,
+          width: "100%",
+          maxWidth: 400,
+          backgroundColor: "white",
+          borderRadius: 2,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 3,
+          }}
+        >
+          <KeyRound
+            className="w-12 h-12 text-primary"
+            sx={{ fontSize: 48, color: "primary.main" }}
+          />
 
-          <Typography component="h1" sx={{ fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'center' }}>
+          <Typography
+            component="h1"
+            sx={{
+              fontSize: "1.25rem",
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
+          >
             Set New Password
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: '100%', marginBottom: 2 }}>
+            <Alert severity="error" sx={{ width: "100%", marginBottom: 2 }}>
               {error}
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit} sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <form
+            onSubmit={handleSubmit}
+            sx={{
+              width: "100%",
+              display: "flex",
+              flexDirection: "column",
+              gap: 2,
+            }}
+          >
             <TextField
               label="New Password"
               name="newPassword"
@@ -101,31 +150,31 @@ const ResetPasswordForm = () => {
               sx={{
                 paddingY: 2,
                 marginBottom: 3,
-                backgroundColor: 'red.600',
-                '&:hover': {
-                  backgroundColor: 'red.700',
+                backgroundColor: "red.600",
+                "&:hover": {
+                  backgroundColor: "red.700",
                 },
-                fontSize: '1rem',
+                fontSize: "1rem",
                 height: 56,
-                textTransform: 'none',
+                textTransform: "none",
               }}
             >
               {loading ? (
-                <CircularProgress size={24} sx={{ color: 'white' }} />
+                <CircularProgress size={24} sx={{ color: "white" }} />
               ) : (
                 "Reset Password"
               )}
             </Button>
 
-            <Box sx={{ textAlign: 'center', marginTop: 2 }}>
+            <Box sx={{ textAlign: "center", marginTop: 2 }}>
               <Link href="/auth/login" passHref>
                 <Button
                   sx={{
-                    textTransform: 'none',
-                    fontSize: '0.875rem',
-                    padding: '0.5rem 1rem',
-                    color: 'blue.600',
-                    '&:hover': { color: 'blue.800' },
+                    textTransform: "none",
+                    fontSize: "0.875rem",
+                    padding: "0.5rem 1rem",
+                    color: "blue.600",
+                    "&:hover": { color: "blue.800" },
                   }}
                 >
                   Back to Login

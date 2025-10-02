@@ -1,10 +1,19 @@
-// File: sushi-toshi-frontend/components/auth/RegisterForm.jsx
+"use client";
+
 import React, { useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Button, TextField, Typography, Paper, Alert, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Button,
+  TextField,
+  Typography,
+  Paper,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
 import { UserPlus } from "lucide-react";
-import { axiosInstance, createApiUrl } from "../../config/api"; 
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -31,16 +40,19 @@ const RegisterForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setError('');
-  
+    setError("");
+
     try {
-      const response = await axiosInstance.post(createApiUrl('/auth/register'), {
-        email: formData.email,
-        password: formData.password,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-      });
-  
+      const response = await axiosInstance.post(
+        createApiUrl("/auth/register"),
+        {
+          email: formData.email,
+          password: formData.password,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+        }
+      );
+
       if (response.status === 200) {
         setIsSuccess(true);
         // Reset form fields
@@ -55,47 +67,78 @@ const RegisterForm = () => {
     } catch (err) {
       if (err.response) {
         if (err.response.status === 400) {
-          setError(err.response.data.detail || 'Email already registered');
+          setError(err.response.data.detail || "Email already registered");
         } else if (err.response.status === 422) {
-          const errorMessage = err.response.data.detail?.[0]?.msg || 'Invalid input data';
+          const errorMessage =
+            err.response.data.detail?.[0]?.msg || "Invalid input data";
           setError(errorMessage);
         } else if (err.response.status === 409) {
-          setError('Email already registered');        
+          setError("Email already registered");
         } else {
-          setError('Registration failed. Please try again.');
+          setError("Registration failed. Please try again.");
         }
       } else if (err.request) {
-        setError('No response from server. Please check your connection.');
+        setError("No response from server. Please check your connection.");
       } else {
-        setError('Failed to send registration request.');
+        setError("Failed to send registration request.");
       }
-      console.error('Registration error:', err);
+      console.error("Registration error:", err);
     } finally {
       setSubmitting(false);
     }
   };
-  
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'gray.100', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 1 }}>
-      <Paper sx={{ padding: 1, width: '100%', backgroundColor: 'white', borderRadius: 2 }}>
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
-          <UserPlus sx={{ fontSize: 48, color: 'primary.main' }} />
+    <Box
+      sx={{
+        minHeight: "100vh",
+        backgroundColor: "gray.100",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 1,
+      }}
+    >
+      <Paper
+        sx={{
+          padding: 1,
+          width: "100%",
+          backgroundColor: "white",
+          borderRadius: 2,
+        }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 3,
+          }}
+        >
+          <UserPlus sx={{ fontSize: 48, color: "primary.main" }} />
 
-          <Typography component="h1" sx={{ fontSize: '1.25rem', fontWeight: 'bold', textAlign: 'center' }}>
+          <Typography
+            component="h1"
+            sx={{
+              fontSize: "1.25rem",
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
+          >
             Create Account
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: '100%', marginBottom: 2 }}>
+            <Alert severity="error" sx={{ width: "100%", marginBottom: 2 }}>
               {error}
             </Alert>
           )}
 
           {isSuccess ? (
-            <Box sx={{ width: '100%' }}>
-              <Alert severity="success" sx={{ width: '100%', marginBottom: 2 }}>
-                Registration successful! Please check your email to confirm account creation.
+            <Box sx={{ width: "100%" }}>
+              <Alert severity="success" sx={{ width: "100%", marginBottom: 2 }}>
+                Registration successful! Please check your email to confirm
+                account creation.
               </Alert>
 
               <Button
@@ -103,13 +146,13 @@ const RegisterForm = () => {
                 variant="contained"
                 sx={{
                   paddingY: 2,
-                  backgroundColor: 'primary.main',
-                  '&:hover': {
-                    backgroundColor: 'primary.dark',
+                  backgroundColor: "primary.main",
+                  "&:hover": {
+                    backgroundColor: "primary.dark",
                   },
-                  fontSize: '1rem',
+                  fontSize: "1rem",
                   height: 56,
-                  textTransform: 'none',
+                  textTransform: "none",
                 }}
                 onClick={() => router.push("/auth/login")}
               >
@@ -117,7 +160,15 @@ const RegisterForm = () => {
               </Button>
             </Box>
           ) : (
-            <form onSubmit={handleSubmit} sx={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <form
+              onSubmit={handleSubmit}
+              sx={{
+                width: "100%",
+                display: "flex",
+                flexDirection: "column",
+                gap: 2,
+              }}
+            >
               <TextField
                 label="First Name"
                 name="firstName"
@@ -184,31 +235,31 @@ const RegisterForm = () => {
                 sx={{
                   paddingY: 2,
                   marginBottom: 3,
-                  backgroundColor: 'red.600',
-                  '&:hover': {
-                    backgroundColor: 'red.700',
+                  backgroundColor: "red.600",
+                  "&:hover": {
+                    backgroundColor: "red.700",
                   },
-                  fontSize: '1rem',
+                  fontSize: "1rem",
                   height: 56,
-                  textTransform: 'none',
+                  textTransform: "none",
                 }}
               >
                 {loading ? (
-                  <CircularProgress size={24} sx={{ color: 'white' }} />
+                  <CircularProgress size={24} sx={{ color: "white" }} />
                 ) : (
                   "Register"
                 )}
               </Button>
 
-              <Box sx={{ textAlign: 'center', marginTop: 2 }}>
+              <Box sx={{ textAlign: "center", marginTop: 2 }}>
                 <Link href="/auth/login" passHref>
                   <Button
                     sx={{
-                      textTransform: 'none',
-                      fontSize: '0.875rem',
-                      padding: '0.5rem 1rem',
-                      color: 'blue.600',
-                      '&:hover': { color: 'blue.800' },
+                      textTransform: "none",
+                      fontSize: "0.875rem",
+                      padding: "0.5rem 1rem",
+                      color: "blue.600",
+                      "&:hover": { color: "blue.800" },
                     }}
                   >
                     Already have an account? Sign in

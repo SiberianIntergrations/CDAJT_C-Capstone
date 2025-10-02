@@ -1,7 +1,6 @@
-// File: sushi-toshi-frontend/components/analytics/BrowsingBehavior.jsx
-import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { useRouter } from 'next/router';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useRouter } from "next/navigation";
 
 const BrowsingBehavior = () => {
   const [data, setData] = useState(null);
@@ -11,48 +10,55 @@ const BrowsingBehavior = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const accessToken = localStorage.getItem('access_token');
-      const refreshToken = localStorage.getItem('refresh_token');
-      console.log('Access Token:', accessToken);
-      console.log('Refresh Token:', refreshToken);
+      const accessToken = localStorage.getItem("access_token");
+      const refreshToken = localStorage.getItem("refresh_token");
+      console.log("Access Token:", accessToken);
+      console.log("Refresh Token:", refreshToken);
 
       if (!accessToken || !refreshToken) {
-        setError('No token found');
-        router.push('/auth/login'); 
+        setError("No token found");
+        router.push("/auth/login");
         return;
       }
 
       try {
-        const response = await axios.get('http://127.0.0.1:8000/analytics/browsing-behavior', {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`
+        const response = await axios.get(
+          "http://127.0.0.1:8000/analytics/browsing-behavior",
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           }
-        });
+        );
         setData(response.data);
       } catch (err) {
-        console.error('Error fetching data:', err);
+        console.error("Error fetching data:", err);
         if (err.response && err.response.status === 401) {
           try {
-            const tokenResponse = await axios.post('http://127.0.0.1:8000/auth/refresh', new URLSearchParams({
-              refresh_token: refreshToken,
-              grant_type: 'refresh_token'
-            }), {
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'accept': 'application/json'
-              },
-            });
+            const tokenResponse = await axios.post(
+              "http://127.0.0.1:8000/auth/refresh",
+              new URLSearchParams({
+                refresh_token: refreshToken,
+                grant_type: "refresh_token",
+              }),
+              {
+                headers: {
+                  "Content-Type": "application/x-www-form-urlencoded",
+                  accept: "application/json",
+                },
+              }
+            );
 
             const { access_token } = tokenResponse.data;
-            localStorage.setItem('access_token', access_token);
-            fetchData(); 
+            localStorage.setItem("access_token", access_token);
+            fetchData();
           } catch (refreshErr) {
-            console.error('Error refreshing token:', refreshErr);
-            setError('Session expired, please log in again');
-            router.push('/auth/login'); 
+            console.error("Error refreshing token:", refreshErr);
+            setError("Session expired, please log in again");
+            router.push("/auth/login");
           }
         } else {
-          setError('Failed to fetch data');
+          setError("Failed to fetch data");
         }
       } finally {
         setLoading(false);
@@ -68,7 +74,7 @@ const BrowsingBehavior = () => {
   return (
     <div>
       <h1>Browsing Behavior</h1>
-      
+
       <table>
         <thead>
           <tr>
@@ -79,14 +85,15 @@ const BrowsingBehavior = () => {
           </tr>
         </thead>
         <tbody>
-          {data && data.map((behavior, index) => (
-            <tr key={index}>
-              <td>{behavior.item_id}</td>
-              <td>{behavior.name}</td>
-              <td>{behavior.total_view_seconds}</td>
-              <td>{behavior.total_views}</td>
-            </tr>
-          ))}
+          {data &&
+            data.map((behavior, index) => (
+              <tr key={index}>
+                <td>{behavior.item_id}</td>
+                <td>{behavior.name}</td>
+                <td>{behavior.total_view_seconds}</td>
+                <td>{behavior.total_views}</td>
+              </tr>
+            ))}
         </tbody>
       </table>
     </div>

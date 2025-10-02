@@ -1,5 +1,4 @@
-// File: sushi-toshi-frontend/components/admin/PasswordChangeDialog.jsx
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,9 +8,9 @@ import {
   Button,
   Alert,
   Box,
-  CircularProgress
-} from '@mui/material';
-import { Key } from 'lucide-react';
+  CircularProgress,
+} from "@mui/material";
+import { Key } from "lucide-react";
 
 const PasswordChangeDialog = ({
   open,
@@ -20,47 +19,47 @@ const PasswordChangeDialog = ({
   staffMember = null,
   isLoading = false,
   error = null,
-  token = null
+  token = null,
 }) => {
   const [passwords, setPasswords] = useState({
-    new: '',
-    confirm: ''
+    new: "",
+    confirm: "",
   });
   const [validationError, setValidationError] = useState(null);
 
   const getErrorMessage = (error) => {
     if (!error) return null;
-    
-    if (typeof error === 'string') return error;
-    
+
+    if (typeof error === "string") return error;
+
     if (error.message) return error.message;
-    
+
     if (error.detail) {
       if (Array.isArray(error.detail)) {
-        return error.detail.map(err => err.msg).join(', ');
+        return error.detail.map((err) => err.msg).join(", ");
       }
-      if (typeof error.detail === 'string') {
+      if (typeof error.detail === "string") {
         return error.detail;
       }
     }
 
-    console.log('Error object:', error);
-    
-    return 'An error occurred while resetting the password';
+    console.log("Error object:", error);
+
+    return "An error occurred while resetting the password";
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setPasswords(prev => ({
+    setPasswords((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
     setValidationError(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-   
+
     if (passwords.new !== passwords.confirm) {
       setValidationError("New passwords don't match");
       return;
@@ -73,18 +72,20 @@ const PasswordChangeDialog = ({
 
     try {
       await onSubmit({
-        new_password: passwords.new
+        new_password: passwords.new,
       });
     } catch (err) {
-      console.error('Password reset error:', err);
-      setValidationError(getErrorMessage(err?.response?.data) || 'Failed to reset password');
+      console.error("Password reset error:", err);
+      setValidationError(
+        getErrorMessage(err?.response?.data) || "Failed to reset password"
+      );
     }
   };
 
   const resetForm = () => {
     setPasswords({
-      new: '',
-      confirm: ''
+      new: "",
+      confirm: "",
     });
     setValidationError(null);
   };
@@ -99,18 +100,20 @@ const PasswordChangeDialog = ({
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Key />
-          Reset Password {staffMember && `for ${staffMember.first_name} ${staffMember.last_name}`}
+          Reset Password{" "}
+          {staffMember &&
+            `for ${staffMember.first_name} ${staffMember.last_name}`}
         </DialogTitle>
-       
+
         <DialogContent>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 2 }}>
             {displayError && (
-              <Alert 
+              <Alert
                 severity="error"
                 onClose={() => setValidationError(null)}
-                sx={{ wordBreak: 'break-word' }}
+                sx={{ wordBreak: "break-word" }}
               >
                 {displayError}
               </Alert>

@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/DashboardSummary.jsx
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -11,7 +10,7 @@ import {
 import { Bell, Plus } from "lucide-react";
 import { keyframes, styled } from "@mui/material/styles";
 import { useSession } from "../context/SessionContext";
-import { axiosInstance, createApiUrl } from "../../../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const pulseAnimation = keyframes`
   0% { transform: scale(1); }

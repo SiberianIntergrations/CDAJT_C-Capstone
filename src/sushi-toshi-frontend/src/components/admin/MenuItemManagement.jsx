@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/admin/MenuItemManagement.jsx
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -28,11 +27,11 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { styled } from "@mui/material/styles";
-import MenuAssignmentDialog from "./MenuAssignmentDialog";
-import TagChip from "../tags/TagChip";
-import TagsDialog from "./TagsDialog";
-import CategoryManagementDialog from "./CategoryManagementDialog";
-import { axiosInstance, createApiUrl } from "../../config/api";
+import MenuAssignmentDialog from "@/components/admin/MenuAssignmentDialog";
+import TagChip from "@/components/tags/TagChip";
+import TagsDialog from "@/components/admin/TagsDialog";
+import CategoryManagementDialog from "@/components/admin/CategoryManagementDialog";
+import { axiosInstance, createApiUrl } from "@/config/api";
 import axios from "axios";
 
 const AddButton = styled(IconButton)(({ theme }) => ({
@@ -77,14 +76,14 @@ const MenuItemManagement = () => {
         { data: itemsData },
         { data: categoriesData },
         { data: menusData },
-        { data: tagsData }
+        { data: tagsData },
       ] = await Promise.all([
-        axiosInstance.get(createApiUrl('/menu-items')),
-        axiosInstance.get(createApiUrl('/categories')),
-        axiosInstance.get(createApiUrl('/menus')),
-        axiosInstance.get(createApiUrl('/tag/colors')),
+        axiosInstance.get(createApiUrl("/menu-items")),
+        axiosInstance.get(createApiUrl("/categories")),
+        axiosInstance.get(createApiUrl("/menus")),
+        axiosInstance.get(createApiUrl("/tag/colors")),
       ]);
-  
+
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setMenus(Array.isArray(menusData) ? menusData : []);
@@ -114,7 +113,7 @@ const MenuItemManagement = () => {
 
   const handleTagAction = async (itemId, tagId, action) => {
     try {
-      console.log(`Performing tag ${action} action...`);  
+      console.log(`Performing tag ${action} action...`);
       if (action === "add") {
         await axiosInstance.post(
           createApiUrl(`/menu-items/${itemId}/tags/${tagId}`)
@@ -152,7 +151,6 @@ const MenuItemManagement = () => {
       console.log("Checking item assignments (api)...");
       const assignments = response.data;
       console.log("Assignments (api):", assignments);
-
 
       if (assignments.length > 0) {
         setError(
@@ -320,37 +318,36 @@ const MenuItemManagement = () => {
     const handleSubmit = async (e) => {
       e.preventDefault();
       setSubmitting(true);
-      
+
       try {
         // Save menu item basic data
-        const url = selectedItem 
+        const url = selectedItem
           ? `/menu-items/${selectedItem.item_id}`
-          : '/menu-items';
-          
+          : "/menu-items";
+
         const savedItem = await axiosInstance({
-          method: selectedItem ? 'PUT' : 'POST',
+          method: selectedItem ? "PUT" : "POST",
           url,
-          data: formData
+          data: formData,
         });
-    
+
         // Handle image upload if there is one
         if (imageFile) {
           const formData = new FormData();
-          formData.append('file', imageFile);
-    
+          formData.append("file", imageFile);
+
           await axiosInstance({
-            method: 'POST',
+            method: "POST",
             url: `/menu-items/${savedItem.data.item_id}/image`,
             data: formData,
             headers: {
-              'Content-Type': 'multipart/form-data'
-            }
+              "Content-Type": "multipart/form-data",
+            },
           });
         }
-    
+
         await fetchData();
         setDialogOpen(false);
-    
       } catch (err) {
         setError(err.response?.data?.detail || err.message);
       } finally {
@@ -577,10 +574,12 @@ const MenuItemManagement = () => {
               headerName: "Name",
               flex: 1,
               minWidth: 200,
-              align: "center", 
-              headerAlign: "left", 
+              align: "center",
+              headerAlign: "left",
               renderCell: (params) => (
-                <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", height: "100%" }}
+                >
                   <Typography>{params.value}</Typography>
                 </Box>
               ),
@@ -605,7 +604,13 @@ const MenuItemManagement = () => {
                   (c) => c.category_id === params.value
                 );
                 return (
-                  <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      height: "100%",
+                    }}
+                  >
                     <Typography>{category?.name || "(No category)"}</Typography>
                   </Box>
                 );
@@ -665,7 +670,9 @@ const MenuItemManagement = () => {
               align: "center",
               headerAlign: "left",
               renderCell: (params) => (
-                <Box sx={{ display: "flex", alignItems: "center", height: "100%" }}>
+                <Box
+                  sx={{ display: "flex", alignItems: "center", height: "100%" }}
+                >
                   <Stack direction="row" spacing={1}>
                     <IconButton
                       onClick={(e) => {

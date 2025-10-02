@@ -1,9 +1,8 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/SessionList.jsx
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Button } from "@mui/material";
 import { useSession } from "../context/SessionContext";
 import SessionCard from "./SessionCard";
-import { axiosInstance, createApiUrl } from "../../../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const SessionList = () => {
   const { sessions, openDialog } = useSession();

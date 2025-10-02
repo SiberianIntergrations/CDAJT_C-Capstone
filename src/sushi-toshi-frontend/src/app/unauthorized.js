@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/pages/unauthorized.js
 import React from "react";
 import Link from "next/link";
 

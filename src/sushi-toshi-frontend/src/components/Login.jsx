@@ -1,8 +1,6 @@
-// File: sushi-toshi-frontend/components/Login.jsx
 import React, { useState } from "react";
 import { TextField, Button, Container, Typography, Alert } from "@mui/material";
 import axios from "axios";
-
 
 export default function Login() {
   const [email, setEmail] = useState("");

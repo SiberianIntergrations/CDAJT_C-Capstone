@@ -1,19 +1,23 @@
-// File: sushi-toshi-frontend/pages/admin/menu-items.js
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import { Box, CircularProgress } from '@mui/material';
-import dynamic from 'next/dynamic';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Head from "next/head";
+import { Box, CircularProgress } from "@mui/material";
+import dynamic from "next/dynamic";
 
 const MenuItemManagement = dynamic(
-  () => import('../../components/admin/MenuItemManagement'),
+  () => import("@/components/admin/MenuItemManagement"),
   {
     loading: () => (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
       </Box>
     ),
-    ssr: false
+    ssr: false,
   }
 );
 
@@ -23,22 +27,22 @@ const MenuItemsPage = () => {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (!token) {
-        router.push('/auth/login');
+        router.push("/auth/login");
         return;
       }
 
       try {
-        const tokenData = JSON.parse(atob(token.split('.')[1]));
-        if (tokenData.role !== 'admin') {
-          router.push('/unauthorized');
+        const tokenData = JSON.parse(atob(token.split(".")[1]));
+        if (tokenData.role !== "admin") {
+          router.push("/unauthorized");
           return;
         }
         setIsLoading(false);
       } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/auth/login');
+        console.error("Error verifying token:", error);
+        router.push("/auth/login");
       }
     };
 
@@ -47,7 +51,12 @@ const MenuItemsPage = () => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
       </Box>
     );
@@ -59,7 +68,7 @@ const MenuItemsPage = () => {
         <title>Menu Item Management | Sushi Toshi</title>
         <meta name="description" content="Manage menu items" />
       </Head>
-      <Box sx={{ width: '100%', minHeight: '100vh' }}>
+      <Box sx={{ width: "100%", minHeight: "100vh" }}>
         <MenuItemManagement />
       </Box>
     </>

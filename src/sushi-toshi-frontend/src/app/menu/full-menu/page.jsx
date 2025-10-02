@@ -1,4 +1,3 @@
-// sushi-toshi-frontend/pages/menu/full-menu.js
 import { useEffect, useState, useRef } from "react";
 import {
   Accordion,
@@ -14,11 +13,11 @@ import {
   Paper,
 } from "@mui/material";
 import { ChevronDown, Search } from "lucide-react";
-import BillSelect from "../../components/customer/OderDashboard/components/BillSelect";
-import OrderSummary from "../../components/customer/OderDashboard/components/OrderSummaryItem";
-import useMenuSearch from "../../components/menu/searchUtils";
-import Tags from "../../components/Tags";
-import { axiosInstance, createApiUrl } from "../../config/api";
+import BillSelect from "@/components/customer/OderDashboard/components/BillSelect";
+import OrderSummary from "@/components/customer/OderDashboard/components/OrderSummaryItem";
+import useMenuSearch from "@/components/menu/searchUtils";
+import Tags from "@/components/Tags";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const SWIPE_THRESHOLD = 50;
 const ANIMATION_DURATION = 300;

@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/admin/StaffList.jsx
 import React from "react";
 import { DataGrid, GridActionsCellItem, GridToolbar } from "@mui/x-data-grid";
 import {

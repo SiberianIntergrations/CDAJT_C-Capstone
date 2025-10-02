@@ -1,6 +1,5 @@
-// File: sushi-toshi-frontend/pages/dashboard/create-order.jsx
-import React, { useState, useEffect } from 'react';
-import { 
+import React, { useState, useEffect } from "react";
+import {
   Box,
   Typography,
   Button,
@@ -8,14 +7,14 @@ import {
   CircularProgress,
   Alert,
   Divider,
-  Stack
-} from '@mui/material';
-import BillSelect from '../../components/customer/OderDashboard/components/BillSelect';
-import { axiosInstance, createApiUrl } from '../../config/api';
+  Stack,
+} from "@mui/material";
+import BillSelect from "@/components/customer/OderDashboard/components/BillSelect";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const CreateOrderPage = () => {
   const [sessionId, setSessionId] = useState(null);
-  const [selectedBillId, setSelectedBillId] = useState('');
+  const [selectedBillId, setSelectedBillId] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,32 +22,29 @@ const CreateOrderPage = () => {
   useEffect(() => {
     const getActiveSession = async () => {
       try {
-        const response = await axiosInstance.get(createApiUrl('/dining-sessions/participants/active-session-id'));
-        if (!response.statusText === 'OK') {
-          throw new Error('Failed to fetch active session');
-        }        
+        const response = await axiosInstance.get(
+          createApiUrl("/dining-sessions/participants/active-session-id")
+        );
+        if (!response.statusText === "OK") {
+          throw new Error("Failed to fetch active session");
+        }
         if (!response.ok) {
-          throw new Error('Failed to fetch active session');
+          throw new Error("Failed to fetch active session");
         }
-    
+
         const data = await response.json();
-        console.log('Response data:', data);
+        console.log("Response data:", data);
 
-        if (typeof data === 'number') {
+        if (typeof data === "number") {
           setSessionId(data);
-        }
-
-        else if (data && data.session_id) {
+        } else if (data && data.session_id) {
           setSessionId(data.session_id);
+        } else {
+          setError("No active session found");
         }
-
-        else {
-          setError('No active session found');
-        }
-    
       } catch (err) {
         setError(err.message);
-        console.error('Error fetching session:', err);
+        console.error("Error fetching session:", err);
       } finally {
         setIsLoading(false);
       }
@@ -60,7 +56,7 @@ const CreateOrderPage = () => {
 
   const handleCreateOrder = async () => {
     if (!sessionId || !selectedBillId) {
-      setError('Please select a bill to create an order');
+      setError("Please select a bill to create an order");
       return;
     }
 
@@ -68,23 +64,22 @@ const CreateOrderPage = () => {
       setIsSubmitting(true);
       setError(null);
 
-      const response = await axiosInstance.post(createApiUrl('/orders'), {
+      const response = await axiosInstance.post(createApiUrl("/orders"), {
         session_id: sessionId,
-        bill_id: selectedBillId
+        bill_id: selectedBillId,
       });
 
-      if (!response.statusText === 'OK') {        
+      if (!response.statusText === "OK") {
         const errorData = response.data;
-        throw new Error(errorData.detail || 'Failed to create order');
+        throw new Error(errorData.detail || "Failed to create order");
       }
 
-      setSelectedBillId('');
-      
-      alert('Order created successfully!');
+      setSelectedBillId("");
 
+      alert("Order created successfully!");
     } catch (err) {
       setError(err.message);
-      console.error('Error creating order:', err);
+      console.error("Error creating order:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +101,11 @@ const CreateOrderPage = () => {
         </Typography>
 
         {error && (
-          <Alert severity="error" className="mb-4" onClose={() => setError(null)}>
+          <Alert
+            severity="error"
+            className="mb-4"
+            onClose={() => setError(null)}
+          >
             {error}
           </Alert>
         )}
@@ -135,7 +134,7 @@ const CreateOrderPage = () => {
             <Button
               variant="outlined"
               onClick={() => {
-                setSelectedBillId('');
+                setSelectedBillId("");
               }}
               disabled={isSubmitting}
             >
@@ -152,7 +151,7 @@ const CreateOrderPage = () => {
                   Creating...
                 </>
               ) : (
-                'Create Order'
+                "Create Order"
               )}
             </Button>
           </Box>
@@ -163,4 +162,3 @@ const CreateOrderPage = () => {
 };
 
 export default CreateOrderPage;
-

@@ -1,5 +1,4 @@
-// File: sushi-toshi-frontend/components/admin/MenuAssignmentDialog.jsx
-import { axiosInstance, createApiUrl } from '../../config/api';
+import { axiosInstance, createApiUrl } from "@/config/api";
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -112,11 +111,13 @@ const MenuAssignmentDialog = ({
     setSubmitting(true);
     try {
       const url = editingAssignment
-        ? createApiUrl(`/menu-item-assignments/${editingAssignment.menu_id}/${selectedItem.item_id}`)
-        : createApiUrl('/menu-item-assignments');
-  
+        ? createApiUrl(
+            `/menu-item-assignments/${editingAssignment.menu_id}/${selectedItem.item_id}`
+          )
+        : createApiUrl("/menu-item-assignments");
+
       const response = await axiosInstance({
-        method: editingAssignment ? 'PUT' : 'POST',
+        method: editingAssignment ? "PUT" : "POST",
         url,
         data: {
           ...formData,
@@ -128,17 +129,19 @@ const MenuAssignmentDialog = ({
           senior_limit: parseInt(formData.senior_limit) || 0,
           tot_limit: parseInt(formData.tot_limit) || 0,
           status: formData.status,
-        }
+        },
       });
-  
+
       if (editingAssignment) {
         setAssignments((prev) =>
-          prev.map((a) => (a.menu_id === response.data.menu_id ? response.data : a))
+          prev.map((a) =>
+            a.menu_id === response.data.menu_id ? response.data : a
+          )
         );
       } else {
         setAssignments((prev) => [...prev, response.data]);
       }
-  
+
       resetForm();
       if (onSuccess) onSuccess();
     } catch (err) {
@@ -182,7 +185,6 @@ const MenuAssignmentDialog = ({
             </IconButton>
           </Stack>
 
-          
           {error && (
             <Alert severity="error" sx={{ mb: 3 }}>
               {error}
@@ -325,7 +327,7 @@ const MenuAssignmentDialog = ({
                     setFormData((prev) => ({
                       ...prev,
                       is_add_on: e.target.checked,
-                      price: e.target.checked ? "0" : prev.price,         
+                      price: e.target.checked ? "0" : prev.price,
                     }))
                   }
                 />
@@ -337,7 +339,7 @@ const MenuAssignmentDialog = ({
               container
               spacing={2}
               sx={{
-                m:0,
+                m: 0,
                 pl: 0,
                 pr: "0.75rem",
                 "& .MuiGrid-item": {
@@ -348,7 +350,7 @@ const MenuAssignmentDialog = ({
             >
               <Grid item xs={6}>
                 <TextField
-                  sx={{pr: 0.75}}
+                  sx={{ pr: 0.75 }}
                   fullWidth
                   label="Adult Limit"
                   type="number"
@@ -362,9 +364,9 @@ const MenuAssignmentDialog = ({
                   inputProps={{ min: 0, max: 99 }}
                 />
               </Grid>
-              <Grid item xs={6} sx={{pr: 0}}>
+              <Grid item xs={6} sx={{ pr: 0 }}>
                 <TextField
-                sx={{pl: 1}}
+                  sx={{ pl: 1 }}
                   fullWidth
                   label="Child Limit"
                   type="number"
@@ -380,7 +382,7 @@ const MenuAssignmentDialog = ({
               </Grid>
               <Grid item xs={6}>
                 <TextField
-                  sx={{pr: .75}}
+                  sx={{ pr: 0.75 }}
                   fullWidth
                   label="Senior Limit"
                   type="number"
@@ -396,7 +398,7 @@ const MenuAssignmentDialog = ({
               </Grid>
               <Grid item xs={6}>
                 <TextField
-                  sx={{pl: 1}}
+                  sx={{ pl: 1 }}
                   fullWidth
                   label="Tot Limit"
                   type="number"

@@ -1,6 +1,5 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/hooks/useSessionData.js
 import { useState, useCallback, useEffect } from "react";
-import { axiosInstance, createApiUrl } from "../../../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 export const useSessionData = (updateTrigger = 0) => {
   const [sessions, setSessions] = useState([]);

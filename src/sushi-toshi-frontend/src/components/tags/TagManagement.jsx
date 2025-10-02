@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/tags/TagManagement.jsx
 import React, { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import { Add as AddIcon, Refresh as RefreshIcon } from "@mui/icons-material";
@@ -26,7 +25,7 @@ import {
 } from "@mui/material";
 import { Plus, Edit, Image as ImageIcon, Trash2, Eye, X } from "lucide-react";
 import { styled } from "@mui/material/styles";
-import { axiosInstance, createApiUrl } from "../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 import TagChip from "./TagChip";
 
 const calculateColorDifference = (color1, color2) => {

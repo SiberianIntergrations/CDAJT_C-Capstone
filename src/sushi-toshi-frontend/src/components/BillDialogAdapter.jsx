@@ -1,14 +1,18 @@
-// File: sushi-toshi-frontend/components/BillDialogAdapter.jsx
-import { useEffect, useState } from 'react';
-import NewBillDialog from './staff/SessionDashboard/components/dialogs/NewBillDialog';
-import { SessionProvider } from './staff/SessionDashboard/context/SessionContext';
-import { axiosInstance, createApiUrl } from '../config/api';
+import { useEffect, useState } from "react";
+import NewBillDialog from "./staff/SessionDashboard/components/dialogs/NewBillDialog";
+import { SessionProvider } from "./staff/SessionDashboard/context/SessionContext";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const SessionContextWrapper = ({ children }) => {
   const [localSessionId, setLocalSessionId] = useState(null);
 
   const createBill = async (sessionId, billData) => {
-    console.log('Creating bill with sessionId:', sessionId, 'and data:', billData);
+    console.log(
+      "Creating bill with sessionId:",
+      sessionId,
+      "and data:",
+      billData
+    );
     try {
       const response = await axiosInstance.post(
         createApiUrl(`/sessions/${sessionId}/bills`),
@@ -17,12 +21,12 @@ const SessionContextWrapper = ({ children }) => {
           adult_count: billData.adultCount,
           child_count: billData.childCount,
           senior_count: billData.seniorCount,
-          tot_count: billData.totCount
+          tot_count: billData.totCount,
         }
       );
       return response.status === 200 || response.status === 201;
     } catch (error) {
-      console.error('Error creating bill:', error);
+      console.error("Error creating bill:", error);
       return false;
     }
   };
@@ -34,17 +38,17 @@ const SessionContextWrapper = ({ children }) => {
         dialogState: {
           newBill: false,
           addTable: false,
-          currentSessionId: localSessionId
+          currentSessionId: localSessionId,
         },
-        openDialog: () => console.log('openDialog called'),
-        closeDialog: () => console.log('closeDialog called'),
-        addTable: async () => console.log('addTable called'),
-        createSession: async () => console.log('createSession called'),
-        closeBill: async () => console.log('closeBill called'),
-        endSession: async () => console.log('endSession called'),
-        refreshData: async () => console.log('refreshData called'),
+        openDialog: () => console.log("openDialog called"),
+        closeDialog: () => console.log("closeDialog called"),
+        addTable: async () => console.log("addTable called"),
+        createSession: async () => console.log("createSession called"),
+        closeBill: async () => console.log("closeBill called"),
+        endSession: async () => console.log("endSession called"),
+        refreshData: async () => console.log("refreshData called"),
         actionError: null,
-        clearActionError: () => console.log('clearActionError called')
+        clearActionError: () => console.log("clearActionError called"),
       }}
     >
       {children}
@@ -61,7 +65,7 @@ const BillDialog = ({ onBillCreated }) => {
     const fetchActiveSession = async () => {
       try {
         const response = await axiosInstance.get(
-          createApiUrl('/dining-sessions/participants/active-session-id')
+          createApiUrl("/dining-sessions/participants/active-session-id")
         );
 
         if (response.data && response.data.session_id) {
@@ -69,13 +73,13 @@ const BillDialog = ({ onBillCreated }) => {
           setError(null);
         }
       } catch (err) {
-        console.error('Error in fetchActiveSession:', err);
+        console.error("Error in fetchActiveSession:", err);
         if (err.response) {
-          setError(err.response.data.detail || 'Error fetching session');
+          setError(err.response.data.detail || "Error fetching session");
         } else if (err.request) {
-          setError('No response received from server');
+          setError("No response received from server");
         } else {
-          setError('Error setting up request');
+          setError("Error setting up request");
         }
       }
     };

@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/Layout.jsx
 import React from "react";
 import { Box, Toolbar } from "@mui/material";
 import AppBarWithTitle from "./AppBarWithTitle";

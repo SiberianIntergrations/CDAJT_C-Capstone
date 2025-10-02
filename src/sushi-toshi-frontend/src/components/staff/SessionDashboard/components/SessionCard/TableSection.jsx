@@ -1,20 +1,18 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/SessionCard/TableSection.jsx
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/SessionCard/TableSection.jsx
-import { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Button, 
-  Chip, 
-  Collapse, 
+import { useState } from "react";
+import {
+  Box,
+  Typography,
+  Button,
+  Chip,
+  Collapse,
   Alert,
   Dialog,
   Stack,
-  CircularProgress
-} from '@mui/material';
-import { TableIcon, AlertTriangle } from 'lucide-react';
-import { useSession } from '../../context/SessionContext';
-import { axiosInstance, createApiUrl } from '../../../../../config/api';
+  CircularProgress,
+} from "@mui/material";
+import { TableIcon, AlertTriangle } from "lucide-react";
+import { useSession } from "../../context/SessionContext";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const TableSection = ({ session }) => {
   const { openDialog, fetchSessions } = useSession();
@@ -32,23 +30,23 @@ const TableSection = ({ session }) => {
 
   const handleRemoveTable = async () => {
     if (!tableToRemove) return;
-    
+
     const { sessionId, tableNum } = tableToRemove;
     setConfirmLoading(true);
     setError(null);
 
     try {
-      const tablesResponse = await axiosInstance.get('/table-entities');
-      
-      if (!tablesResponse.statusText === 'OK') {
-        throw new Error('Failed to fetch tables');
+      const tablesResponse = await axiosInstance.get("/table-entities");
+
+      if (!tablesResponse.statusText === "OK") {
+        throw new Error("Failed to fetch tables");
       }
 
       const tables = tablesResponse.data;
-      const table = tables.find(t => t.table_number === tableNum);
-      
+      const table = tables.find((t) => t.table_number === tableNum);
+
       if (!table) {
-        throw new Error('Table not found');
+        throw new Error("Table not found");
       }
 
       const response = await axiosInstance.delete(
@@ -56,78 +54,78 @@ const TableSection = ({ session }) => {
       );
 
       if (response.status === 204) {
-        setRemovedTableIds(prev => new Set([...prev, tableNum]));
+        setRemovedTableIds((prev) => new Set([...prev, tableNum]));
         await fetchSessions();
         setConfirmDialogOpen(false);
         setTableToRemove(null);
       } else {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to remove table');
+        throw new Error(errorData.detail || "Failed to remove table");
       }
     } catch (err) {
-      console.error('Error removing table:', err);
-      setError(err.message || 'Failed to remove table. Please try again.');
+      console.error("Error removing table:", err);
+      setError(err.message || "Failed to remove table. Please try again.");
     } finally {
       setConfirmLoading(false);
     }
   };
 
   const displayedTables = session.table_numbers.filter(
-    tableNum => !removedTableIds.has(tableNum)
+    (tableNum) => !removedTableIds.has(tableNum)
   );
 
   return (
     <Box sx={{ mt: 4 }}>
       <Collapse in={Boolean(error)}>
-        <Alert
-          severity="error"
-          onClose={() => setError(null)}
-          sx={{ mb: 2 }}
-        >
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
           {error}
         </Alert>
       </Collapse>
 
-      <Box sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        mb: 2,
-        alignItems: 'center'
-      }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          mb: 2,
+          alignItems: "center",
+        }}
+      >
         <Typography
           variant="subtitle2"
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
           }}
         >
           <TableIcon className="w-4 h-4" />
           Tables ({displayedTables.length})
         </Typography>
-       
+
         <Button
           size="small"
           variant="contained"
-          onClick={() => openDialog('addTable', session.session_id)}
+          onClick={() => openDialog("addTable", session.session_id)}
           disabled={session.bills.length > 0 || loading}
           sx={{
             minWidth: 100,
-            backgroundColor: 'primary.main',
-            '&:hover': {
-              backgroundColor: 'primary.dark',
-            }
+            backgroundColor: "primary.main",
+            "&:hover": {
+              backgroundColor: "primary.dark",
+            },
           }}
         >
           Add Table
         </Button>
       </Box>
 
-      <Box sx={{
-        display: 'flex',
-        gap: 1,
-        flexWrap: 'wrap'
-      }}>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1,
+          flexWrap: "wrap",
+        }}
+      >
         {displayedTables.map((tableNum) => (
           <Chip
             key={tableNum}
@@ -140,16 +138,16 @@ const TableSection = ({ session }) => {
             size="small"
             disabled={loading}
             sx={{
-              backgroundColor: 'grey.100',
-              '&:hover': {
-                backgroundColor: 'grey.200',
-              }
+              backgroundColor: "grey.100",
+              "&:hover": {
+                backgroundColor: "grey.200",
+              },
             }}
           />
         ))}
       </Box>
 
-      <Dialog 
+      <Dialog
         open={confirmDialogOpen}
         onClose={() => !confirmLoading && setConfirmDialogOpen(false)}
       >
@@ -158,14 +156,14 @@ const TableSection = ({ session }) => {
             <AlertTriangle color="error" />
             <Typography variant="h6">Remove Table</Typography>
           </Stack>
-          
+
           <Typography mb={3}>
             Are you sure you want to remove Table {tableToRemove?.tableNum}?
             This action cannot be undone.
           </Typography>
 
           <Stack direction="row" spacing={2} justifyContent="flex-end">
-            <Button 
+            <Button
               onClick={() => setConfirmDialogOpen(false)}
               disabled={confirmLoading}
             >
@@ -178,7 +176,7 @@ const TableSection = ({ session }) => {
               disabled={confirmLoading}
               startIcon={confirmLoading && <CircularProgress size={20} />}
             >
-              {confirmLoading ? 'Removing...' : 'Remove Table'}
+              {confirmLoading ? "Removing..." : "Remove Table"}
             </Button>
           </Stack>
 

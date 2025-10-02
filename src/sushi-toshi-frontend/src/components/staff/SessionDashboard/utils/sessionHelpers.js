@@ -1,17 +1,15 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/utils/sessionHelpers.js
-
 /**
  * Format a date to a readable time string
  */
 export const formatTime = (dateString) => {
   try {
     return new Date(dateString).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit'
+      hour: "2-digit",
+      minute: "2-digit",
     });
   } catch (error) {
-    console.error('Error formatting time:', error);
-    return 'Invalid time';
+    console.error("Error formatting time:", error);
+    return "Invalid time";
   }
 };
 
@@ -19,7 +17,9 @@ export const formatTime = (dateString) => {
  * Calculate total guests from a bill
  */
 export const calculateTotalGuests = (bill) => {
-  return bill.adult_count + bill.child_count + bill.senior_count + bill.tot_count;
+  return (
+    bill.adult_count + bill.child_count + bill.senior_count + bill.tot_count
+  );
 };
 
 /**
@@ -27,8 +27,8 @@ export const calculateTotalGuests = (bill) => {
  */
 export const canCloseSession = (session) => {
   // Session can be closed if all bills are closed or cancelled
-  return session.bills.every(bill => 
-    bill.status === 'CLOSED' || bill.status === 'CANCELLED'
+  return session.bills.every(
+    (bill) => bill.status === "CLOSED" || bill.status === "CANCELLED"
   );
 };
 
@@ -45,14 +45,14 @@ export const formatBillName = (bill) => {
  */
 export const getBillStatusColor = (status) => {
   switch (status) {
-    case 'OPEN':
-      return 'primary';
-    case 'CLOSED':
-      return 'default';
-    case 'CANCELLED':
-      return 'error';
+    case "OPEN":
+      return "primary";
+    case "CLOSED":
+      return "default";
+    case "CANCELLED":
+      return "error";
     default:
-      return 'default';
+      return "default";
   }
 };
 
@@ -60,15 +60,16 @@ export const getBillStatusColor = (status) => {
  * Check if a session has any pending bills
  */
 export const hasOpenBills = (session) => {
-  return session.bills.some(bill => bill.status === 'OPEN');
+  return session.bills.some((bill) => bill.status === "OPEN");
 };
 
 /**
  * Check if a session has reached maximum capacity
  */
 export const isAtCapacity = (session, maxCapacity = 20) => {
-  const totalGuests = session.bills.reduce((sum, bill) => 
-    sum + calculateTotalGuests(bill), 0
+  const totalGuests = session.bills.reduce(
+    (sum, bill) => sum + calculateTotalGuests(bill),
+    0
   );
   return totalGuests >= maxCapacity;
 };
@@ -77,9 +78,9 @@ export const isAtCapacity = (session, maxCapacity = 20) => {
  * Get table assignment description
  */
 export const getTableDescription = (tableNumbers) => {
-  if (!tableNumbers || tableNumbers.length === 0) return 'No tables assigned';
+  if (!tableNumbers || tableNumbers.length === 0) return "No tables assigned";
   if (tableNumbers.length === 1) return `Table ${tableNumbers[0]}`;
-  return `Tables ${tableNumbers.join(', ')}`;
+  return `Tables ${tableNumbers.join(", ")}`;
 };
 
 /**
@@ -87,13 +88,13 @@ export const getTableDescription = (tableNumbers) => {
  */
 export const sortBillsByStatus = (bills) => {
   const statusOrder = {
-    'OPEN': 0,
-    'CLOSED': 1,
-    'CANCELLED': 2
+    OPEN: 0,
+    CLOSED: 1,
+    CANCELLED: 2,
   };
 
-  return [...bills].sort((a, b) => 
-    statusOrder[a.status] - statusOrder[b.status]
+  return [...bills].sort(
+    (a, b) => statusOrder[a.status] - statusOrder[b.status]
   );
 };
 
@@ -102,12 +103,12 @@ export const sortBillsByStatus = (bills) => {
  */
 export const formatBillStatus = (status) => {
   switch (status) {
-    case 'OPEN':
-      return 'Active';
-    case 'CLOSED':
-      return 'Completed';
-    case 'CANCELLED':
-      return 'Cancelled';
+    case "OPEN":
+      return "Active";
+    case "CLOSED":
+      return "Completed";
+    case "CANCELLED":
+      return "Cancelled";
     default:
       return status;
   }
@@ -119,10 +120,10 @@ export const formatBillStatus = (status) => {
 export const canRemoveTable = (session, tableNumber) => {
   // Can't remove tables if there are any bills
   if (session.bills && session.bills.length > 0) return false;
-  
+
   // Can't remove the last table
   if (session.table_numbers.length <= 1) return false;
-  
+
   return true;
 };
 
@@ -135,7 +136,7 @@ export const getSessionDuration = (startTime, endTime = null) => {
   const diff = end - start;
   const minutes = Math.floor(diff / 1000 / 60);
   const hours = Math.floor(minutes / 60);
-  
+
   if (hours > 0) {
     return `${hours}h ${minutes % 60}m`;
   }
@@ -146,9 +147,9 @@ export const getSessionDuration = (startTime, endTime = null) => {
  * Format currency amount
  */
 export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD'
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
   }).format(amount);
 };
 
@@ -157,25 +158,24 @@ export const formatCurrency = (amount) => {
  */
 export const validateBillData = (billData) => {
   const errors = {};
-  
+
   if (!billData.billName?.trim()) {
-    errors.billName = 'Bill name is required';
+    errors.billName = "Bill name is required";
   }
 
-  const totalGuests = (
+  const totalGuests =
     (Number(billData.adultCount) || 0) +
     (Number(billData.childCount) || 0) +
     (Number(billData.seniorCount) || 0) +
-    (Number(billData.totCount) || 0)
-  );
+    (Number(billData.totCount) || 0);
 
   if (totalGuests <= 0) {
-    errors.guests = 'At least one guest is required';
+    errors.guests = "At least one guest is required";
   }
 
   return {
     isValid: Object.keys(errors).length === 0,
-    errors
+    errors,
   };
 };
 

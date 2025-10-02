@@ -1,6 +1,5 @@
-// File: sushi-toshi-frontend/components/admin/CategoryManagementDialog.jsx
-import { axiosInstance, createApiUrl } from '../../config/api'; // Adjust path as needed
-import React, { useState, useEffect } from 'react';
+import { axiosInstance, createApiUrl } from "@/config/api"; // Adjust path as needed
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -12,23 +11,23 @@ import {
   Stack,
   Alert,
   CircularProgress,
-  Typography
-} from '@mui/material';
-import { AlertTriangle } from 'lucide-react';
+  Typography,
+} from "@mui/material";
+import { AlertTriangle } from "lucide-react";
 
-const CategoryManagementDialog = ({ 
-  open, 
-  onClose, 
-  selectedCategory, 
-  onSuccess 
+const CategoryManagementDialog = ({
+  open,
+  onClose,
+  selectedCategory,
+  onSuccess,
 }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     adult_limit: 0,
     child_limit: 0,
     senior_limit: 0,
-    tot_limit: 0
+    tot_limit: 0,
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -38,20 +37,20 @@ const CategoryManagementDialog = ({
     if (selectedCategory) {
       setFormData({
         name: selectedCategory.name,
-        description: selectedCategory.description || '',
+        description: selectedCategory.description || "",
         adult_limit: selectedCategory.adult_limit || 0,
         child_limit: selectedCategory.child_limit || 0,
         senior_limit: selectedCategory.senior_limit || 0,
-        tot_limit: selectedCategory.tot_limit || 0
+        tot_limit: selectedCategory.tot_limit || 0,
       });
     } else {
       setFormData({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         adult_limit: 0,
         child_limit: 0,
         senior_limit: 0,
-        tot_limit: 0
+        tot_limit: 0,
       });
     }
   }, [selectedCategory]);
@@ -68,17 +67,14 @@ const CategoryManagementDialog = ({
           formData
         );
       } else {
-        await axiosInstance.post(
-          createApiUrl('/categories'),
-          formData
-        );
+        await axiosInstance.post(createApiUrl("/categories"), formData);
       }
 
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Error saving category:', err);
-      setError(err.response?.data?.detail || 'Failed to save category');
+      console.error("Error saving category:", err);
+      setError(err.response?.data?.detail || "Failed to save category");
     } finally {
       setSubmitting(false);
     }
@@ -93,9 +89,11 @@ const CategoryManagementDialog = ({
       const itemsResponse = await axiosInstance.get(
         createApiUrl(`/categories/${selectedCategory.category_id}/menu-items`)
       );
-      
+
       if (itemsResponse.data && itemsResponse.data.length > 0) {
-        throw new Error('Cannot delete category - it contains menu items. Remove all menu items first.');
+        throw new Error(
+          "Cannot delete category - it contains menu items. Remove all menu items first."
+        );
       }
 
       // Delete the category
@@ -106,7 +104,7 @@ const CategoryManagementDialog = ({
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Error deleting category:', err);
+      console.error("Error deleting category:", err);
       setError(err.response?.data?.detail || err.message);
     } finally {
       setSubmitting(false);
@@ -116,14 +114,9 @@ const CategoryManagementDialog = ({
 
   return (
     <>
-      <Dialog 
-        open={open} 
-        onClose={onClose}
-        maxWidth="sm"
-        fullWidth
-      >
+      <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
         <DialogTitle>
-          {selectedCategory ? 'Edit Category' : 'New Category'}
+          {selectedCategory ? "Edit Category" : "New Category"}
         </DialogTitle>
         <DialogContent>
           <Box component="form" onSubmit={handleSubmit} sx={{ pt: 2 }}>
@@ -132,12 +125,14 @@ const CategoryManagementDialog = ({
                 {error}
               </Alert>
             )}
-            
+
             <Stack spacing={3}>
               <TextField
                 label="Name"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, name: e.target.value }))
+                }
                 required
                 fullWidth
               />
@@ -145,7 +140,12 @@ const CategoryManagementDialog = ({
               <TextField
                 label="Description"
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    description: e.target.value,
+                  }))
+                }
                 multiline
                 rows={3}
                 fullWidth
@@ -156,22 +156,26 @@ const CategoryManagementDialog = ({
                   label="Adult Limit"
                   type="number"
                   value={formData.adult_limit}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    adult_limit: parseInt(e.target.value) || 0 
-                  }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      adult_limit: parseInt(e.target.value) || 0,
+                    }))
+                  }
                   required
                   fullWidth
                 />
-                
+
                 <TextField
                   label="Child Limit"
                   type="number"
                   value={formData.child_limit}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    child_limit: parseInt(e.target.value) || 0 
-                  }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      child_limit: parseInt(e.target.value) || 0,
+                    }))
+                  }
                   required
                   fullWidth
                 />
@@ -182,22 +186,26 @@ const CategoryManagementDialog = ({
                   label="Senior Limit"
                   type="number"
                   value={formData.senior_limit}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    senior_limit: parseInt(e.target.value) || 0 
-                  }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      senior_limit: parseInt(e.target.value) || 0,
+                    }))
+                  }
                   required
                   fullWidth
                 />
-                
+
                 <TextField
                   label="Tot Limit"
                   type="number"
                   value={formData.tot_limit}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    tot_limit: parseInt(e.target.value) || 0 
-                  }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      tot_limit: parseInt(e.target.value) || 0,
+                    }))
+                  }
                   required
                   fullWidth
                 />
@@ -210,13 +218,13 @@ const CategoryManagementDialog = ({
             <Button
               color="error"
               onClick={() => setDeleteDialogOpen(true)}
-              sx={{ mr: 'auto' }}
+              sx={{ mr: "auto" }}
             >
               Delete
             </Button>
           )}
           <Button onClick={onClose}>Cancel</Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             variant="contained"
             disabled={submitting}
@@ -224,9 +232,9 @@ const CategoryManagementDialog = ({
             {submitting ? (
               <CircularProgress size={24} />
             ) : selectedCategory ? (
-              'Save Changes'
+              "Save Changes"
             ) : (
-              'Create Category'
+              "Create Category"
             )}
           </Button>
         </DialogActions>
@@ -242,19 +250,18 @@ const CategoryManagementDialog = ({
             <Typography variant="h6">Confirm Delete</Typography>
           </Stack>
           <Typography mb={3}>
-            Are you sure you want to delete "{selectedCategory?.name}"? This action cannot be undone.
+            Are you sure you want to delete "{selectedCategory?.name}"? This
+            action cannot be undone.
           </Typography>
           <Stack direction="row" spacing={1} justifyContent="flex-end">
-            <Button onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="contained" 
+            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button
+              variant="contained"
               color="error"
               onClick={handleDelete}
               disabled={submitting}
             >
-              {submitting ? <CircularProgress size={24} /> : 'Delete'}
+              {submitting ? <CircularProgress size={24} /> : "Delete"}
             </Button>
           </Stack>
         </Box>

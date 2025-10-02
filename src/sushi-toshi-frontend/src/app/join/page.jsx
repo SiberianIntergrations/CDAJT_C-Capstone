@@ -1,5 +1,5 @@
 import React from "react";
-import QRScanner from "../components/QRScanner";
+import QRScanner from "@/components/QRScanner";
 import { Container, Box, Typography } from "@mui/material";
 
 const Join = () => {

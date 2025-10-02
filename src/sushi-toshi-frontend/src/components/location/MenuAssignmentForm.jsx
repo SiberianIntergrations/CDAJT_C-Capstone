@@ -1,5 +1,4 @@
-// File: sushi-toshi-frontend/components/location/MenuAssignmentForm.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Box,
   DialogTitle,
@@ -12,9 +11,9 @@ import {
   ListItemSecondaryAction,
   IconButton,
   CircularProgress,
-  Alert
-} from '@mui/material';
-import { Trash, Plus } from 'lucide-react';
+  Alert,
+} from "@mui/material";
+import { Trash, Plus } from "lucide-react";
 
 const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
   const [menus, setMenus] = useState([]);
@@ -26,14 +25,14 @@ const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
     const fetchData = async () => {
       try {
         const [allMenusRes, assignedMenusRes] = await Promise.all([
-          axiosInstance.get('/menus'),
-          axiosInstance.get(`/locations/${location.location_id}/menus`)
+          axiosInstance.get("/menus"),
+          axiosInstance.get(`/locations/${location.location_id}/menus`),
         ]);
-        
+
         setMenus(allMenusRes.data);
         setAssignedMenus(assignedMenusRes.data);
       } catch (err) {
-        setError('Failed to fetch menus');
+        setError("Failed to fetch menus");
         console.error(err);
       } finally {
         setLoading(false);
@@ -46,21 +45,23 @@ const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
   const handleAssign = async (menuId) => {
     try {
       await axiosInstance.post(`/locations/${location.location_id}/menus`, {
-        menu_id: menuId
+        menu_id: menuId,
       });
       setAssignedMenus([...assignedMenus, menuId]);
     } catch (err) {
-      setError('Failed to assign menu');
+      setError("Failed to assign menu");
       console.error(err);
     }
   };
 
   const handleUnassign = async (menuId) => {
     try {
-      await axiosInstance.delete(`/locations/${location.location_id}/menus/${menuId}`);
-      setAssignedMenus(assignedMenus.filter(id => id !== menuId));
+      await axiosInstance.delete(
+        `/locations/${location.location_id}/menus/${menuId}`
+      );
+      setAssignedMenus(assignedMenus.filter((id) => id !== menuId));
     } catch (err) {
-      setError('Failed to unassign menu');
+      setError("Failed to unassign menu");
       console.error(err);
     }
   };
@@ -75,32 +76,30 @@ const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
 
   return (
     <>
-      <DialogTitle>
-        Manage Menus - {location.name}
-      </DialogTitle>
+      <DialogTitle>Manage Menus - {location.name}</DialogTitle>
       <DialogContent>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
-        
+
         <List>
-          {menus.map(menu => (
+          {menus.map((menu) => (
             <ListItem key={menu.menu_id}>
               <ListItemText primary={menu.name} />
               <ListItemSecondaryAction>
                 {assignedMenus.includes(menu.menu_id) ? (
-                  <IconButton 
-                    edge="end" 
+                  <IconButton
+                    edge="end"
                     onClick={() => handleUnassign(menu.menu_id)}
                     color="error"
                   >
                     <Trash size={20} />
                   </IconButton>
                 ) : (
-                  <IconButton 
-                    edge="end" 
+                  <IconButton
+                    edge="end"
                     onClick={() => handleAssign(menu.menu_id)}
                     color="primary"
                   >

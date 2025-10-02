@@ -1,6 +1,5 @@
-// sushi-toshi-frontend/pages/auth/forgot-password.js
-import Head from 'next/head';
-import ForgotPasswordForm from '../../components/auth/ForgotPasswordForm';
+import Head from "next/head";
+import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
 
 export default function ForgotPasswordPage() {
   return (

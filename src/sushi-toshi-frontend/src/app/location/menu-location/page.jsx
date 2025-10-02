@@ -1,10 +1,9 @@
-// File: sushi-toshi-frontend/pages/location/menu-location.js
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
-import Head from 'next/head';
-import { Box, CircularProgress } from '@mui/material';
-import LocationManagement from '../../components/location/LocationManagement';
-import MenuManagement from '../../components/location/MenuManagement';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Head from "next/head";
+import { Box, CircularProgress } from "@mui/material";
+import LocationManagement from "@/components/location/LocationManagement";
+import MenuManagement from "@/components/location/MenuManagement";
 
 const LocationPage = () => {
   const router = useRouter();
@@ -12,24 +11,24 @@ const LocationPage = () => {
 
   useEffect(() => {
     const checkAuth = () => {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem("access_token");
       if (!token) {
-        router.push('/auth/login');
+        router.push("/auth/login");
         return;
       }
 
       try {
-        const tokenData = JSON.parse(atob(token.split('.')[1]));
-        if (tokenData.role !== 'admin') {
-          router.push('/unauthorized');
+        const tokenData = JSON.parse(atob(token.split(".")[1]));
+        if (tokenData.role !== "admin") {
+          router.push("/unauthorized");
           return;
         }
       } catch (error) {
-        console.error('Error verifying token:', error);
-        router.push('/auth/login');
+        console.error("Error verifying token:", error);
+        router.push("/auth/login");
         return;
       }
-      
+
       setIsLoading(false);
     };
 
@@ -38,7 +37,12 @@ const LocationPage = () => {
 
   if (isLoading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
         <CircularProgress />
       </Box>
     );

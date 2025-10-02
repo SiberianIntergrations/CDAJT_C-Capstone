@@ -1,29 +1,28 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/dialogs/DialogContainer.jsx
-import { useSession } from '../../context/SessionContext';
-import NewSessionDialog from './NewSessionDialog';
-import AddTableDialog from './AddTableDialog';
-import NewBillDialog from './NewBillDialog';
+import { useSession } from "../../context/SessionContext";
+import NewSessionDialog from "./NewSessionDialog";
+import AddTableDialog from "./AddTableDialog";
+import NewBillDialog from "./NewBillDialog";
 
 const DialogContainer = () => {
   const { dialogState, closeDialog } = useSession();
 
   return (
     <>
-      <NewSessionDialog 
+      <NewSessionDialog
         open={dialogState?.newSession || false}
-        onClose={() => closeDialog('newSession')}
+        onClose={() => closeDialog("newSession")}
       />
 
-      <AddTableDialog 
+      <AddTableDialog
         open={dialogState?.addTable || false}
         sessionId={dialogState?.currentSessionId}
-        onClose={() => closeDialog('addTable')}
+        onClose={() => closeDialog("addTable")}
       />
 
-      <NewBillDialog 
+      <NewBillDialog
         open={dialogState?.newBill || false}
         sessionId={dialogState?.currentSessionId}
-        onClose={() => closeDialog('newBill')}
+        onClose={() => closeDialog("newBill")}
       />
     </>
   );

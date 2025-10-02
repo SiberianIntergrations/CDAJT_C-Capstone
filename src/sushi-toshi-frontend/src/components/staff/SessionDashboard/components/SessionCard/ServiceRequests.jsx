@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/SessionCard/ServiceRequests.jsx
 import { useState, useEffect, useCallback } from "react";
 import {
   Box,
@@ -9,7 +8,7 @@ import {
   Collapse,
 } from "@mui/material";
 import { Bell, Check, AlertCircle } from "lucide-react";
-import { axiosInstance, createApiUrl } from "../../../../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const ServiceRequests = ({ session, onRequestsUpdate }) => {
   const [requests, setRequests] = useState([]);

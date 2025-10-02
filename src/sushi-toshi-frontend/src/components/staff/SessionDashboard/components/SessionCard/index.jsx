@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/staff/SessionDashboard/components/SessionCard/index.jsx
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Accordion,
@@ -19,7 +18,7 @@ import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";
 import { useSession } from "../../context/SessionContext";
-import { axiosInstance, createApiUrl } from "../../../../../config/api";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const CardWrapper = styled("div")(({ theme }) => ({
   position: "relative",
@@ -123,12 +122,12 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [error, setError] = useState(null);
-  const touchStartX = useRef(null);  
+  const touchStartX = useRef(null);
   const { endSession, actionError, clearActionError } = useSession();
 
   useEffect(() => {
     if (actionError) {
-      console.log('Action error in SessionCard:', actionError);
+      console.log("Action error in SessionCard:", actionError);
       // Optionally show error in a snackbar or other UI element
       setShowConfirm(false);
       setDragX(0);
@@ -141,7 +140,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
         createApiUrl(`/service-requests/by-session/${session.session_id}`)
       );
 
-      if (!response.statusText==="OK") throw new Error("Failed to fetch requests");
+      if (!response.statusText === "OK")
+        throw new Error("Failed to fetch requests");
       const data = response.data;
       setRequests(data);
       setIsBlinking(data.length > 0);
@@ -187,7 +187,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
         createApiUrl(`/service-requests/${requestId}/complete`)
       );
 
-      if (!response.statusText==="OK") throw new Error("Failed to complete request");
+      if (!response.statusText === "OK")
+        throw new Error("Failed to complete request");
       await fetchRequests();
     } catch (error) {
       console.error("Error completing request:", error);
@@ -209,7 +210,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     if (isEnding) return;
 
     try {
@@ -217,7 +218,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
       clearActionError(); // Clear any previous errors
       const success = await endSession(session.session_id);
       if (!success) {
-        console.log('Session end failed, current action error:', actionError);
+        console.log("Session end failed, current action error:", actionError);
       }
     } catch (error) {
       console.error("Error ending session:", error);
@@ -290,61 +291,59 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
         </Alert>
       </Snackbar>
 
-
       {showConfirm && (
         <ConfirmEndButton showConfirm={showConfirm}>
-        <Box
-          sx={{
-            px: 3,
-            width: "100%",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 2, // Adds space between elements
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <Button
-            variant="outlined"
-            onClick={handleCancelEnd}
-            disabled={isEnding}
+          <Box
             sx={{
-              borderColor: "white",
-              color: "white",
-              "&:hover": {
+              px: 3,
+              width: "100%",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 2, // Adds space between elements
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              variant="outlined"
+              onClick={handleCancelEnd}
+              disabled={isEnding}
+              sx={{
                 borderColor: "white",
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-              },
-            }}
-          >
-            Cancel
-          </Button>
-          <Typography
-            sx={{
-              textAlign: "center",
-              color: "white",
-              flexGrow: 1, 
-            }}
-          >
-            End Session #{session.session_id}?
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={handleConfirmEnd}
-            disabled={isEnding}
-            sx={{
-              bgcolor: "white",
-              color: "#C01E2E",
-              "&:hover": {
-                bgcolor: "rgba(255, 255, 255, 0.9)",
-              },
-            }}
-          >
-            {isEnding ? "Ending..." : "Confirm"}
-          </Button>
-        </Box>
-      </ConfirmEndButton>
-      
+                color: "white",
+                "&:hover": {
+                  borderColor: "white",
+                  backgroundColor: "rgba(255, 255, 255, 0.1)",
+                },
+              }}
+            >
+              Cancel
+            </Button>
+            <Typography
+              sx={{
+                textAlign: "center",
+                color: "white",
+                flexGrow: 1,
+              }}
+            >
+              End Session #{session.session_id}?
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={handleConfirmEnd}
+              disabled={isEnding}
+              sx={{
+                bgcolor: "white",
+                color: "#C01E2E",
+                "&:hover": {
+                  bgcolor: "rgba(255, 255, 255, 0.9)",
+                },
+              }}
+            >
+              {isEnding ? "Ending..." : "Confirm"}
+            </Button>
+          </Box>
+        </ConfirmEndButton>
       )}
 
       <StyledAccordion

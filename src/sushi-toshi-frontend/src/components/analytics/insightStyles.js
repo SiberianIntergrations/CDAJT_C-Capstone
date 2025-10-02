@@ -1,5 +1,4 @@
-// File: sushi-toshi-frontend/components/analytics/insightStyles.js
-import styled from 'styled-components';
+import styled from "styled-components";
 
 export const InsightContainer = styled.div`
   animation: fadeIn 2s ease-in-out;
@@ -8,7 +7,7 @@ export const InsightContainer = styled.div`
   border-radius: 8px;
   background-color: #f9f9f9;
   margin-top: 20px;
-  white-space: pre-wrap; 
+  white-space: pre-wrap;
 `;
 
 export const InsightText = styled.p`
@@ -28,7 +27,7 @@ export const AccordionHeader = styled.div`
 `;
 
 export const AccordionContent = styled.div`
-  max-height: ${({ isOpen }) => (isOpen ? '1000px' : '0')};
+  max-height: ${({ isOpen }) => (isOpen ? "1000px" : "0")};
   overflow: hidden;
   transition: max-height 0.3s ease;
 `;
@@ -44,6 +43,6 @@ export const ProgressBar = styled.div`
 export const Progress = styled.div`
   width: ${({ $progress }) => $progress}%;
   height: 10px;
-  background-color: #ff0000; 
+  background-color: #ff0000;
   transition: width 0.3s;
 `;

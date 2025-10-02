@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/location/MenuManagement.jsx
 import { useState, useEffect } from "react";
 import { DataGrid } from "@mui/x-data-grid";
 import {
@@ -15,8 +14,8 @@ import {
 } from "@mui/material";
 import { Edit, Delete, Plus, AlertTriangle, Trash2 } from "lucide-react";
 import { styled } from "@mui/material/styles";
-import MenuForm from "./MenuForm";
-import { axiosInstance, createApiUrl } from "../../config/api";
+import MenuForm from "@/components/location/MenuForm";
+import { axiosInstance, createApiUrl } from "@/config/api";
 
 const MenuManagement = () => {
   const [menus, setMenus] = useState([]);
@@ -77,7 +76,9 @@ const MenuManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await axiosInstance.delete(createApiUrl(`/menus/${menuToDelete.menu_id}`));
+      await axiosInstance.delete(
+        createApiUrl(`/menus/${menuToDelete.menu_id}`)
+      );
       await fetchMenus();
       setDeleteDialogOpen(false);
       setMenuToDelete(null);
@@ -92,7 +93,10 @@ const MenuManagement = () => {
       if (formMode === "create") {
         await axiosInstance.post(createApiUrl("/menus"), formData);
       } else {
-        await axiosInstance.put(createApiUrl(`/menus/${selectedMenu.menu_id}`), formData);
+        await axiosInstance.put(
+          createApiUrl(`/menus/${selectedMenu.menu_id}`),
+          formData
+        );
       }
       await fetchMenus();
       setIsFormOpen(false);

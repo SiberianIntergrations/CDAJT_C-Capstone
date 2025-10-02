@@ -1,4 +1,3 @@
-// File: sushi-toshi-frontend/components/admin/TagsDialog.jsx
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -10,7 +9,7 @@ import {
   Divider,
 } from "@mui/material";
 import { X } from "lucide-react";
-import TagChip from "../tags/TagChip";
+import TagChip from "@/components/tags/TagChip";
 
 const TagsDialog = ({ open, onClose, selectedItem, tags, onTagAction }) => {
   const [selectedTagIds, setSelectedTagIds] = useState(new Set());
