@@ -1,0 +1,214 @@
+// File: sushi-toshi-frontend/components/location/MenuManagement.jsx
+import { useState, useEffect } from "react";
+import { DataGrid } from "@mui/x-data-grid";
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+  Typography,
+  Stack,
+  Alert,
+} from "@mui/material";
+import { Edit, Delete, Plus, AlertTriangle, Trash2 } from "lucide-react";
+import { styled } from "@mui/material/styles";
+import MenuForm from "./MenuForm";
+import { axiosInstance, createApiUrl } from "../../config/api";
+
+const MenuManagement = () => {
+  const [menus, setMenus] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedMenu, setSelectedMenu] = useState(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [menuToDelete, setMenuToDelete] = useState(null);
+
+  const AddButton = styled(IconButton)(({ theme }) => ({
+    backgroundColor: theme.palette.primary.main,
+    color: "white",
+    padding: theme.spacing(1),
+    minWidth: "auto",
+    "&:hover": {
+      backgroundColor: theme.palette.primary.dark,
+    },
+    "& svg": {
+      width: 20,
+      height: 20,
+    },
+  }));
+
+  const fetchMenus = async () => {
+    try {
+      const response = await axiosInstance.get("/menus");
+      setMenus(response.data);
+    } catch (err) {
+      setError("Failed to fetch menus");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMenus();
+  }, []);
+
+  const handleCreate = () => {
+    setSelectedMenu(null);
+    setFormMode("create");
+    setIsFormOpen(true);
+  };
+
+  const handleEdit = (menu) => {
+    setSelectedMenu(menu);
+    setFormMode("edit");
+    setIsFormOpen(true);
+  };
+
+  const handleDeleteClick = (menu) => {
+    setMenuToDelete(menu);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await axiosInstance.delete(createApiUrl(`/menus/${menuToDelete.menu_id}`));
+      await fetchMenus();
+      setDeleteDialogOpen(false);
+      setMenuToDelete(null);
+    } catch (err) {
+      setError("Failed to delete menu");
+      console.error(err);
+    }
+  };
+
+  const handleSubmit = async (formData) => {
+    try {
+      if (formMode === "create") {
+        await axiosInstance.post(createApiUrl("/menus"), formData);
+      } else {
+        await axiosInstance.put(createApiUrl(`/menus/${selectedMenu.menu_id}`), formData);
+      }
+      await fetchMenus();
+      setIsFormOpen(false);
+    } catch (err) {
+      setError("Failed to save menu");
+      console.error(err);
+    }
+  };
+
+  const columns = [
+    { field: "menu_id", headerName: "ID", width: 90 },
+    { field: "name", headerName: "Name", width: 200 },
+    { field: "description", headerName: "Description", width: 300 },
+    {
+      field: "actions",
+      headerName: "Actions",
+      width: 150,
+      renderCell: (params) => (
+        <Stack direction="row" spacing={1}>
+          <IconButton onClick={() => handleEdit(params.row)} size="small">
+            <Edit size={20} />
+          </IconButton>
+          <IconButton
+            onClick={() => handleDeleteClick(params.row)}
+            size="small"
+            color="error"
+          >
+            <Trash2 size={20} />
+          </IconButton>
+        </Stack>
+      ),
+    },
+  ];
+
+  return (
+    <Box pt={2}>
+      <Stack direction="row" justifyContent="left" alignItems="center" mb={2}>
+        <Typography pr={3} variant="h4">
+          Menu Management
+        </Typography>
+        <AddButton onClick={handleCreate}>
+          <Plus />
+        </AddButton>
+      </Stack>
+
+      {error && (
+        <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      <DataGrid
+        rows={menus}
+        columns={columns}
+        loading={loading}
+        getRowId={(row) => row.menu_id}
+        autoHeight
+        disableSelectionOnClick
+        sx={{
+          bgcolor: "background.paper",
+          "& .MuiDataGrid-cell": {
+            display: "flex",
+            alignItems: "center",
+          },
+          "& .MuiDataGrid-cell:focus": {
+            outline: "none",
+          },
+        }}
+      />
+
+      <Dialog
+        open={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <MenuForm
+          initialData={selectedMenu}
+          onSubmit={handleSubmit}
+          onClose={() => setIsFormOpen(false)}
+          mode={formMode}
+        />
+      </Dialog>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <AlertTriangle color="error" size={24} />
+          Confirm Delete
+        </DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the menu "{menuToDelete?.name}"?
+            This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteDialogOpen(false)} variant="outlined">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            autoFocus
+          >
+            Delete Menu
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+};
+
+export default MenuManagement;
