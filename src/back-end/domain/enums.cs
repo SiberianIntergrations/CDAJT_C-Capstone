@@ -1,5 +1,12 @@
 namespace back_end.domain
 {
+    public enum UserStatus
+    {
+        Active,
+        Inactive,
+        Suspended,
+        Deleted
+    }
     public enum UserRoles
     {
         Admin,
