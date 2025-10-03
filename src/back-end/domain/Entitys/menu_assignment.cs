@@ -7,8 +7,13 @@ namespace back_end.domain.Entities
     {
         //Composite Key
         //Foreign Key to Menu ID
+
+        [Column("menu_id")]
+        [ForeignKey(nameof(Menu))]
         public int Menu_Id { get; set; }
 
+        [Column("item_id")]
+        [ForeignKey(nameof(MenuItem))]
         public int Item_Id { get; set; }
 
         public decimal Price { get; set; }
@@ -32,6 +37,12 @@ namespace back_end.domain.Entities
         public int Senior_limit { get; set; }
 
         public int Total_Limit { get; set; }
+
+        public Menu Menu { get; set; } = null!;
+
+        public Menu_Item MenuItem { get; set; } = null!;
+
+
     }
 
 }

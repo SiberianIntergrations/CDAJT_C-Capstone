@@ -41,5 +41,11 @@ namespace back_end.domain.Entities
         
         public bool Is_email_confirmed { get; set; } = false;
 
+
+        public ICollection<SessionOrder> Orders { get; set; } = new List<SessionOrder>();
+        public ICollection<SessionParticipant> SessionParticipants { get; set; } = new List<SessionParticipant>();
+        public ICollection<ServiceRequest> RequestedServices { get; set; } = new List<ServiceRequest>();
+        public ICollection<ServiceRequest> ClaimedServices { get; set; } = new List<ServiceRequest>();
+
     }
 }

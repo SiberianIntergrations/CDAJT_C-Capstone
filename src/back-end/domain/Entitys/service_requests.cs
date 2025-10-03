@@ -8,17 +8,17 @@ namespace back_end.domain.Entities
         [Key]
         public int request_id { get; set; }
 
-        //TODO Forgein keyy to dinning session, session id
+        [ForeignKey(nameof(DiningSession))]
         public int Session_Id { get; set; }
 
-        //TODO Foriegn Key to Table Id
+        [ForeignKey(nameof(Table))]
         public int Table_Id { get; set; }
 
-        //TODO Foreign key to user user id
+        [ForeignKey(nameof(RequestedByUser))]
         public int Request_By { get; set; }
 
-        //TODO Foreign key to User, USer Id
-        public int Claimed_By { get; set; }
+        [ForeignKey(nameof(ClaimedByUser))]
+        public int? Claimed_By { get; set; }
 
         [MaxLength(500)]
         public string Notes { get; set; } = string.Empty;
@@ -27,9 +27,15 @@ namespace back_end.domain.Entities
 
         public DateTime Created_At { get; set; } = DateTime.Now;
 
-        public DateTime Claimed_At { get; set; }
+        public DateTime? Claimed_At { get; set; }
 
-        public DateTime Completed_At { get; set; }
+        public DateTime? Completed_At { get; set; }
+
+
+        public DiningSession DiningSession { get; set; } = null!;
+        public TableEntity Table { get; set; } = null!;
+        public User RequestedByUser { get; set; } = null!;
+        public User? ClaimedByUser { get; set; }
         
 
     }

@@ -13,11 +13,17 @@ namespace back_end.domain.Entities
 
         public string Description { get; set; } = string.Empty;
 
-        //TODO: This will need to be a foreign key to the menu table
+        [ForeignKey(nameof(Category))]
         public int Category_id { get; set; }
         public string? image_url { get; set; }
 
         public MenuItemStatus Status { get; set; } = MenuItemStatus.Available;
+
+
+        public Category Category { get; set; } = null!;
+        public ICollection<MenuItemAssignment> MenuAssignments { get; set; } = new List<MenuItemAssignment>();
+        public ICollection<MenuItemTag> MenuItemTags { get; set; } = new List<MenuItemTag>();
+        public ICollection<OrderItems> OrderItems { get; set; } = new List<OrderItems>();
 
     }
 }

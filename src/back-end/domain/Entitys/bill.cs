@@ -9,8 +9,9 @@ namespace back_end.domain.Entities
         [Key]
         public int Bill_Id { get; set; }
 
-        //Foreign Key to Dinning Session, Session ID
+        [ForeignKey(nameof(DiningSession))]
         public int Session_Id { get; set; }
+
         [MaxLength(255)]
         public string Bill_Name { get; set; } = string.Empty;
 
@@ -22,9 +23,17 @@ namespace back_end.domain.Entities
 
         public int Total_Count { get; set; }
 
-        public DateTime Status { get; set; } = DateTime.Now;
+        public BillStatus Status { get; set; } = BillStatus.Open;
 
-        public DateTime Created_At { get; set; }
+        public DateTime Created_At { get; set; } = DateTime.Now;
+
+        public string? Closed_At { get; set; }
+
+
+        public DiningSession DiningSession { get; set; } = null!;
+        public ICollection<SessionOrder> Orders { get; set; } = new List<SessionOrder>();
+
+
     }
 
 }

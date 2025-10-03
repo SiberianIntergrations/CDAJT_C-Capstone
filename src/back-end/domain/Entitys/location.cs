@@ -27,6 +27,8 @@ namespace back_end.domain.Entities
         
         
         public DateTime Updated_At { get; set; } 
+
+        public ICollection<MenuLocations> MenuLocations { get; set; } = new List<MenuLocations>();
     }
 
 }

@@ -8,14 +8,25 @@ namespace back_end.domain.Entities
     {
         [Key]
         public int Session_Id { get; set; }
-        //TODO Foreign Key Assignment to Menu, Menu.Id
+
+
+        [ForeignKey(nameof(Menu))]
         public int Menu_Id { get; set; }
 
-        public int Started_At { get; set; }
+        public DateTime Started_At { get; set; }
 
-        public int Ended_At { get; set; }
+        public DateTime? Ended_At { get; set; }
 
         public DateTime First_Order_At { get; set; } = DateTime.Now;
+
+
+
+        public Menu Menu { get; set; } = null!;
+        public ICollection<Billing> Bills { get; set; } = new List<Billing>();
+        public ICollection<SessionOrder> Orders { get; set; } = new List<SessionOrder>();
+        public ICollection<SessionParticipant> Participants { get; set; } = new List<SessionParticipant>();
+        public ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
+        public ICollection<Sessions> Sessions { get; set; } = new List<Sessions>();
 
     }
 
