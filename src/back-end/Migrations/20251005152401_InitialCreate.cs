@@ -525,11 +525,11 @@ namespace back_end.Migrations
                 columns: new[] { "User_id", "Created_at", "Email", "First_name", "Is_email_confirmed", "Last_Interaction_at", "Last_name", "Normalized_email", "Password_hash", "Role", "Status" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 1, 21, 39, 37, 656, DateTimeKind.Local).AddTicks(9514), "john.doe@example.com", "John", false, null, "Doe", "JOHN.DOE@EXAMPLE.COM", "hashed_password_1", 2, 0 },
-                    { 2, new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(295), "jane.smith@example.com", "Jane", false, null, "Smith", "JANE.SMITH@EXAMPLE.COM", "hashed_password_2", 1, 0 },
-                    { 3, new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(302), "bob.johnson@example.com", "Bob", false, null, "Johnson", "BOB.JOHNSON@EXAMPLE.COM", "hashed_password_3", 1, 0 },
-                    { 4, new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(304), "alice.wilson@example.com", "Alice", false, null, "Wilson", "ALICE.WILSON@EXAMPLE.COM", "hashed_password_4", 0, 0 },
-                    { 5, new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(307), "mike.brown@example.com", "Mike", false, null, "Brown", "MIKE.BROWN@EXAMPLE.COM", "hashed_password_5", 2, 0 }
+                    { 1, new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(2579), "john.doe@example.com", "John", false, null, "Doe", "JOHN.DOE@EXAMPLE.COM", "hashed_password_1", 2, 0 },
+                    { 2, new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3622), "jane.smith@example.com", "Jane", false, null, "Smith", "JANE.SMITH@EXAMPLE.COM", "hashed_password_2", 1, 0 },
+                    { 3, new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3635), "bob.johnson@example.com", "Bob", false, null, "Johnson", "BOB.JOHNSON@EXAMPLE.COM", "hashed_password_3", 1, 0 },
+                    { 4, new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3638), "alice.wilson@example.com", "Alice", false, null, "Wilson", "ALICE.WILSON@EXAMPLE.COM", "hashed_password_4", 0, 0 },
+                    { 5, new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3641), "mike.brown@example.com", "Mike", false, null, "Brown", "MIKE.BROWN@EXAMPLE.COM", "hashed_password_5", 2, 0 }
                 });
 
             migrationBuilder.InsertData(

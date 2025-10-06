@@ -12,7 +12,7 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationContext))]
-    [Migration("20251002033938_InitialCreate")]
+    [Migration("20251005152401_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -1450,7 +1450,7 @@ namespace back_end.Migrations
                         new
                         {
                             User_id = 1,
-                            Created_at = new DateTime(2025, 10, 1, 21, 39, 37, 656, DateTimeKind.Local).AddTicks(9514),
+                            Created_at = new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(2579),
                             Email = "john.doe@example.com",
                             First_name = "John",
                             Is_email_confirmed = false,
@@ -1463,7 +1463,7 @@ namespace back_end.Migrations
                         new
                         {
                             User_id = 2,
-                            Created_at = new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(295),
+                            Created_at = new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3622),
                             Email = "jane.smith@example.com",
                             First_name = "Jane",
                             Is_email_confirmed = false,
@@ -1476,7 +1476,7 @@ namespace back_end.Migrations
                         new
                         {
                             User_id = 3,
-                            Created_at = new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(302),
+                            Created_at = new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3635),
                             Email = "bob.johnson@example.com",
                             First_name = "Bob",
                             Is_email_confirmed = false,
@@ -1489,7 +1489,7 @@ namespace back_end.Migrations
                         new
                         {
                             User_id = 4,
-                            Created_at = new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(304),
+                            Created_at = new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3638),
                             Email = "alice.wilson@example.com",
                             First_name = "Alice",
                             Is_email_confirmed = false,
@@ -1502,7 +1502,7 @@ namespace back_end.Migrations
                         new
                         {
                             User_id = 5,
-                            Created_at = new DateTime(2025, 10, 1, 21, 39, 37, 657, DateTimeKind.Local).AddTicks(307),
+                            Created_at = new DateTime(2025, 10, 5, 9, 24, 1, 126, DateTimeKind.Local).AddTicks(3641),
                             Email = "mike.brown@example.com",
                             First_name = "Mike",
                             Is_email_confirmed = false,
