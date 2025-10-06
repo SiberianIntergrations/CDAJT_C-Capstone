@@ -61,15 +61,38 @@ const AppBarWithTitle = ({ title }) => {
     const token = localStorage.getItem("access_token");
     if (token) {
       const decoded = decodeJWT(token);
-      if (decoded?.role) {
-        setUserRole(decoded.role);
+      console.log("Decoded JWT:", decoded); // Debug log
+      
+      // Extract role from Microsoft claims format
+      const roleClaimKey = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+      const backendRole = decoded?.[roleClaimKey] || decoded?.role;
+      
+      if (backendRole) {
+        // Map backend role to frontend role format
+        const frontendRole = mapBackendRoleToFrontend(backendRole);
+        console.log("Backend role:", backendRole, "Frontend role:", frontendRole);
+        setUserRole(frontendRole);
         setIsLoggedIn(true);
       } else {
+        console.log("No role found in token, logging out");
         handleLogout();
       }
     } else {
       setIsLoggedIn(false);
       setUserRole(null);
+    }
+  };
+
+  // Helper function to map backend roles to frontend roles
+  const mapBackendRoleToFrontend = (backendRole) => {
+    switch (backendRole?.toLowerCase()) {
+      case 'admin':
+        return 'admin';
+      case 'employee':
+        return 'staff';
+      case 'customer':
+      default:
+        return 'customer';
     }
   };
 
