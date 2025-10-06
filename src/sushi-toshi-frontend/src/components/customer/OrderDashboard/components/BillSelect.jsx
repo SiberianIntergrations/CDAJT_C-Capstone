@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   FormControl,
@@ -16,8 +17,14 @@ const BillSelect = ({ session_id, value, onChange, disabled, message }) => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [lastRefresh, setLastRefresh] = useState(null);
 
+  // TODO: Change to polling or WebSocket for rendering bill updates
+  
+  useEffect(() => {
+    setLastRefresh(new Date().toLocaleTimeString());
+  }, []);
+  
   useEffect(() => {
     const fetchBills = async () => {
       if (!session_id) {
@@ -129,7 +136,7 @@ const BillSelect = ({ session_id, value, onChange, disabled, message }) => {
         color="text.secondary"
         sx={{ display: "block", mt: 0.5, textAlign: "right" }}
       >
-        Last updated: {lastRefresh.toLocaleTimeString()}
+        Last updated: {lastRefresh}
       </Typography>
     </Box>
   );
