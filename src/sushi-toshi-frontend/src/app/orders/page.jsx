@@ -1,3 +1,4 @@
+"use client";
 import React, { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Orders from "@/components/employee/Orders";
@@ -12,8 +13,7 @@ const OrdersPage = ({ user }) => {
   }, [user, router]);
   if (!user || user.role !== "employee") return null;
 
-  return;
-  <Orders />;
+  return <Orders />;
 };
 
 export default OrdersPage;

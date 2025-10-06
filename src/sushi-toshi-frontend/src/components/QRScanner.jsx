@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Box, Typography } from "@mui/material";
-import {Html5Qrcode} from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 
 const QRScanner = ({ onScanSuccess }) => {
   useEffect(() => {
