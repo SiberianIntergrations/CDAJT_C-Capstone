@@ -4,7 +4,16 @@ using back_end.domain.DbContexts;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    //Prevent circular references/infinite loops when reading the JSON
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
+
+//Add Swagger for API testing
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Add Entity Framework and MySQL/MariaDB connection
 builder.Services.AddDbContext<ApplicationContext>(options =>
@@ -31,7 +40,12 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+
+    //Swagger UI found at http://localhost:5264/swagger
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
+
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
