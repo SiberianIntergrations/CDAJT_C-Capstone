@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using back_end.domain;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
@@ -24,7 +25,7 @@ namespace back_end.controllers
             _config = config;
         }
 
-        [HttpPost("create/{_session_id}")]
+        [HttpPost("create_Bill/{_session_id}")]
 
         public async Task<IActionResult> Create_Bill(int _session_id, CreateBill bill_data)
         {
@@ -82,6 +83,54 @@ namespace back_end.controllers
                 return StatusCode(500, "There was a Problem in the Create Bill Method");
             }
 
+        }
+
+        [HttpGet("get_bill/{_session_id}")]
+        public async Task<IActionResult> Get_Bill(int _session_id, int? _table_id = null )
+        {
+            try
+            {
+                var session = await _context.DiningSessions.FirstOrDefaultAsync(ds => ds.Session_Id == _session_id);
+                if (session == null)
+                {
+                    return NotFound(new { message = "Session was not found" });
+                }
+                var billQuery = _context.Billings.Where(b => b.Session_Id == _session_id);
+                if (_table_id.HasValue)
+                {
+                    if (!session.Tables.Any(t => t.Table_Id == _table_id.Value))
+                    {
+                        return BadRequest(new { message = $"Table with ID {_table_id.Value} is not associated with session {_session_id}" });
+                    }
+
+                }
+                var bills = billQuery.OrderByDescending(b => b.Created_At).ToList();
+                if (bills.Count == 0)
+                {
+                    return NotFound(new { message = "No bills found for the specified session" });
+                }
+
+                var billResponses = bills.Select(bill => new BillResponse
+                {
+                    Bill_Id = bill.Bill_Id,
+                    Session_Id = bill.Session_Id,
+                    Bill_Name = bill.Bill_Name ?? string.Empty,
+                    Senior_Count = bill.Senior_Count,
+                    Adult_Count = bill.Adult_Count,
+                    Child_Count = bill.Child_Count,
+                    Total_Count = bill.Total_Count,
+                    Status = bill.Status.ToString(),
+                    Created_At = bill.Created_At,
+                    Closed_At = bill.Closed_At,
+                    Table_Numbers = new List<int>()
+                }).ToList();
+                return Ok(billResponses);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Get Bill: {ex}");
+                return StatusCode(500, "There was a Problem in the Get Bill Method");
+            }
         }
 
     }
