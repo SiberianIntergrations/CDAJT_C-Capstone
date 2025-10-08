@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   Accordion,
@@ -13,7 +14,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import BillSelect from "@/components/customer/OderDashboard/components/BillSelect";
+import BillSelect from "@/components/customer/OrderDashboard/components/BillSelect";
 import { axiosInstance, createApiUrl } from "@/config/api";
 
 const OrdersAccordion = () => {

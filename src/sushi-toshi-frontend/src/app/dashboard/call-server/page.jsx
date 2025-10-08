@@ -1,4 +1,4 @@
-import ServiceRequestForm from "@/components/customer/OderDashboard/components/ServiceRequestForm";
+import ServiceRequestForm from "@/components/customer/OrderDashboard/components/ServiceRequestForm";
 
 const CallServerPage = () => {
   return <ServiceRequestForm />;

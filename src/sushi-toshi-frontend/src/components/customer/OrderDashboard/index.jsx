@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Container, TextField, Button, Typography } from "@mui/material";
-import PendingItemsAccordion from "@/components/customer/OderDashboard/components/PendingItemsAccordion";
+import PendingItemsAccordion from "@/components/customer/OrderDashboard/components/PendingItemsAccordion";
 
 const OrdersPage = () => {
   const [orderId, setOrderId] = useState("");
