@@ -40,6 +40,10 @@ namespace back_end.controllers
             }
             if (isPasswordVerified)
             {
+                ReturnedUser.Last_Interaction_at = DateTime.UtcNow;
+                _context.Users.Update(ReturnedUser);
+                await _context.SaveChangesAsync();
+
                 var token = GenerateJwtToken(ReturnedUser.Email, ReturnedUser.Role.ToString());
                 return Ok(new
                 {

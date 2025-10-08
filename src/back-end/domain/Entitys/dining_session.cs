@@ -23,6 +23,7 @@ namespace back_end.domain.Entities
 
         public Menu Menu { get; set; } = null!;
         public ICollection<Billing> Bills { get; set; } = new List<Billing>();
+        public ICollection<TableEntity> Tables { get; set; } = new List<TableEntity>();
         public ICollection<SessionOrder> Orders { get; set; } = new List<SessionOrder>();
         public ICollection<SessionParticipant> Participants { get; set; } = new List<SessionParticipant>();
         public ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
