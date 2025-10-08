@@ -85,8 +85,8 @@ namespace back_end.controllers
 
         }
 
-        [HttpGet("get_bill/{_session_id}")]
-        public async Task<IActionResult> Get_Bill(int _session_id, int? _table_id = null )
+        [HttpGet("get_bills/{_session_id}")]
+        public async Task<IActionResult> Get_Bills(int _session_id, int? _table_id = null)
         {
             try
             {
@@ -130,6 +130,137 @@ namespace back_end.controllers
             {
                 Console.WriteLine($"Error in Get Bill: {ex}");
                 return StatusCode(500, "There was a Problem in the Get Bill Method");
+            }
+        }
+
+        [HttpGet("get_bill/{_bill_id}")]
+        public async Task<IActionResult> Get_Bill(int _session_id, int _bill_id)
+        {
+            try
+            {
+                var session = await _context.Billings.FirstOrDefaultAsync(ds => ds.Bill_Id == _bill_id && ds.Session_Id == _session_id);
+                if (session == null)
+                {
+                    return NotFound(new { message = "Bill or session was not found" });
+                }
+                return Ok(new BillResponse
+                {
+                    Bill_Id = session.Bill_Id,
+                    Session_Id = session.Session_Id,
+                    Bill_Name = session.Bill_Name ?? string.Empty,
+                    Senior_Count = session.Senior_Count,
+                    Adult_Count = session.Adult_Count,
+                    Child_Count = session.Child_Count,
+                    Total_Count = session.Total_Count,
+                    Status = session.Status.ToString(),
+                    Created_At = session.Created_At,
+                    Closed_At = session.Closed_At,
+                    Table_Numbers = new List<int>()
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Get Bill: {ex}");
+                return StatusCode(500, "There was a Problem in the Get Bill Method");
+            }
+        }
+
+        [HttpPut("close_bill/{_bill_id}")]
+        public async Task<IActionResult> Close_Bill(int _session_id, int _bill_id)
+        {
+            try
+            {
+                var bill = await _context.Billings.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+                if (bill == null)
+                {
+                    return NotFound(new { message = "Bill or session was not found" });
+                }
+                if (bill.Status == BillStatus.Closed)
+                {
+                    return BadRequest(new { message = "Bill is already closed" });
+                }
+                var pendingOrders = await _context.SessionOrders
+                    .Where(o => o.Bill_Id == _bill_id && o.Status == OrderStatus.Pending)
+                    .ToListAsync();
+
+                if (pendingOrders.Any())
+                {
+                    return BadRequest(new { message = "Cannot close bill with pending orders" });
+                }
+                bill.Status = BillStatus.Closed;
+                bill.Closed_At = DateTime.UtcNow.ToString("o");
+                await _context.SaveChangesAsync();
+                await _context.Entry(bill).ReloadAsync();
+                return Ok(new BillResponse
+                {
+                    Bill_Id = bill.Bill_Id,
+                    Session_Id = bill.Session_Id,
+                    Bill_Name = bill.Bill_Name ?? string.Empty,
+                    Senior_Count = bill.Senior_Count,
+                    Adult_Count = bill.Adult_Count,
+                    Child_Count = bill.Child_Count,
+                    Total_Count = bill.Total_Count,
+                    Status = bill.Status.ToString(),
+                    Created_At = bill.Created_At,
+                    Closed_At = bill.Closed_At,
+                    Table_Numbers = new List<int>()
+                });
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Close Bill: {ex}");
+                return StatusCode(500, "There was a Problem in the Close Bill Method");
+            }
+        }
+        [HttpPost("cancel_bill/{_bill_id}")]
+        public async Task<IActionResult> Cancel_Bill(int _session_id, int _bill_id)
+        {
+            try
+            {
+                var bill = await _context.Billings.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+                if (bill == null)
+                {
+                    return NotFound(new { message = "Bill or session was not found" });
+                }
+                if (bill.Status != BillStatus.Open)
+                {
+                    return BadRequest(new { message = $"Can Not Close Bill with Status {bill.Status}" });
+                }
+                var pendingOrders = await _context.SessionOrders
+                    .Where(o => o.Bill_Id == _bill_id && (o.Status == OrderStatus.Pending))
+                    .ToListAsync();
+                if (pendingOrders.Any())
+                {
+                    for (int i = 0; i < pendingOrders.Count; i++)
+                    {
+                        var order = pendingOrders[i];
+                        order.Status = OrderStatus.Cancelled;
+                    }
+                }
+                bill.Status = BillStatus.Cancelled;
+                bill.Closed_At = DateTime.UtcNow.ToString("o");
+                await _context.SaveChangesAsync();
+                await _context.Entry(bill).ReloadAsync();
+                return Ok(new BillResponse
+                {
+                    Bill_Id = bill.Bill_Id,
+                    Session_Id = bill.Session_Id,
+                    Bill_Name = bill.Bill_Name ?? string.Empty,
+                    Senior_Count = bill.Senior_Count,
+                    Adult_Count = bill.Adult_Count,
+                    Child_Count = bill.Child_Count,
+                    Total_Count = bill.Total_Count,
+                    Status = bill.Status.ToString(),
+                    Created_At = bill.Created_At,
+                    Closed_At = bill.Closed_At,
+                    Table_Numbers = new List<int>()
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Cancel Bill: {ex}");
+                return StatusCode(500, "There was a Problem in the Cancel Bill Method");
             }
         }
 
