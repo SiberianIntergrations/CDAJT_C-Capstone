@@ -18,11 +18,13 @@ namespace back_end.controllers
     {
         private readonly ApplicationContext _context;
         private readonly IConfiguration _config;
+        private readonly ILogger<BillController> _logger;
 
-        public BillController(ApplicationContext context, IConfiguration config)
+        public BillController(ApplicationContext context, IConfiguration config, ILogger<BillController> logger)
         {
             _context = context;
             _config = config;
+            _logger = logger;
         }
 
         [HttpPost("create_Bill/{_session_id}")]
@@ -213,7 +215,9 @@ namespace back_end.controllers
                 return StatusCode(500, "There was a Problem in the Close Bill Method");
             }
         }
-        [HttpPost("cancel_bill/{_bill_id}")]
+
+
+         [HttpPost("cancel_bill/{_bill_id}")]
         public async Task<IActionResult> Cancel_Bill(int _session_id, int _bill_id)
         {
             try
@@ -264,6 +268,68 @@ namespace back_end.controllers
             }
         }
 
-    }
+        [HttpGet("active/bills")]
+        public async Task<ActionResult<List<BillResponse>>> GetActiveBills()
+        {
+            try
+            {
+                // Retrieve current user ID from claims (assuming JWT authentication)
+                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "User_Id");
+                var userId = userIdClaim?.Value ?? "Unknown";
 
-}
+                // Get all bills for user's active session using joins
+                var bills = await _context.Billings
+                    .Join(
+                        _context.DiningSessions,
+                        bill => bill.Session_Id,
+                        session => session.Session_Id,
+                        (bill, session) => new { bill, session }
+                    )
+                    .Join(
+                        _context.SessionParticipants,
+                        combined => combined.session.Session_Id,
+                        participant => participant.Session_Id,
+                        (combined, participant) => new { combined.bill, combined.session, participant }
+                    )
+                    .Where(x => 
+                        x.participant.User_Id.ToString() == userId &&
+                        x.participant.Left_At == null &&  // User hasn't left
+                        x.session.Ended_At == null        // Session is active
+                    )
+                    .Select(x => x.bill)
+                    .ToListAsync();
+
+                if (!bills.Any())
+                {
+                    return NotFound(new { detail = "No bills found for active session" });
+                }
+
+                // Convert bills to response model
+                _logger.LogInformation($"Found {bills.Count} bills for user {userId}'s active session");
+
+                var billResponses = bills.Select(bill => new BillResponse
+                {
+                    Bill_Id = bill.Bill_Id,
+                    Session_Id = bill.Session_Id,
+                    Bill_Name = bill.Bill_Name ?? string.Empty,
+                    Senior_Count = bill.Senior_Count,
+                    Adult_Count = bill.Adult_Count,
+                    Child_Count = bill.Child_Count,
+                    Total_Count = bill.Total_Count,
+                    Status = bill.Status.ToString(),
+                    Created_At = bill.Created_At,
+                    Closed_At = bill.Closed_At,
+                    Table_Numbers = new List<int>()
+                }).ToList();
+
+                return Ok(billResponses);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Database error retrieving bills: {ex.Message}");
+                return StatusCode(500, new { detail = "Error retrieving bills" });
+            }
+        }
+        }
+
+    }
