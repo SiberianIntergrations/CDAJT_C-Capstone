@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -14,6 +15,8 @@ import { styled } from "@mui/material/styles";
 import { axiosInstance, createApiUrl } from "@/config/api";
 import NewBillDialog from "@/components/staff/SessionDashboard/components/dialogs/NewBillDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
+
+// TODO: Tots should not be fillable when creating a bill. This is the total count of guests. Adult + Child + Senior should equal Totals.
 
 const AddButton = styled(IconButton)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
