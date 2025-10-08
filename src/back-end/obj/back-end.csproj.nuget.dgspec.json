@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\bunie\\desktop\\fswd\\source\\repos\\capstone\\src\\back-end\\back-end.csproj": {}
+    "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj": {}
   },
   "projects": {
-    "C:\\Users\\bunie\\desktop\\fswd\\source\\repos\\capstone\\src\\back-end\\back-end.csproj": {
+    "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\bunie\\desktop\\fswd\\source\\repos\\capstone\\src\\back-end\\back-end.csproj",
+        "projectUniqueName": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj",
         "projectName": "back-end",
-        "projectPath": "C:\\Users\\bunie\\desktop\\fswd\\source\\repos\\capstone\\src\\back-end\\back-end.csproj",
-        "packagesPath": "C:\\Users\\bunie\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\bunie\\desktop\\fswd\\source\\repos\\capstone\\src\\back-end\\obj\\",
+        "projectPath": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj",
+        "packagesPath": "C:\\Users\\timto\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -21,9 +21,7 @@
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
-        "originalTargetFrameworks": [
-          "net9.0"
-        ],
+        "originalTargetFrameworks": ["net9.0"],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "C:\\Program Files\\dotnet\\library-packs": {},
@@ -36,9 +34,7 @@
           }
         },
         "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
+          "warnAsError": ["NU1605"]
         },
         "restoreAuditProperties": {
           "enableAudit": "true",
@@ -51,6 +47,14 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[9.0.9, )"
+            },
             "Microsoft.EntityFrameworkCore": {
               "target": "Package",
               "version": "[9.0.9, )"
@@ -61,9 +65,17 @@
               "target": "Package",
               "version": "[9.0.9, )"
             },
+            "Microsoft.IdentityModel.Tokens": {
+              "target": "Package",
+              "version": "[8.14.0, )"
+            },
             "Pomelo.EntityFrameworkCore.MySql": {
               "target": "Package",
               "version": "[9.0.0, )"
+            },
+            "Swashbuckle.AspNetCore": {
+              "target": "Package",
+              "version": "[9.0.6, )"
             }
           },
           "imports": [
