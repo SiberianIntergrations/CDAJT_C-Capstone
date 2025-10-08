@@ -19,8 +19,8 @@ import { Cookie } from "next/font/google";
 const LoginForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: "john.doe@example.com",
-    password: "hashed_password_1",
+    email: "jamie2@example.com",
+    password: "somethingCool1",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,9 +65,9 @@ const LoginForm = () => {
       }
     } catch (err) {
       console.error("Login error:", err);
-      console.error("Error response:", err.response);
+      console.error("Error response:", err.request.response);
       setError(
-        err.response?.data?.detail ||
+        err.request.response ||
           "Login failed. Please check your credentials and try again."
       );
     } finally {
