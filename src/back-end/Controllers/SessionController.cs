@@ -69,7 +69,7 @@ namespace back_end.Controllers
                     start = session.Started_At,
                     end = session.Ended_At,
                     firstOrder = session.First_Order_At,
-                    active = session.Ended_At,
+                    active = session.Ended_At == null,
 
                     //Get all the participants in the session with their information
                     guests = session.Participants.Select(s => new
@@ -202,7 +202,8 @@ namespace back_end.Controllers
                     sessionId = sessionInfo.Session_Id,
                     menuName = sessionInfo.Menu.Name,
                     menuId = sessionInfo.Menu_Id,
-                    startedAt = sessionInfo.Participants.Where(s => s.Left_At == null)
+                    startedAt = sessionInfo.Started_At,
+                    participants = sessionInfo.Participants.Where(s => s.Left_At == null)
                                                         .Select(s => new
                                                         {
                                                             userId = s.User_Id,
