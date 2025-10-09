@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -9,7 +10,7 @@ import {
   Divider,
   Stack,
 } from "@mui/material";
-import BillSelect from "@/components/customer/OderDashboard/components/BillSelect";
+import BillSelect from "@/components/customer/OrderDashboard/components/BillSelect";
 import { axiosInstance, createApiUrl } from "@/config/api";
 
 const CreateOrderPage = () => {

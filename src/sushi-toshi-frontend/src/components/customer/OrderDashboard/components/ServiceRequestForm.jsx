@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect } from "react";
-import SendIcon from "@mui/icons-material/Send";
+import SendIcon from '@mui/icons-material/Send';
 import {
   Box,
   Button,
@@ -90,7 +92,7 @@ const ServiceRequestForm = () => {
 
       <Grid container spacing={2} justifyContent="center" mb={3}>
         {commonRequests.map((request) => (
-          <Grid item key={request}>
+          <Grid key={request}>
             <Button variant="outlined" onClick={() => setMessage(request)}>
               {request}
             </Button>

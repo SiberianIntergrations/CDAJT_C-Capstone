@@ -1,3 +1,4 @@
+"use client";
 import Head from "next/head";
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
 
