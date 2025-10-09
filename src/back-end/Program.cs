@@ -54,6 +54,9 @@ builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
+// Add seeders
+builder.Services.AddDatabaseSeeders();
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -124,7 +127,7 @@ app.MapGet("/db-test", async (ApplicationContext context) =>
 // Apply database migrations on startup (optional for development)
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationContext>(); //** Replace <ApplicationContext>(); with <DatabaseSeeder>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {

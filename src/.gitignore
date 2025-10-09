@@ -274,12 +274,13 @@ __pycache__/
 # tools/
 
 ### dotenv ###
-.env
+.env*
 
 ### DotnetCore ###
 # .NET Core build folders
 bin/
 obj/
+dist/
 
 # Common node modules locations
 /node_modules
@@ -622,3 +623,10 @@ FodyWeavers.xsd
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,windows,visualstudiocode,visualstudio,dotnetcore,aspnetcore,venv,dotenv
+
+# Claude-related ignores [project files, output, logs]
+.claude/
+claude.json
+claude.config.json
+claude_output/
+claude_logs/

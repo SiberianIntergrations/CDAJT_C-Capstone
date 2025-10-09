@@ -1,5 +1,19 @@
 @import url("https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;600&family=Montserrat:wght@400;600;700&family=Open+Sans:wght@400;700&display=swap");
 
+:root {
+  --tag-spicy: #99afee;
+  --tag-raw: #feb3b4;
+  --tag-vegetarian: #f1b6c3;
+  --tag-vegan: #d891f1;
+  --tag-gluten-free: #f1a8b9;
+  --tag-cooked: #ddbdf5;
+  --tag-popular: #bafaf4;
+  --tag-chefs-special: #d7f9d4;
+  --tag-contains-shellfish: #f4f1ad;
+  --tag-contains-nuts: #eff6d4;
+}
+
+
 body {
   font-family: "Open Sans", sans-serif;
   margin: 0;
@@ -141,6 +155,25 @@ footer {
 .dropdownMenu a:hover {
   background-color: #f0f0f0;
 }
+
+.tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.tag-spicy { background-color: var(--tag-spicy); }
+.tag-raw { background-color: var(--tag-raw); }
+.tag-vegetarian { background-color: var(--tag-vegetarian); }
+.tag-vegan { background-color: var(--tag-vegan); }
+.tag-gluten-free { background-color: var(--tag-gluten-free); }
+.tag-cooked { background-color: var(--tag-cooked); }
+.tag-popular { background-color: var(--tag-popular); }
+.tag-chefs-special { background-color: var(--tag-chefs-special); }
+.tag-contains-shellfish { background-color: var(--tag-contains-shellfish); }
+.tag-contains-nuts { background-color: var(--tag-contains-nuts); }
 
 table {
   width: 100%;
