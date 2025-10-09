@@ -39,7 +39,7 @@ namespace back_end.controllers
                 {
                     return NotFound(new { message = "Bill or session was not found" });
                 }
-                if (session.Ended_At == null)
+                if (session.Ended_At != null)
                 {
                     return BadRequest(new { message = $"Can not create bill for session that ended {session.Ended_At}" });
                 }
