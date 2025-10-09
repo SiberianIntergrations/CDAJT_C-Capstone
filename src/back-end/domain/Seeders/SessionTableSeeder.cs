@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using back_end.Domain.Entitys;
+using back_end.domain.Entities;
 
-namespace back_end.Domain.Seeders
+namespace back_end.domain.Seeders
 {
     /// <summary>
     /// Seeds the SessionTable association (DiningSession ↔ TableEntity).

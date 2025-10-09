@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using back_end.Domain.Entitys;
+using back_end.domain.Entities;
 
-namespace back_end.Domain.Seeders
+namespace back_end.domain.Seeders
 {
     /// <summary>
     /// Main database seeder orchestrator that coordinates all seeding operations.
@@ -13,16 +13,14 @@ namespace back_end.Domain.Seeders
         private readonly ApplicationDbContext _context;
         private readonly ILogger<DatabaseSeeder> _logger;
 
-        // Existing seeders
         private readonly CategorySeeder _categorySeeder;
         private readonly TagSeeder _tagSeeder;
         private readonly MenuSeeder _menuSeeder;
         private readonly UserSeeder _userSeeder;
         private readonly MenuItemSeeder _menuItemSeeder;
         private readonly TableSeeder _tableSeeder;
+        private readonly LocationSeeder _locationSeeder;
         private readonly DiningSessionSeeder _diningSessionSeeder;
-
-        // NEW: additional seeders
         private readonly SessionTableSeeder _sessionTableSeeder;
         private readonly SessionParticipantSeeder _sessionParticipantSeeder;
         private readonly BillSeeder _billSeeder;
@@ -39,8 +37,8 @@ namespace back_end.Domain.Seeders
             UserSeeder userSeeder,
             MenuItemSeeder menuItemSeeder,
             TableSeeder tableSeeder,
+            LocationSeeder locationSeeder,
             DiningSessionSeeder diningSessionSeeder,
-            // NEW injections
             SessionTableSeeder sessionTableSeeder,
             SessionParticipantSeeder sessionParticipantSeeder,
             BillSeeder billSeeder,
@@ -57,8 +55,8 @@ namespace back_end.Domain.Seeders
             _userSeeder = userSeeder;
             _menuItemSeeder = menuItemSeeder;
             _tableSeeder = tableSeeder;
+            _locationSeeder = locationSeeder;
             _diningSessionSeeder = diningSessionSeeder;
-
             _sessionTableSeeder = sessionTableSeeder;
             _sessionParticipantSeeder = sessionParticipantSeeder;
             _billSeeder = billSeeder;
@@ -85,6 +83,7 @@ namespace back_end.Domain.Seeders
                 _menuSeeder.Seed();                _logger.LogInformation("Menus seeded successfully");
                 _menuItemSeeder.Seed();            _logger.LogInformation("Menu items and assignments seeded successfully");
                 _tableSeeder.Seed();               _logger.LogInformation("Tables seeded successfully");
+                _locationSeeder.Seed();            _logger.LogInformation("Locations seeded successfully");
 
                 // Sessions then session-driven data
                 _diningSessionSeeder.Seed();       _logger.LogInformation("Dining sessions seeded successfully");
@@ -111,7 +110,6 @@ namespace back_end.Domain.Seeders
         {
             try
             {
-                // Existing counts
                 var categories      = _context.Categories.Count();
                 var tags            = _context.Tags.Count();
                 var menus           = _context.Menus.Count();
@@ -121,8 +119,6 @@ namespace back_end.Domain.Seeders
                 var users           = _context.Users.Count();
                 var diningSessions  = _context.DiningSessions.Count();
                 var activeSessions  = _context.DiningSessions.Count(ds => ds.EndedAt == null);
-
-                // NEW: session-related counts (informational logging)
                 var sessionTables       = _context.SessionTables.Count();
                 var participants        = _context.SessionParticipants.Count();
                 var bills               = _context.Bills.Count();
@@ -139,8 +135,6 @@ namespace back_end.Domain.Seeders
                 _logger.LogInformation($"Tables: {tables}");
                 _logger.LogInformation($"Users: {users}");
                 _logger.LogInformation($"Dining Sessions: {diningSessions} (Active: {activeSessions})");
-
-                // NEW logs for extended entities
                 _logger.LogInformation($"SessionTables: {sessionTables}");
                 _logger.LogInformation($"SessionParticipants: {participants}");
                 _logger.LogInformation($"Bills: {bills}");

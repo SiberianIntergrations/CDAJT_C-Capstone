@@ -1,10 +1,10 @@
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using back_end.Domain.Entitys;
-using back_end.Domain.Enums;
+using back_end.domain.Entities;
+using back_end.domain.Enums;
 
-namespace back_end.Domain.Seeders
+namespace back_end.domain.Seeders
 {
     /// <summary>
     /// Seeds bills with guest counts/status, tied to assigned tables and participants.

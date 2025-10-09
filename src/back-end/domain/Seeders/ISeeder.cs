@@ -1,4 +1,4 @@
-namespace back_end.Domain.Seeders
+namespace back_end.domain.Seeders
 {
     /// <summary>
     /// Interface for database seeders.

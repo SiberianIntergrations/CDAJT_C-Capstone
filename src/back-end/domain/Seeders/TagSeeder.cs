@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Logging;
-using back_end.Domain.Entitys;
+using back_end.domain.Entities;
 
-namespace back_end.Domain.Seeders
+namespace back_end.domain.Seeders
 {
     /// <summary>
     /// Seeder for the tags table with initial data.
