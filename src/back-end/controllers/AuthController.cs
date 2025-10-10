@@ -40,7 +40,11 @@ namespace back_end.controllers
             }
             if (isPasswordVerified)
             {
-                var token = GenerateJwtToken(ReturnedUser.Email);
+                ReturnedUser.Last_Interaction_at = DateTime.UtcNow;
+                _context.Users.Update(ReturnedUser);
+                await _context.SaveChangesAsync();
+
+                var token = GenerateJwtToken(ReturnedUser.Email, ReturnedUser.Role.ToString());
                 return Ok(new
                 {
                     access_token = token,
@@ -100,7 +104,7 @@ namespace back_end.controllers
             return Ok(new { message = "User created successfully" });
         }
 
-    private string GenerateJwtToken(string username)
+    private string GenerateJwtToken(string username,string? role = null)
         {
             var securityKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
@@ -110,6 +114,7 @@ namespace back_end.controllers
             {
             new Claim(ClaimTypes.Name, username),
             new Claim(ClaimTypes.Email, username),
+            new Claim(ClaimTypes.Role, role ?? "User"),
             new Claim(JwtRegisteredClaimNames.Sub, username),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };

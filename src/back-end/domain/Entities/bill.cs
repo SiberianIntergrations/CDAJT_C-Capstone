@@ -29,7 +29,6 @@ namespace back_end.domain.Entities
 
         public string? Closed_At { get; set; }
 
-
         public DiningSession DiningSession { get; set; } = null!;
         public ICollection<SessionOrder> Orders { get; set; } = new List<SessionOrder>();
 
