@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\C# 2025 Porting\\src\\back-end\\back-end.csproj": {}
+    "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj": {}
   },
   "projects": {
-    "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\C# 2025 Porting\\src\\back-end\\back-end.csproj": {
+    "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\C# 2025 Porting\\src\\back-end\\back-end.csproj",
+        "projectUniqueName": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj",
         "projectName": "back-end",
-        "projectPath": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\C# 2025 Porting\\src\\back-end\\back-end.csproj",
+        "projectPath": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\back-end.csproj",
         "packagesPath": "C:\\Users\\timto\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\C# 2025 Porting\\src\\back-end\\obj\\",
+        "outputPath": "C:\\Users\\timto\\source\\repo\\Univerisity_of_alberta\\EXSM3938 - CapStone Project\\CSharp 2025 Porting\\src\\back-end\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
