@@ -74,7 +74,7 @@ Thumbs.db
 
 # Created by https://www.toptal.com/developers/gitignore/api/macos,windows,visualstudiocode,visualstudio,dotnetcore,aspnetcore,venv,dotenv
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,windows,visualstudiocode,visualstudio,dotnetcore,aspnetcore,venv,dotenv
-*obj
+*.obj
 
 
 ## Ignore Visual Studio temporary files, build results, and
