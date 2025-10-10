@@ -69,7 +69,7 @@ const RegisterForm = () => {
       if (err.response) {
         console.log(err.request.response);
         if (err.response.status === 400) {
-          setError(err.request.response|| "Password or Email invalid");
+          setError(err.request.response || "Password or Email invalid");
         } else if (err.response.status === 422) {
           const errorMessage =
             err.request.response || "Invalid input data";
