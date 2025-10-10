@@ -19,11 +19,11 @@ const RegisterForm = () => {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    confirmPassword: "",
-    firstName: "",
-    lastName: "",
+    email: "jamie2@example.com",
+    password: "somethingCool1",
+    confirmPassword: "somethingCool1",
+    firstName: "James",
+    lastName: "Smith",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -65,12 +65,14 @@ const RegisterForm = () => {
         });
       }
     } catch (err) {
+      console.error("Registration error:", err);
       if (err.response) {
+        console.log(err.request.response);
         if (err.response.status === 400) {
-          setError(err.response.data.detail || "Email already registered");
+          setError(err.request.response || "Password or Email invalid");
         } else if (err.response.status === 422) {
           const errorMessage =
-            err.response.data.detail?.[0]?.msg || "Invalid input data";
+            err.request.response || "Invalid input data";
           setError(errorMessage);
         } else if (err.response.status === 409) {
           setError("Email already registered");
