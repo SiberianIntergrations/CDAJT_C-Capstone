@@ -13,7 +13,7 @@ import {
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { axiosInstance, createApiUrl } from "@/config/api";
-import { Cookie } from "next/font/google";
+
 
 
 const LoginForm = () => {
@@ -37,7 +37,7 @@ const LoginForm = () => {
     e.preventDefault();
     setError("");
     setLoading(true);
-//http://localhost:5264/api/Auth/login
+
     try {
       console.log("Attempting login...");
       const response = await axiosInstance.post(
