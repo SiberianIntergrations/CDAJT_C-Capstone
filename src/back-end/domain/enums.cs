@@ -1,5 +1,5 @@
 #nullable enable
-namespace back_end.domain.enums
+namespace back_end.domain
 {
     // ==============================
     // User
@@ -59,12 +59,12 @@ namespace back_end.domain.enums
         /// <summary>
         /// Order has been confirmed and is being processed.
         /// </summary>
-        Processing, //** Confirmed
+        Confirmed,
 
         /// <summary>
         /// Order has been fulfilled and delivered.
         /// </summary>
-        Delivered, //** Completed
+        Completed,
 
         /// <summary>
         /// Order has been cancelled by staff or customer.
@@ -105,12 +105,8 @@ namespace back_end.domain.enums
         /// <summary>
         /// Item is currently unavailable.
         /// </summary>
-        Unavailable,
+        Unavailable
 
-        /// <summary>
-        /// Item is seasonal (not always available).
-        /// </summary>
-        Seasonal //** Not in Python enums.py
     }
 
     /// <summary>
@@ -122,11 +118,6 @@ namespace back_end.domain.enums
         /// Bill is active and open.
         /// </summary>
         Open,
-
-        /// <summary>
-        /// Bill has been paid //** (not present in Python enums.py).
-        /// </summary>
-        Paid, //** Not in Python enums.py
 
         /// <summary>
         /// Bill has been fully closed.
