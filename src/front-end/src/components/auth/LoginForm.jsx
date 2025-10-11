@@ -14,8 +14,6 @@ import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { axiosInstance, createApiUrl } from "@/config/api";
 
-
-
 const LoginForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -49,14 +47,14 @@ const LoginForm = () => {
         },
         {
           headers: {
-            "Content-Type": "application/json", 
+            "Content-Type": "application/json",
           },
         }
       );
       console.log("Login response:", response.data);
 
       if (response.data.access_token) {
-        console.log(response.data.access_token)
+        console.log(response.data.access_token);
         localStorage.setItem("access_token", response.data.access_token);
         if (response.data.refresh_token) {
           localStorage.setItem("refresh_token", response.data.refresh_token);
