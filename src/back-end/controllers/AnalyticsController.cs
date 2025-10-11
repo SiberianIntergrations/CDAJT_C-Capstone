@@ -110,8 +110,7 @@ namespace back_end.controllers
             {
                 // Daily turnover query
                 var dailyTurnover = await _context.Bills
-                    .Where(b => b.Closed_At != null &&
-                            (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize)
+                    .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize)
                     .GroupBy(b => new
                     {
                         Day = b.Closed_At.Date,
@@ -128,11 +127,10 @@ namespace back_end.controllers
 
                 // Monthly turnover query
                 var monthlyTurnover = await _context.Bills
-                    .Where(b => b.Closed_At != null &&
-                            (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize)
+                    .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize)
                     .GroupBy(b => new
                     {
-                        Month = new DateTime(b.Closed_At.Year, b.Closed_At.Month, 1), // Added the day parameter
+                        Month = new DateTime(b.Closed_At.Year, b.Closed_At.Month, 1),
                         PartySize = b.Senior_Count + b.Adult_Count + b.Child_Count
                     })
                     .Select(g => new TurnoverMetricDTO
