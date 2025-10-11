@@ -1,0 +1,159 @@
+# Created by https://www.toptal.com/developers/gitignore/api/database
+# Edit at https://www.toptal.com/developers/gitignore?templates=database
+
+# =========================
+# OS junk
+# =========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+*.icloud
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# =========================
+# Editors / IDE
+# =========================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history
+.ionide
+.vs/
+.idea/
+
+# =========================
+# Logs & debug
+# =========================
+*.log
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.vsix
+coverage/
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+.env*.local
+!.env.example
+
+# =========================
+# Databases / local data
+# =========================
+*.accdb
+*.db
+*.dbf
+*.mdb
+*.pdb
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+**/node_modules/
+# Next.js
+**/.next/
+.next/
+out/
+dist/
+build/
+.vercel
+**/.turbo/
+
+# =========================
+# Yarn Berry — Zero-Installs
+# Keep cache/plugins/releases/versions; ignore sdks/unplugged
+# See: https://yarnpkg.com/features/zero-installs
+.yarn/*
+!.yarn/cache
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.yarn/sdks/
+.yarn/unplugged/
+
+# Yarn PnP files should be committed with Zero-Installs
+!.pnp.cjs
+!.pnp.loader.mjs
+
+# =========================
+# TypeScript
+# =========================
+*.tsbuildinfo
+next-env.d.ts
+
+# =========================
+# .NET / Backend
+# =========================
+# Build output (all projects)
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
+
+# Dotnet user files
+*.user
+*.suo
+
+# wwwroot node_modules (if ever used)
+wwwroot/node_modules
+
+# =========================
+# AI tools
+# =========================
+# Claude [Project files; logs; local configs (may contain tokens/secrets); & run outputs]
+**/.claude/
+**/claude_output/
+**/claude_logs/
+**/claude.json
+**/claude.config.json
+
+
+# End of https://www.toptal.com/developers/gitignore/api/windows,linux,macos,dotnetcore,nextjs,react,visualstudiocode

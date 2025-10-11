@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using back_end.domain;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
@@ -229,7 +228,7 @@ namespace back_end.controllers
                 }
                 if (bill.Status != BillStatus.Open)
                 {
-                    return BadRequest(new { message = $"Can Not Close Bill with Status {bill.Status}" });
+                    return BadRequest(new { message = $"Cannot cancel bill with status {bill.Status}" });
                 }
                 var pendingOrders = await _context.SessionOrders
                     .Where(o => o.Bill_Id == _bill_id && (o.Status == OrderStatus.Pending))
