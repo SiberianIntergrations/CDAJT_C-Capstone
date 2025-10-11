@@ -15,11 +15,11 @@ namespace back_end.controllers
 
     public class BillController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly IConfiguration _config;
         private readonly ILogger<BillController> _logger;
 
-        public BillController(ApplicationContext context, IConfiguration config, ILogger<BillController> logger)
+        public BillController(ApplicationDbContext context, IConfiguration config, ILogger<BillController> logger)
         {
             _context = context;
             _config = config;
@@ -60,7 +60,7 @@ namespace back_end.controllers
                     Total_Count = bill_data.Tot_Count,
                     Status = BillStatus.Open
                 };
-                _context.Billings.Add(NewBill);
+                _context.Bills.Add(NewBill);
                 await _context.SaveChangesAsync();
                 await _context.Entry(NewBill).ReloadAsync();
                 return Ok(new BillResponse
@@ -96,7 +96,7 @@ namespace back_end.controllers
                 {
                     return NotFound(new { message = "Session was not found" });
                 }
-                var billQuery = _context.Billings.Where(b => b.Session_Id == _session_id);
+                var billQuery = _context.Bills.Where(b => b.Session_Id == _session_id);
                 if (_table_id.HasValue)
                 {
                     if (!session.Tables.Any(t => t.Table_Id == _table_id.Value))
@@ -139,7 +139,7 @@ namespace back_end.controllers
         {
             try
             {
-                var session = await _context.Billings.FirstOrDefaultAsync(ds => ds.Bill_Id == _bill_id && ds.Session_Id == _session_id);
+                var session = await _context.Bills.FirstOrDefaultAsync(ds => ds.Bill_Id == _bill_id && ds.Session_Id == _session_id);
                 if (session == null)
                 {
                     return NotFound(new { message = "Bill or session was not found" });
@@ -171,7 +171,7 @@ namespace back_end.controllers
         {
             try
             {
-                var bill = await _context.Billings.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+                var bill = await _context.Bills.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
                 if (bill == null)
                 {
                     return NotFound(new { message = "Bill or session was not found" });
@@ -221,7 +221,7 @@ namespace back_end.controllers
         {
             try
             {
-                var bill = await _context.Billings.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+                var bill = await _context.Bills.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
                 if (bill == null)
                 {
                     return NotFound(new { message = "Bill or session was not found" });
@@ -277,7 +277,7 @@ namespace back_end.controllers
                 var userId = userIdClaim?.Value ?? "Unknown";
 
                 // Get all bills for user's active session using joins
-                var bills = await _context.Billings
+                var bills = await _context.Bills
                     .Join(
                         _context.DiningSessions,
                         bill => bill.Session_Id,

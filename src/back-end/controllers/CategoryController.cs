@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using back_end.domain.DbContexts;
+using back_end.domain.DbContexts; // Ensure this is the correct namespace for ApplicationContext
 using back_end.domain.Entities;
 using back_end.DTO.Category;
 using Microsoft.AspNetCore.Http.Features;
+
 
 namespace back_end.Controllers
 {
@@ -12,10 +13,10 @@ namespace back_end.Controllers
 
     public class CategoryController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<CategoryController> _logger;
 
-        public CategoryController(ApplicationContext context, ILogger<CategoryController> logger)
+        public CategoryController(ApplicationDbContext context, ILogger<CategoryController> logger)
         {
             _context = context;
             _logger = logger;

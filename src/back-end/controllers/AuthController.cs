@@ -17,10 +17,10 @@ namespace back_end.controllers
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly IConfiguration _config;
 
-        public AuthController(ApplicationContext context, IConfiguration config)
+        public AuthController(ApplicationDbContext context, IConfiguration config)
         {
             _context = context;
             _config = config;
