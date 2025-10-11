@@ -1,7 +1,88 @@
 # Created by https://www.toptal.com/developers/gitignore/api/database
 # Edit at https://www.toptal.com/developers/gitignore?templates=database
 
-### Database ###
+# =========================
+# OS junk
+# =========================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+*.icloud
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# =========================
+# Editors / IDE
+# =========================
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+.history
+.ionide
+.vs/
+.idea/
+
+# =========================
+# Logs & debug
+# =========================
+*.log
+logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.vsix
+coverage/
+
+# =========================
+# Environment files
+# =========================
+.env
+.env.*
+.env*.local
+!.env.example
+
+# =========================
+# Databases / local data
+# =========================
 *.accdb
 *.db
 *.dbf
@@ -11,160 +92,68 @@
 *.db-shm
 *.db-wal
 
-# End of https://www.toptal.com/developers/gitignore/api/database
-
-# Created by https://www.toptal.com/developers/gitignore/api/windows,linux,macos,dotnetcore,nextjs,react,visualstudiocode
-# Edit at https://www.toptal.com/developers/gitignore?templates=windows,linux,macos,dotnetcore,nextjs,react,visualstudiocode
-
-### DotnetCore ###
-# .NET Core build folders
-bin/
-obj/
-
-# Common node modules locations
-/node_modules
-/wwwroot/node_modules
-
-### Linux ###
-*~
-
-# temporary files which can be created if a process still has a handle open of a deleted file
-.fuse_hidden*
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-# .nfs files are created when an open file is removed but is still being accessed
-.nfs*
-
-### macOS ###
-# General
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Icon must end with two \r
-Icon
-
-# Thumbnails
-._*
-
-# Files that might appear in the root of a volume
-.DocumentRevisions-V100
-.fseventsd
-.Spotlight-V100
-.TemporaryItems
-.Trashes
-.VolumeIcon.icns
-.com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
-.AppleDB
-.AppleDesktop
-Network Trash Folder
-Temporary Items
-.apdisk
-
-### macOS Patch ###
-# iCloud generated files
-*.icloud
-
-### NextJS ###
-# dependencies
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
+# =========================
+# Node / Frontend
+# =========================
+node_modules/
+**/node_modules/
+# Next.js
 **/.next/
-/out/
-
-# production
-/build
-
-# misc
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-
-# local env files
-.env*.local
-
-# vercel
+.next/
+out/
+dist/
+build/
 .vercel
+**/.turbo/
 
-# typescript
+# =========================
+# Yarn Berry — Zero-Installs
+# Keep cache/plugins/releases/versions; ignore sdks/unplugged
+# See: https://yarnpkg.com/features/zero-installs
+.yarn/*
+!.yarn/cache
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.yarn/sdks/
+.yarn/unplugged/
+
+# Yarn PnP files should be committed with Zero-Installs
+!.pnp.cjs
+!.pnp.loader.mjs
+
+# =========================
+# TypeScript
+# =========================
 *.tsbuildinfo
 next-env.d.ts
 
-### react ###
-.DS_*
-*.log
-logs
-**/*.backup.*
-**/*.back.*
+# =========================
+# .NET / Backend
+# =========================
+# Build output (all projects)
+**/bin/
+**/obj/
+**/Debug/
+**/Release/
 
-node_modules
-bower_components
+# Dotnet user files
+*.user
+*.suo
 
-*.sublime*
+# wwwroot node_modules (if ever used)
+wwwroot/node_modules
 
-psd
-thumb
-sketch
+# =========================
+# AI tools
+# =========================
+# Claude [Project files; logs; local configs (may contain tokens/secrets); & run outputs]
+**/.claude/
+**/claude_output/
+**/claude_logs/
+**/claude.json
+**/claude.config.json
 
-### VisualStudioCode ###
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-!.vscode/*.code-snippets
-
-# Local History for Visual Studio Code
-.history/
-
-# Built Visual Studio Code Extensions
-*.vsix
-
-### VisualStudioCode Patch ###
-# Ignore all local history of files
-.history
-.ionide
-
-### Windows ###
-# Windows thumbnail cache files
-Thumbs.db
-Thumbs.db:encryptable
-ehthumbs.db
-ehthumbs_vista.db
-
-# Dump file
-*.stackdump
-
-# Folder config file
-[Dd]esktop.ini
-
-# Recycle Bin used on file shares
-$RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,linux,macos,dotnetcore,nextjs,react,visualstudiocode
