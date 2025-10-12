@@ -1,5 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
+using back_end.domain.Seeders;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +21,44 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add Swagger/OpenAPI services
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Sushi Toshi API",
+        Version = "v1",
+        Description = "API for Sushi Toshi Restaurant Management System"
+    });
+    
+    // Add JWT Authentication to Swagger
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
+    });
+    
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] {}
+        }
+    });
+});
+
 // Add Entity Framework and MySQL/MariaDB connection
 builder.Services.AddDbContext<ApplicationContext>(options =>
 {
@@ -22,15 +66,75 @@ builder.Services.AddDbContext<ApplicationContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 });
 
-// Add CORS policy for frontend development
+// Seeders registration
+builder.Services.AddDatabaseSeeders();
+
+// JWT Auth
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+// Add rate limiting for API protection
+builder.Services.AddRateLimiter(options =>
+{
+    // Fixed window rate limiter for general API calls
+    options.AddFixedWindowLimiter("api", config =>
+    {
+        config.PermitLimit = 100; // 100 requests
+        config.Window = TimeSpan.FromMinutes(1); // per minute
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 5;
+    });
+
+    // Stricter rate limiting for authentication endpoints
+    options.AddFixedWindowLimiter("auth", config =>
+    {
+        config.PermitLimit = 10; // 10 requests
+        config.Window = TimeSpan.FromMinutes(1); // per minute
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 2;
+    });
+
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
+// Add CORS policy (environment-based configuration)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "http://localhost:5173") // Common frontend ports
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            // Development: Allow local frontend ports
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
+        else
+        {
+            // Production: Use specific origins from configuration
+            var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+                ?? Array.Empty<string>();
+
+            policy.WithOrigins(allowedOrigins)
+                  .WithMethods("GET", "POST", "PUT", "DELETE", "PATCH")
+                  .WithHeaders("Content-Type", "Authorization")
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -48,7 +152,48 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseHttpsRedirection();
+=======
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sushi Toshi API v1");
+        c.RoutePrefix = "swagger"; // Access Swagger UI at /swagger
+    });
+}
+else
+{
+    // Global exception handler for production
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+            context.Response.ContentType = "application/json";
+
+            var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+            var exception = exceptionHandlerPathFeature?.Error;
+
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogError(exception, "Unhandled exception occurred");
+
+            await context.Response.WriteAsJsonAsync(new
+            {
+                error = "An unexpected error occurred. Please try again later.",
+                requestId = context.TraceIdentifier
+            });
+        });
+    });
+
+// Enable HTTPS redirection in production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseRateLimiter();
+>>>>>>> origin/main
 app.UseCors("AllowFrontend");
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Map controllers
@@ -71,10 +216,16 @@ app.MapGet("/db-test", async (ApplicationContext context) =>
     }
 });
 
-// Apply database migrations on startup (optional for development)
+// Database initialization on startup
+// This section handles:
+// 1. Testing database connection
+// 2. Applying EF Core migrations
+// 3. Seeding initial data using the DatabaseSeeder service
+// Note: The application will start even if database connection fails
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+    var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
@@ -83,8 +234,15 @@ using (var scope = app.Services.CreateScope())
         if (canConnect)
         {
             logger.LogInformation("Database connection successful");
-            // Use migrations instead of EnsureCreated for better control
+
+            // Apply pending migrations to update database schema
             await context.Database.MigrateAsync();
+            logger.LogInformation("Database migrations applied successfully");
+
+            // Seed initial data (users, roles, default settings, etc.)
+            // The DatabaseSeeder should be idempotent and check if data already exists
+            await seeder.SeedAsync();
+            logger.LogInformation("Database seeding completed successfully");
         }
         else
         {
@@ -94,7 +252,8 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred during database initialization: {Message}", ex.Message);
-        // Don't throw - let the application start even if DB is not ready
+        // Don't throw - allow the application to start even if DB is not ready
+        // This is useful for containerized environments where DB might start after the app
     }
 }
 
