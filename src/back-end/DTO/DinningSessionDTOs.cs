@@ -21,7 +21,7 @@ namespace back_end.DTO.DashBoardDTOs
 
     }
 
-    class DiningSessionResponseDTO
+    public class DiningSessionResponseDTO
     {
         public int Session_Id { get; set; }
         public int Menu_Id { get; set; }
@@ -32,7 +32,7 @@ namespace back_end.DTO.DashBoardDTOs
         public int Active_Participants { get; set; }
     }
 
-    class DiningSessionDetail : DiningSessionResponseDTO
+    class DiningSessionDetailDTO : DiningSessionResponseDTO
     {
         public int Orders_Count { get; set; }
         public int Bills_Count { get; set; }
