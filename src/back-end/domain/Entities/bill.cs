@@ -27,7 +27,7 @@ namespace back_end.domain.Entities
 
         public DateTime Created_At { get; set; } = DateTime.Now;
 
-        public DateTime Closed_At { get; set; }
+        public DateTime? Closed_At { get; set; }
 
         public DiningSession DiningSession { get; set; } = null!;
         public ICollection<SessionOrder> Orders { get; set; } = new List<SessionOrder>();

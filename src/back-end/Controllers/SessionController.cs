@@ -10,10 +10,10 @@ namespace back_end.Controllers
 
     public class SessionController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<SessionController> _logger;
 
-        public SessionController(ApplicationContext context, ILogger<SessionController> logger)
+        public SessionController(ApplicationDbContext context, ILogger<SessionController> logger)
         {
             _context = context;
             _logger = logger;
@@ -172,7 +172,7 @@ namespace back_end.Controllers
 
                 //Find an active dining session connected to inputted table
                 //Include Menu, Participants, and User data
-                var sessionInfo = await _context.Sessions
+                var sessionInfo = await _context.SessionTables
                             .Where(s => s.Table_Id == table)
                             .Include(s => s.DiningSession)
                                 .ThenInclude(se => se.Menu)

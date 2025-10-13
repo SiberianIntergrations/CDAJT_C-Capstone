@@ -11,10 +11,10 @@ namespace back_end.Controllers
 
     public class OrderController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<OrderController> _logger;
 
-        public OrderController(ApplicationContext context, ILogger<OrderController> logger)
+        public OrderController(ApplicationDbContext context, ILogger<OrderController> logger)
         {
             _context = context;
             _logger = logger;

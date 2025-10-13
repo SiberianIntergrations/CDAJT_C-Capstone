@@ -1,14 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using back_end.domain.Enums;
+using back_end.domain;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
-    /// <summary>
-    /// Seeder for menu items and menu item assignments.
-    /// Creates at least 15 items per category.
-    /// </summary>
     public class MenuItemSeeder : ISeeder
     {
         private readonly ApplicationDbContext _context;
@@ -16,8 +16,8 @@ namespace back_end.domain.Seeders
 
         public MenuItemSeeder(ApplicationDbContext context, ILogger<MenuItemSeeder> logger)
         {
-            _context = context;
-            _logger = logger;
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public void Seed()
@@ -27,39 +27,50 @@ namespace back_end.domain.Seeders
             _logger.LogInformation("Menu items seeded successfully");
 
             SeedMenuItemAssignments();
-            _context.SaveChanges();
+            //_context.SaveChanges();
             _logger.LogInformation("Menu item assignments seeded successfully");
         }
 
         private void SeedMenuItems()
         {
-            // Get categories and tags
-            var categories = _context.Categories.ToDictionary(c => c.Name, c => c.CategoryId);
-            var tags = _context.Tags.ToDictionary(t => t.Name, t => t);
+            var categories = _context.Categories.ToDictionary(c => c.Category_name, c => c.Category_id);
+            var tags = _context.Tags.ToDictionary(t => t.tag_name, t => t);
 
             var menuItemsData = GetMenuItemsData();
 
             foreach (var categoryData in menuItemsData)
             {
-                var categoryId = categories[categoryData.Key];
+                if (!categories.TryGetValue(categoryData.Key, out var categoryId))
+                {
+                    _logger.LogWarning($"Category '{categoryData.Key}' not found in database. Skipping.");
+                    continue;
+                }
 
                 foreach (var itemData in categoryData.Value)
                 {
-                    var menuItem = new MenuItem
+                    var menuItem = new Menu_Item
                     {
                         Name = itemData.Name,
                         Description = itemData.Description,
-                        CategoryId = categoryId,
+                        Category_id = categoryId,
                         Status = MenuItemStatus.Available,
-                        ItemImageUrl = null
+                        image_url = null,
+                        MenuItemTags = new List<MenuItemTag>()
                     };
 
-                    // Add tags
                     foreach (var tagName in itemData.Tags)
                     {
-                        if (tags.ContainsKey(tagName))
+                        if (tags.TryGetValue(tagName, out var tag))
                         {
-                            menuItem.Tags.Add(tags[tagName]);
+                            menuItem.MenuItemTags.Add(new MenuItemTag
+                            {
+                                Tag_id = tag.tag_id,
+                                Tag = tag
+                            });
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Tag '{tagName}' not found in database. Skipping tag for menu item '{itemData.Name}'.");
                         }
                     }
 
@@ -74,8 +85,9 @@ namespace back_end.domain.Seeders
         private void SeedMenuItemAssignments()
         {
             var menus = _context.Menus.ToList();
+            _logger.LogInformation($"MENUS FOUND: {menus.Count}");
             var menuItems = _context.MenuItems.Include(m => m.Category).ToList();
-
+            _logger.LogInformation($"MENU ITEMS FOUND: {menuItems.Count}");
             var categoryConfigs = new Dictionary<string, CategoryConfig>
             {
                 ["Sushi Rolls"] = new CategoryConfig { RegularPrice = 12.99m, AdultLimit = 4, ChildLimit = 3, SeniorLimit = 3, TotLimit = 2 },
@@ -86,7 +98,6 @@ namespace back_end.domain.Seeders
                 ["Desserts"] = new CategoryConfig { RegularPrice = 6.99m, AdultLimit = 2, ChildLimit = 2, SeniorLimit = 2, TotLimit = 1 }
             };
 
-            // Calculate lunch prices (20% off)
             foreach (var config in categoryConfigs.Values)
             {
                 config.LunchPrice = Math.Round(config.RegularPrice * 0.8m, 2);
@@ -98,41 +109,46 @@ namespace back_end.domain.Seeders
             {
                 foreach (var item in menuItems)
                 {
-                    var categoryConfig = categoryConfigs[item.Category.Name];
+                    if (!categoryConfigs.TryGetValue(item.Category.Category_name, out var categoryConfig))
+                    {
+                        _logger.LogWarning($"Category config not found for category '{item.Category.Category_name}'. Skipping menu item assignment.");
+                        continue;
+                    }
 
-                    // Determine price based on menu
                     var price = menu.Name == "Lunch Special" ? categoryConfig.LunchPrice : categoryConfig.RegularPrice;
 
                     var assignment = new MenuItemAssignment
                     {
-                        MenuId = menu.MenuId,
-                        ItemId = item.ItemId,
+                        Menu_Id = menu.Menu_id,
+                        Item_Id = item.item_id,
                         Price = price,
-                        AdultLimit = categoryConfig.AdultLimit,
-                        ChildLimit = categoryConfig.ChildLimit,
-                        SeniorLimit = categoryConfig.SeniorLimit,
-                        TotLimit = categoryConfig.TotLimit,
-                        TotalUnitsOrdered = 0,
-                        TotalViews = 0,
-                        TotalViewSeconds = 0,
+                        Adult_Limit = categoryConfig.AdultLimit,
+                        Child_limit = categoryConfig.ChildLimit,
+                        Senior_limit = categoryConfig.SeniorLimit,
+                        Total_Limit = categoryConfig.TotLimit,
+                        Total_Units_Ordered = 0,
+                        Total_Views = 0,
+                        Total_View_Seconds = 0,
                         Status = MenuItemStatus.Available,
-                        IsAddOn = false
+                        Is_Add_On = false
                     };
 
                     _context.MenuItemAssignments.Add(assignment);
                     assignmentsCount++;
 
-                    // Commit in batches to avoid memory issues
                     if (assignmentsCount % 50 == 0)
                     {
-                        _context.SaveChanges();
+                        //_context.SaveChanges();
                     }
                 }
             }
 
+            //_context.SaveChanges();
+
             _logger.LogInformation($"Created {assignmentsCount} menu item assignments");
         }
 
+        // Creates at least 15 items per category
         private Dictionary<string, List<MenuItemData>> GetMenuItemsData()
         {
             return new Dictionary<string, List<MenuItemData>>

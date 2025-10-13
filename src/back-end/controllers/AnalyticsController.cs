@@ -1,11 +1,9 @@
-
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.DTO.Auth;
 using Microsoft.AspNetCore.Mvc;
 using back_end.DTO.Analytics;
 using Microsoft.AspNetCore.Http.Features;
-
 
 namespace back_end.controllers
 {
@@ -49,7 +47,6 @@ namespace back_end.controllers
                 var date_period_max = await _context.OrderItems.MaxAsync(o => o.Completed_At);
                 var date_period_min = await _context.OrderItems.MinAsync(o => o.Completed_At);
 
-
                 return Ok(new { date_period_min, date_period_max, item_performance });
 
             }
@@ -64,28 +61,27 @@ namespace back_end.controllers
         {
             try
             {
-
                 var browsingData = await _context.MenuItemAssignments
-                .Join(
-                    _context.MenuItems,
-                    assignment => assignment.Item_Id,
-                    menuItem => menuItem.item_id,
-                    (assignment, menuItem) => new
+                    .Join(
+                        _context.MenuItems,
+                        assignment => assignment.Item_Id,
+                        menuItem => menuItem.item_id,
+                        (assignment, menuItem) => new
+                        {
+                            assignment.Item_Id,
+                            menuItem.Name,
+                            assignment.Total_View_Seconds,
+                            assignment.Menu_Id
+                        })
+                    .GroupBy(x => new { x.Item_Id, x.Name })
+                    .Select(g => new
                     {
-                        assignment.Item_Id,
-                        menuItem.Name,
-                        assignment.Total_View_Seconds,
-                        assignment.Menu_Id
+                        item_id = g.Key.Item_Id,
+                        name = g.Key.Name,
+                        total_view_seconds = g.Sum(x => x.Total_View_Seconds),
+                        total_views = g.Sum(x => x.Menu_Id)
                     })
-                .GroupBy(x => new { x.Item_Id, x.Name })
-                .Select(g => new
-                {
-                    item_id = g.Key.Item_Id,
-                    name = g.Key.Name,
-                    total_view_seconds = g.Sum(x => x.Total_View_Seconds),
-                    total_views = g.Sum(x => x.Menu_Id)
-                })
-                .ToListAsync();
+                    .ToListAsync();
 
                 if (browsingData == null || browsingData.Count == 0)
                 {
@@ -93,8 +89,6 @@ namespace back_end.controllers
                 }
 
                 return Ok(browsingData);
-
-
             }
             catch (Exception ex)
             {
@@ -102,42 +96,44 @@ namespace back_end.controllers
             }
         }
 
-
-        public async Task<IActionResult> GetTableTurnoverMetrics(
-            [FromQuery] int partySize = 2)
+        [HttpGet("table-turnover")]
+        public async Task<IActionResult> GetTableTurnoverMetrics([FromQuery] int partySize = 2)
         {
             try
             {
+                // Filter out bills with null Closed_At because we need to group by Closed_At date/time
+                var filteredBills = _context.Bills
+                    .Where(b => b.Closed_At != null)
+                    .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize);
+
                 // Daily turnover query
-                var dailyTurnover = await _context.Bills
-                    .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize)
+                var dailyTurnover = await filteredBills
                     .GroupBy(b => new
                     {
-                        Day = b.Closed_At.Date,
+                        Day = b.Closed_At.Value.Date,
                         PartySize = b.Senior_Count + b.Adult_Count + b.Child_Count
                     })
                     .Select(g => new TurnoverMetricDTO
                     {
                         Period = g.Key.Day.ToString("yyyy-MM-dd"),
                         AverageDuration = (int)Math.Round(
-                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At))),
+                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At.Value))),
                         PartySize = g.Key.PartySize
                     })
                     .ToListAsync();
 
                 // Monthly turnover query
-                var monthlyTurnover = await _context.Bills
-                    .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize)
+                var monthlyTurnover = await filteredBills
                     .GroupBy(b => new
                     {
-                        Month = new DateTime(b.Closed_At.Year, b.Closed_At.Month, 1),
+                        Month = new DateTime(b.Closed_At.Value.Year, b.Closed_At.Value.Month, 1),
                         PartySize = b.Senior_Count + b.Adult_Count + b.Child_Count
                     })
                     .Select(g => new TurnoverMetricDTO
                     {
                         Period = g.Key.Month.ToString("yyyy-MM"),
                         AverageDuration = (int)Math.Round(
-                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At))),
+                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At.Value))),
                         PartySize = g.Key.PartySize
                     })
                     .ToListAsync();
@@ -175,5 +171,4 @@ namespace back_end.controllers
             }
         }
     }
-
 }

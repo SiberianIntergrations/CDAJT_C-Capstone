@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
@@ -29,9 +30,9 @@ namespace back_end.domain.Seeders
             {
                 tables.Add(new TableEntity
                 {
-                    TableNumber = i,
-                    SeatCount = 2,
-                    IsActive = true
+                    table_number = i,
+                    seat_count = 2,
+                    is_active = true
                 });
             }
 
@@ -40,14 +41,14 @@ namespace back_end.domain.Seeders
             {
                 tables.Add(new TableEntity
                 {
-                    TableNumber = i,
-                    SeatCount = 4,
-                    IsActive = true
+                    table_number = i,
+                    seat_count = 4,
+                    is_active = true
                 });
             }
 
             _context.Tables.AddRange(tables);
-            _context.SaveChanges();
+            //_context.SaveChanges();
 
             _logger.LogInformation($"Added {tables.Count} tables (2-tops: tables 1-9, 4-tops: tables 10-34)");
         }

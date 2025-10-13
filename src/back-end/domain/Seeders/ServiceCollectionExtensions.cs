@@ -27,6 +27,8 @@ namespace back_end.domain.Seeders
             services.AddScoped<OrderItemSeeder>();
             services.AddScoped<ServiceRequestSeeder>();
 
+            services.AddScoped<LocationSeeder>();
+
             // Register main seeder orchestrator
             services.AddScoped<DatabaseSeeder>();
 

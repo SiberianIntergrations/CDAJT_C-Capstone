@@ -11,7 +11,7 @@ using back_end.domain.DbContexts;
 
 namespace back_end.Migrations
 {
-    [DbContext(typeof(ApplicationContext))]
+    [DbContext(typeof(ApplicationDbContext))]
     [Migration("20251005152401_InitialCreate")]
     partial class InitialCreate
     {

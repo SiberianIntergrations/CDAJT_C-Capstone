@@ -12,10 +12,10 @@ namespace back_end.Controllers
 
     public class MenuController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<MenuController> _logger;
 
-        public MenuController(ApplicationContext context, ILogger<MenuController> logger)
+        public MenuController(ApplicationDbContext context, ILogger<MenuController> logger)
         {
             _context = context;
             _logger = logger;

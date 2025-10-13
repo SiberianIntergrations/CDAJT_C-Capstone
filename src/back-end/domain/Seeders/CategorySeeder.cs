@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
@@ -23,62 +24,62 @@ namespace back_end.domain.Seeders
             {
                 new Category
                 {
-                    Name = "Sushi Rolls",
+                    Category_name = "Sushi Rolls",
                     Description = "Traditional and specialty sushi rolls",
-                    AdultLimit = 12,
-                    ChildLimit = 8,
-                    SeniorLimit = 10,
-                    TotLimit = 4
+                    adult_limit = 12,
+                    child_limit = 8,
+                    senior_limit = 10,
+                    total_limit = 4
                 },
                 new Category
                 {
-                    Name = "Nigiri",
+                    Category_name = "Nigiri",
                     Description = "Hand-pressed sushi with fresh fish",
-                    AdultLimit = 10,
-                    ChildLimit = 6,
-                    SeniorLimit = 8,
-                    TotLimit = 3
+                    adult_limit = 10,
+                    child_limit = 6,
+                    senior_limit = 8,
+                    total_limit = 3
                 },
                 new Category
                 {
-                    Name = "Sashimi",
+                    Category_name = "Sashimi",
                     Description = "Fresh sliced raw fish",
-                    AdultLimit = 8,
-                    ChildLimit = 4,
-                    SeniorLimit = 6,
-                    TotLimit = 2
+                    adult_limit = 8,
+                    child_limit = 4,
+                    senior_limit = 6,
+                    total_limit = 2
                 },
                 new Category
                 {
-                    Name = "Appetizers",
+                    Category_name = "Appetizers",
                     Description = "Starters and small dishes",
-                    AdultLimit = 6,
-                    ChildLimit = 4,
-                    SeniorLimit = 5,
-                    TotLimit = 2
+                    adult_limit = 6,
+                    child_limit = 4,
+                    senior_limit = 5,
+                    total_limit = 2
                 },
                 new Category
                 {
-                    Name = "Hot Dishes",
+                    Category_name = "Hot Dishes",
                     Description = "Cooked meals and hot specialties",
-                    AdultLimit = 5,
-                    ChildLimit = 3,
-                    SeniorLimit = 4,
-                    TotLimit = 2
+                    adult_limit = 5,
+                    child_limit = 3,
+                    senior_limit = 4,
+                    total_limit = 2
                 },
                 new Category
                 {
-                    Name = "Desserts",
+                    Category_name = "Desserts",
                     Description = "Sweet treats to end your meal",
-                    AdultLimit = 2,
-                    ChildLimit = 2,
-                    SeniorLimit = 2,
-                    TotLimit = 1
+                    adult_limit = 2,
+                    child_limit = 2,
+                    senior_limit = 2,
+                    total_limit = 1
                 }
             };
 
             _context.Categories.AddRange(categories);
-            _context.SaveChanges();
+            //_context.SaveChanges();
 
             _logger.LogInformation($"Added {categories.Count} categories");
         }

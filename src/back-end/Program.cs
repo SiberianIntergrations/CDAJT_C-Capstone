@@ -60,7 +60,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // Add Entity Framework and MySQL/MariaDB connection
-builder.Services.AddDbContext<ApplicationContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
@@ -145,14 +145,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 
-    //Swagger UI found at http://localhost:5264/swagger
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-
-app.UseHttpsRedirection();
-=======
+    // Swagger UI found at http://localhost:5264/swagger
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
@@ -184,14 +177,12 @@ else
         });
     });
 
-// Enable HTTPS redirection in production
-if (!app.Environment.IsDevelopment())
-{
+    // Enable HTTPS redirection in production
     app.UseHttpsRedirection();
 }
 
 app.UseRateLimiter();
->>>>>>> origin/main
+
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -203,7 +194,7 @@ app.MapControllers();
 app.MapGet("/health", () => "API is running!");
 
 // Test database connection endpoint
-app.MapGet("/db-test", async (ApplicationContext context) =>
+app.MapGet("/db-test", async (ApplicationDbContext context) =>
 {
     try
     {
@@ -224,7 +215,7 @@ app.MapGet("/db-test", async (ApplicationContext context) =>
 // Note: The application will start even if database connection fails
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
@@ -241,8 +232,17 @@ using (var scope = app.Services.CreateScope())
 
             // Seed initial data (users, roles, default settings, etc.)
             // The DatabaseSeeder should be idempotent and check if data already exists
-            await seeder.SeedAsync();
-            logger.LogInformation("Database seeding completed successfully");
+
+            //Check to see if the DB has been seeded already
+            if (!context.Users.Any())
+            {
+                await seeder.SeedDatabase();
+                logger.LogInformation("Database seed completed.");
+            }
+            else
+            {
+                logger.LogInformation("Database has already been seeded.");
+            }
         }
         else
         {

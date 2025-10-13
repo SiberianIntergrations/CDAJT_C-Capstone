@@ -10,10 +10,10 @@ namespace back_end.Controllers
 
     public class LocationController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<LocationController> _logger;
 
-        public LocationController(ApplicationContext context, ILogger<LocationController> logger)
+        public LocationController(ApplicationDbContext context, ILogger<LocationController> logger)
         {
             _context = context;
             _logger = logger;

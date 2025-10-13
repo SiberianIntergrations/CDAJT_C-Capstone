@@ -1,5 +1,8 @@
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
+using System;
+using System.Collections.Generic;
 
 namespace back_end.domain.Seeders
 {
@@ -25,22 +28,22 @@ namespace back_end.domain.Seeders
                 {
                     Name = "All Day Menu",
                     Description = "Our complete selection of dishes available all day",
-                    StartTime = new TimeSpan(11, 0, 0),  // 11:00 AM
-                    EndTime = new TimeSpan(22, 0, 0),    // 10:00 PM
-                    IsActive = true
+                    Start_time = new TimeOnly(11, 0),  // 11:00 AM
+                    End_time = new TimeOnly(22, 0),    // 10:00 PM
+                    Is_active = true
                 },
                 new Menu
                 {
                     Name = "Lunch Special",
                     Description = "Special lunch menu with selected items",
-                    StartTime = new TimeSpan(11, 0, 0),  // 11:00 AM
-                    EndTime = new TimeSpan(15, 0, 0),    // 3:00 PM
-                    IsActive = true
+                    Start_time = new TimeOnly(11, 0),  // 11:00 AM
+                    End_time = new TimeOnly(15, 0),    // 3:00 PM
+                    Is_active = true
                 }
             };
 
             _context.Menus.AddRange(menus);
-            _context.SaveChanges();
+            //_context.SaveChanges();
 
             _logger.LogInformation($"Added {menus.Count} menus");
         }

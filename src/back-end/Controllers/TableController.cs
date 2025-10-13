@@ -10,10 +10,10 @@ namespace back_end.Controllers
 
     public class TableController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<TableController> _logger;
 
-        public TableController(ApplicationContext context, ILogger<TableController> logger)
+        public TableController(ApplicationDbContext context, ILogger<TableController> logger)
         {
             _context = context;
             _logger = logger;

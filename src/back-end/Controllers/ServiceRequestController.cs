@@ -9,10 +9,10 @@ namespace back_end.Controllers
     [Route("api/[controller]")]
     public class ServiceRequestController : ControllerBase
     {
-        private readonly ApplicationContext _context;
+        private readonly ApplicationDbContext _context;
         private readonly ILogger<ServiceRequestController> _logger;
 
-        public ServiceRequestController(ApplicationContext context, ILogger<ServiceRequestController> logger)
+        public ServiceRequestController(ApplicationDbContext context, ILogger<ServiceRequestController> logger)
         {
             _context = context;
             _logger = logger;
