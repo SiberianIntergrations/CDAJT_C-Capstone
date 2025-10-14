@@ -9,6 +9,12 @@ import { MenuProvider } from "@/contexts/MenuContext";
 import Layout from "@/components/Layout.jsx";
 import "@/styles/global.css";
 
+import { PublicClientApplication } from '@azure/msal-browser';
+import { MsalProvider } from '@azure/msal-react';
+import { msalConfig } from '@/config/authconfig';
+
+
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -95,16 +101,22 @@ const theme = createTheme({
 });
 
 export default function RootLayout({ children }) {
+  const msalInstance = new PublicClientApplication(msalConfig);
+
+
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider theme={theme}>
-          <CssBaseline />
-          <MenuProvider>
-            <Layout>{children}</Layout>
-          </MenuProvider>
+          <MsalProvider instance={msalInstance}>
+            <CssBaseline />
+            <MenuProvider>
+              <Layout>{children}</Layout>
+            </MenuProvider>
+          </MsalProvider>
         </ThemeProvider>
       </body>
     </html>
   );
-}
+};
