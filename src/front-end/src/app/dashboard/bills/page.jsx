@@ -16,8 +16,6 @@ import { axiosInstance, createApiUrl } from "@/config/api";
 import NewBillDialog from "@/components/staff/SessionDashboard/components/dialogs/NewBillDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
 
-// TODO: Tots should not be fillable when creating a bill. This is the total count of guests. Adult + Child + Senior should equal Totals.
-
 const AddButton = styled(IconButton)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
   color: "white",
@@ -63,8 +61,8 @@ const BillCard = styled(Card)(({ theme, $statusColor }) => ({
 const SessionContextWrapper = ({ children }) => {
   const createBill = async (sessionId, billData) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/bills/${sessionId}`),
+      const res = await axiosInstance.post(
+        createApiUrl(`/Bill/create_bill/${sessionId}`),
         {
           bill_name: billData.billName,
           adult_count: parseInt(billData.adultCount),
@@ -73,11 +71,9 @@ const SessionContextWrapper = ({ children }) => {
           tot_count: parseInt(billData.totCount),
         }
       );
-      if (!response.statusText === "OK")
-        throw new Error("Failed to create bill");
+      if (res.status !== 200) throw new Error("Failed to create bill");
       return true;
-    } catch (error) {
-      console.error("Error creating bill:", error);
+    } catch {
       return false;
     }
   };
@@ -114,42 +110,50 @@ const BillsDashboard = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sessionId, setSessionId] = useState(null);
 
-  const fetchActiveSession = async () => {
-    try {
-      const response = await axiosInstance.get(
-        createApiUrl("/dining-sessions/participants/active-session-id")
-      );
-      if (!response.statusText === "OK")
-        throw new Error("Failed to fetch active session");
+const fetchActiveSession = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const res = await axiosInstance.get(createApiUrl("/Dashboard/sessions"));
+    if (res.status !== 200) throw new Error();
+    const sessions = Array.isArray(res.data) ? res.data : [];
+    const s = sessions[0] || null;
+    const id = s?.Session_Id ?? null;
+    setSessionId(id);
+    return id;
+  } catch {
+    setError("Unable to fetch active session");
+    return null;
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const data = response.data;
-      if (data?.session_id) {
-        setSessionId(data.session_id);
-      }
-    } catch (err) {
-      console.error("Error fetching session:", err);
-      setError("Unable to fetch active session");
-    }
-  };
+useEffect(() => {
+  (async () => {
+    const id = await fetchActiveSession();
+    if (id) await fetchBills(id);
+  })();
+}, []);
 
-  const fetchBills = async () => {
+  const fetchBills = async (sid) => {
     try {
       setLoading(true);
       setError(null);
-
-      const response = await axiosInstance.get(
-        createApiUrl("/bills/active/bills")
+      if (!sid) {
+        setBills([]);
+        return;
+      }
+      const res = await axiosInstance.get(
+        createApiUrl(`/Bill/get_bills/${sid}`)
       );
-      if (!response.statusText === "OK")
-        throw new Error("Failed to fetch bills");
-
-      setBills(Array.isArray(response.data) ? response.data : []);
+      if (res.status !== 200) throw new Error("Failed to fetch bills");
+      setBills(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error("Error fetching bills:", err);
-      if (err.response?.status === 404) {
+      if (err?.response?.status === 404) {
         setBills([]);
       } else {
-        setError(err.response?.data?.detail || "Error loading bills");
+        setError(err?.response?.data?.detail || "Error loading bills");
       }
     } finally {
       setLoading(false);
@@ -157,17 +161,22 @@ const BillsDashboard = () => {
   };
 
   useEffect(() => {
-    Promise.all([fetchActiveSession(), fetchBills()]);
+    (async () => {
+      await fetchActiveSession();
+    })();
   }, []);
 
+  useEffect(() => {
+    if (sessionId) fetchBills(sessionId);
+  }, [sessionId]);
+
   const handleBillCreated = async () => {
-    await fetchBills();
+    await fetchBills(sessionId);
     setDialogOpen(false);
   };
 
   const getBillStatusColor = (status) => {
     if (!status) return "#757575";
-
     switch (status.toString().toUpperCase()) {
       case "OPEN":
         return "#4caf50";
@@ -182,7 +191,6 @@ const BillsDashboard = () => {
 
   const formatGuestCount = (bill) => {
     if (!bill) return "";
-
     const counts = [];
     if (bill.adult_count) counts.push(`${bill.adult_count} Adults`);
     if (bill.child_count) counts.push(`${bill.child_count} Children`);
@@ -193,12 +201,7 @@ const BillsDashboard = () => {
 
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress />
       </Box>
     );
@@ -207,7 +210,6 @@ const BillsDashboard = () => {
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 3 }}>
-        {/* Header */}
         <Box
           sx={{
             display: "flex",
@@ -222,18 +224,14 @@ const BillsDashboard = () => {
           </AddButton>
         </Box>
 
-        {/* Error Alert */}
         {error && (
           <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
             {typeof error === "string" ? error : "Error loading bills"}
           </Alert>
         )}
 
-        {/* Bills Grid */}
         {!bills || bills.length === 0 ? (
-          <Alert severity="info">
-            No bills yet. Create your first bill to get started.
-          </Alert>
+          <Alert severity="info">No bills yet. Create your first bill to get started.</Alert>
         ) : (
           <Box
             sx={{
@@ -257,27 +255,18 @@ const BillsDashboard = () => {
                     {bill.status ? String(bill.status) : "Unknown Status"}
                   </StatusChip>
 
-                  <Typography
-                    variant="body2"
-                    sx={{ color: "text.secondary", mt: 1 }}
-                  >
+                  <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
                     {formatGuestCount(bill)}
                   </Typography>
 
                   {bill.created_at && (
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "text.secondary" }}
-                    >
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
                       Created: {new Date(bill.created_at).toLocaleTimeString()}
                     </Typography>
                   )}
 
                   {bill.table_numbers?.length > 0 && (
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "text.secondary" }}
-                    >
+                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
                       Tables: {bill.table_numbers.join(", ")}
                     </Typography>
                   )}
@@ -287,19 +276,9 @@ const BillsDashboard = () => {
           </Box>
         )}
 
-        {/* Create Bill Dialog */}
         <SessionContextWrapper>
-          <Dialog
-            open={dialogOpen}
-            onClose={() => setDialogOpen(false)}
-            maxWidth="sm"
-            fullWidth
-          >
-            <NewBillDialog
-              open={dialogOpen}
-              sessionId={sessionId}
-              onClose={handleBillCreated}
-            />
+          <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+            <NewBillDialog open={dialogOpen} sessionId={sessionId} onClose={handleBillCreated} />
           </Dialog>
         </SessionContextWrapper>
       </Box>
