@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
@@ -44,10 +45,10 @@ namespace back_end.domain.Seeders
             {
                 var newSession = new DiningSession
                 {
-                    MenuId = menu.MenuId,
-                    StartedAt = sessionData.StartedAt,
-                    EndedAt = sessionData.EndedAt,
-                    FirstOrderTime = sessionData.FirstOrderTime
+                    Menu_Id = menu.Menu_id,
+                    Started_At = sessionData.StartedAt,
+                    Ended_At = sessionData.EndedAt,
+                    First_Order_At = sessionData.FirstOrderTime
                 };
 
                 _context.DiningSessions.Add(newSession);
@@ -56,7 +57,7 @@ namespace back_end.domain.Seeders
 
             _context.SaveChanges();
 
-            int activeSessions = createdSessions.Count(s => s.EndedAt == null);
+            int activeSessions = createdSessions.Count(s => s.Ended_At == null);
             int completedSessions = createdSessions.Count - activeSessions;
 
             _logger.LogInformation($"Created {createdSessions.Count} dining sessions ({activeSessions} active, {completedSessions} completed)");

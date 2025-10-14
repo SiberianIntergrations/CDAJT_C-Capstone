@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
@@ -118,7 +119,7 @@ namespace back_end.domain.Seeders
                 var tables          = _context.Tables.Count();
                 var users           = _context.Users.Count();
                 var diningSessions  = _context.DiningSessions.Count();
-                var activeSessions  = _context.DiningSessions.Count(ds => ds.EndedAt == null);
+                var activeSessions  = _context.DiningSessions.Count(ds => ds.Ended_At == null);
                 var sessionTables       = _context.SessionTables.Count();
                 var participants        = _context.SessionParticipants.Count();
                 var bills               = _context.Bills.Count();
