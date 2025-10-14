@@ -49,14 +49,9 @@ namespace back_end.DTO.DashBoardDTOs
 
 
     }
-
+    
     public class SessionMenuResponseDTO
     {
         public int Menu_Id { get; set; }
-    }
-    
-    public class ListDiningSessionsRequestDTO
-    {
-        public bool ActiveOnly { get; set; } 
     }
 }
