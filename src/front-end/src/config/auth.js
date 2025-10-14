@@ -66,3 +66,15 @@ export const loginRequest = {
  
 
 
+export function userHasAnyRole(claims, rolesToCheck) {
+    if (typeof claims !== 'object' || !Array.isArray(rolesToCheck)) {
+        throw new Error("Invalid arguments: claims must be an object and rolesToCheck must be an array.");
+    }
+
+    const roles = claims.roles || []; // Extract the "roles" claim from the access token
+    if (!Array.isArray(roles)) {
+        throw new Error("Invalid access token: 'roles' claim must be an array.");
+    }
+
+    return rolesToCheck.some(role => roles.includes(role));
+}
