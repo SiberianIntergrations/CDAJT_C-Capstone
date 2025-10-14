@@ -65,7 +65,7 @@ export const loginRequest = {
  };
  
 
-
+//to use: userHasAnyRole(msalInstance.getActiveAccount()?.idTokenClaims, ["admin.UpdateOTISStatus"])
 export function userHasAnyRole(claims, rolesToCheck) {
     if (typeof claims !== 'object' || !Array.isArray(rolesToCheck)) {
         throw new Error("Invalid arguments: claims must be an object and rolesToCheck must be an array.");
