@@ -1,9 +1,12 @@
 import { LogLevel } from '@azure/msal-browser';
 
+export const API_SCOPE =
+  process.env.NEXT_PUBLIC_API_SCOPE || "";
+
 export const msalConfig = {
   auth: {
-    clientId: '99ffb099-af80-41d1-9c16-e844f8ed5308',
-    authority: `https://renovationstationexsm3943.ciamlogin.com/`,
+    clientId: process.env.NEXT_PUBLIC_API_CLIENTID ||  '99ffb099-af80-41d1-9c16-e844f8ed5308',
+    authority: process.env.NEXT_PUBLIC_API_AUTHORITY || `https://renovationstationexsm3943.ciamlogin.com/`,
     redirectUri: '/',
   },
   cache: {
@@ -53,11 +56,11 @@ export const createLoginRequest = (redirectUri) => ({
  * https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
  */
 export const loginRequest = {
-    scopes: ["openid", "offline_access", "profile","api://99ffb099-af80-41d1-9c16-e844f8ed5308/user_impersonation"],
+    scopes: ["openid", "offline_access", "profile",API_SCOPE],
 };
 
  export const silentRequest = {
-     scopes: ["openid", "offline_access", "profile","api://99ffb099-af80-41d1-9c16-e844f8ed5308/user_impersonation"],
+     scopes: ["openid", "offline_access", "profile",API_SCOPE],
      loginHint: "example@renovationstationexsm3943.onmicrosoft.com"
  };
  
