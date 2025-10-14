@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
@@ -54,7 +55,7 @@ namespace back_end.domain.Seeders
             };
 
             _context.Locations.AddRange(locations);
-            _context.SaveChanges();
+            //_context.SaveChanges();
 
             _logger.LogInformation($"Added {locations.Count} locations");
         }

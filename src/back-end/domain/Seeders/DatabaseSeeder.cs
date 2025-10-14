@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
@@ -66,9 +67,9 @@ namespace back_end.domain.Seeders
         }
 
         /// <summary>Seeds all tables with initial data.</summary>
-        public void SeedDatabase(bool reset = false)
+        public async Task SeedDatabase(bool reset = false)
         {
-            using var transaction = _context.Database.BeginTransaction();
+            //using var transaction = _context.Database.BeginTransaction();
             try
             {
                 if (reset)
@@ -78,28 +79,43 @@ namespace back_end.domain.Seeders
 
                 // Base data in dependency order
                 _userSeeder.Seed();                _logger.LogInformation("Users seeded successfully");
+                await _context.SaveChangesAsync();
                 _categorySeeder.Seed();            _logger.LogInformation("Categories seeded successfully");
+                await _context.SaveChangesAsync();
                 _tagSeeder.Seed();                 _logger.LogInformation("Tags seeded successfully");
+                await _context.SaveChangesAsync();
                 _menuSeeder.Seed();                _logger.LogInformation("Menus seeded successfully");
+                await _context.SaveChangesAsync();
                 _menuItemSeeder.Seed();            _logger.LogInformation("Menu items and assignments seeded successfully");
+                await _context.SaveChangesAsync();
                 _tableSeeder.Seed();               _logger.LogInformation("Tables seeded successfully");
+                await _context.SaveChangesAsync();
                 _locationSeeder.Seed();            _logger.LogInformation("Locations seeded successfully");
+
+                await _context.SaveChangesAsync();
 
                 // Sessions then session-driven data
                 _diningSessionSeeder.Seed();       _logger.LogInformation("Dining sessions seeded successfully");
+                await _context.SaveChangesAsync();
                 _sessionTableSeeder.Seed();        _logger.LogInformation("Session tables seeded successfully");
+                await _context.SaveChangesAsync();
                 _sessionParticipantSeeder.Seed();  _logger.LogInformation("Session participants seeded successfully");
+                await _context.SaveChangesAsync();
                 _billSeeder.Seed();                _logger.LogInformation("Bills seeded successfully");
+                await _context.SaveChangesAsync();
                 _sessionOrderSeeder.Seed();        _logger.LogInformation("Session orders seeded successfully");
+                await _context.SaveChangesAsync();
                 _orderItemSeeder.Seed();           _logger.LogInformation("Order items seeded successfully");
+                await _context.SaveChangesAsync();
                 _serviceRequestSeeder.Seed();      _logger.LogInformation("Service requests seeded successfully");
 
-                transaction.Commit();
+                await _context.SaveChangesAsync();
+                //transaction.Commit();
                 _logger.LogInformation("All data seeding completed successfully");
             }
             catch (Exception ex)
             {
-                transaction.Rollback();
+                //transaction.Rollback();
                 _logger.LogError(ex, "Error during seeding");
                 throw;
             }
@@ -118,7 +134,7 @@ namespace back_end.domain.Seeders
                 var tables          = _context.Tables.Count();
                 var users           = _context.Users.Count();
                 var diningSessions  = _context.DiningSessions.Count();
-                var activeSessions  = _context.DiningSessions.Count(ds => ds.EndedAt == null);
+                var activeSessions  = _context.DiningSessions.Count(ds => ds.Ended_At == null);
                 var sessionTables       = _context.SessionTables.Count();
                 var participants        = _context.SessionParticipants.Count();
                 var bills               = _context.Bills.Count();

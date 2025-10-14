@@ -6,11 +6,17 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    //Prevent circular references/infinite loops when reading the JSON
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    });
 
 // Add Swagger/OpenAPI services
 builder.Services.AddEndpointsApiExplorer();
@@ -27,8 +33,8 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer",
         BearerFormat = "JWT",
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
@@ -45,13 +51,13 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            new string[] {}
+            Array.Empty<string>()
         }
     });
 });
 
 // Add Entity Framework and MySQL/MariaDB connection
-builder.Services.AddDbContext<ApplicationContext>(options =>
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
@@ -61,20 +67,31 @@ builder.Services.AddDbContext<ApplicationContext>(options =>
 builder.Services.AddDatabaseSeeders();
 
 // JWT Auth
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.IncludeErrorDetails = builder.Environment.IsDevelopment();
+    options.TokenValidationParameters = new TokenValidationParameters
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"],
-            ValidAudience = builder.Configuration["Jwt:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
-        };
-    });
+        //We'll need to set these to true - but okay now for testing
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
+        NameClaimType = ClaimTypes.NameIdentifier,
+        RoleClaimType = ClaimTypes.Role,
+        ClockSkew = TimeSpan.Zero
+    };
+
+    // Force JwtSecurityTokenHandler
+    options.TokenHandlers.Clear();
+    options.TokenHandlers.Add(new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler());
+});
 
 builder.Services.AddAuthorization();
 
@@ -135,6 +152,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+
+    // Swagger UI found at http://localhost:5264/swagger
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
@@ -165,15 +184,13 @@ else
             });
         });
     });
-}
 
-// Enable HTTPS redirection in production
-if (!app.Environment.IsDevelopment())
-{
+    // Enable HTTPS redirection in production
     app.UseHttpsRedirection();
 }
 
 app.UseRateLimiter();
+
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -185,7 +202,7 @@ app.MapControllers();
 app.MapGet("/health", () => "API is running!");
 
 // Test database connection endpoint
-app.MapGet("/db-test", async (ApplicationContext context) =>
+app.MapGet("/db-test", async (ApplicationDbContext context) =>
 {
     try
     {
@@ -206,7 +223,7 @@ app.MapGet("/db-test", async (ApplicationContext context) =>
 // Note: The application will start even if database connection fails
 using (var scope = app.Services.CreateScope())
 {
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationContext>();
+    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
@@ -223,8 +240,17 @@ using (var scope = app.Services.CreateScope())
 
             // Seed initial data (users, roles, default settings, etc.)
             // The DatabaseSeeder should be idempotent and check if data already exists
-            await seeder.SeedAsync();
-            logger.LogInformation("Database seeding completed successfully");
+
+            //Check to see if the DB has been seeded already
+            if (!context.Users.Any())
+            {
+                await seeder.SeedDatabase();
+                logger.LogInformation("Database seed completed.");
+            }
+            else
+            {
+                logger.LogInformation("Database has already been seeded.");
+            }
         }
         else
         {

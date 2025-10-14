@@ -51,13 +51,13 @@ namespace back_end.domain.DbContexts
             // Configure ServiceRequest relationships to avoid ambiguity
             modelBuilder.Entity<ServiceRequest>()
                 .HasOne(sr => sr.RequestedByUser)
-                .WithMany()
+                .WithMany(u=>u.RequestedServices)
                 .HasForeignKey(sr => sr.Request_By)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<ServiceRequest>()
                 .HasOne(sr => sr.ClaimedByUser)
-                .WithMany()
+                .WithMany(u=>u.ClaimedServices)
                 .HasForeignKey(sr => sr.Claimed_By)
                 .OnDelete(DeleteBehavior.SetNull);
 

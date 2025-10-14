@@ -2,7 +2,8 @@ using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
-using back_end.domain.Enums;
+using back_end.domain;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
@@ -24,11 +25,11 @@ namespace back_end.domain.Seeders
         public void Seed()
         {
             var sessions = _context.DiningSessions
-                .Where(s => s.SessionId <= 50)
+                .Where(s => s.Session_Id <= 5)
                 .ToList();
 
             var customers = _context.Users
-                .Where(u => u.Role == UserRole.Customer && u.UserId >= 5 && u.UserId <= 14)
+                .Where(u => u.Role == UserRoles.Customer)
                 .ToList();
 
             int created = 0;
@@ -36,23 +37,23 @@ namespace back_end.domain.Seeders
             foreach (var s in sessions)
             {
                 var participantIds = _context.SessionParticipants
-                    .Where(p => p.SessionId == s.SessionId && customers.Select(c => c.UserId).Contains(p.UserId))
-                    .Select(p => p.UserId)
+                    .Where(p => p.Session_Id == s.Session_Id && customers.Select(c => c.User_id).Contains(p.User_Id))
+                    .Select(p => p.User_Id)
                     .ToList();
 
                 if (!participantIds.Any()) continue;
 
                 var tables = _context.SessionTables
-                    .Where(st => st.SessionId == s.SessionId)
+                    .Where(st => st.Session_Id == s.Session_Id)
                     .Select(st => st.Table)
                     .ToList();
 
-                var totalSeats = tables.Sum(t => t.SeatCount);
+                var totalSeats = tables.Sum(t => t.seat_count);
                 var remaining = totalSeats;
 
                 foreach (var pid in participantIds)
                 {
-                    var numBills = _rng.Next(1, 4); // 1–3
+                    var numBills = _rng.Next(1, 4); // 1–3 bills per participant
                     for (int i = 0; i < numBills; i++)
                     {
                         if (remaining <= 0) break;
@@ -68,29 +69,29 @@ namespace back_end.domain.Seeders
                         remaining -= total;
 
                         BillStatus status;
-                        if (s.EndedAt != null) status = BillStatus.Closed;
-                        else status = s.SessionId <= 5 ? BillStatus.Open
+                        if (s.Ended_At != null) status = BillStatus.Closed;
+                        else status = s.Session_Id <= 5 ? BillStatus.Open
                                                        : (new[] { BillStatus.Closed, BillStatus.Cancelled })[_rng.Next(2)];
 
-                        var tableNumbers = tables.Select(t => t.TableNumber.ToString());
+                        var tableNumbers = tables.Select(t => t.table_number.ToString());
                         var name = $"Table{string.Join(" & ", tableNumbers)} - Party of {total}";
 
                         var participant = _context.SessionParticipants
-                            .FirstOrDefault(p => p.SessionId == s.SessionId && p.UserId == pid);
+                            .FirstOrDefault(p => p.Session_Id == s.Session_Id && p.User_Id == pid);
 
-                        var createdAt = (participant?.JoinedAt ?? s.StartedAt).AddMinutes(_rng.Next(5, 31));
+                        var createdAt = (participant?.Joined_At ?? s.Started_At).AddMinutes(_rng.Next(5, 31));
 
-                        var bill = new Bill
+                        var bill = new Billing
                         {
-                            SessionId = s.SessionId,
-                            BillName = name,
-                            SeniorCount = senior,
-                            AdultCount = adult,
-                            ChildCount = child,
-                            TotCount = tot,
+                            Session_Id = s.Session_Id,
+                            Bill_Name = name,
+                            Senior_Count = senior,
+                            Adult_Count = adult,
+                            Child_Count = child,
+                            Total_Count = tot,
                             Status = status,
-                            CreatedAt = createdAt,
-                            ClosedAt = status == BillStatus.Closed ? s.EndedAt : null
+                            Created_At = createdAt,
+                            Closed_At = status == BillStatus.Closed ? s.Ended_At : null
                         };
 
                         _context.Bills.Add(bill);
@@ -99,7 +100,7 @@ namespace back_end.domain.Seeders
                 }
             }
 
-            _context.SaveChanges();
+            //_context.SaveChanges();
 
             var totalOpen = _context.Bills.Count(b => b.Status == BillStatus.Open);
             var totalClosed = _context.Bills.Count(b => b.Status == BillStatus.Closed);

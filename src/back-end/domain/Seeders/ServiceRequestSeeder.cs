@@ -1,19 +1,18 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
-using back_end.domain.Enums;
+using back_end.domain.DbContexts;
 
 namespace back_end.domain.Seeders
 {
     /// <summary>
-    /// Seeds ServiceRequest per session participants and tables, with realistic timing/status.
+    /// Seeder for the service_request table with initial data.
     /// </summary>
     public class ServiceRequestSeeder : ISeeder
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<ServiceRequestSeeder> _logger;
-        private readonly Random _rng = new();
 
         public ServiceRequestSeeder(ApplicationDbContext context, ILogger<ServiceRequestSeeder> logger)
         {
@@ -23,97 +22,62 @@ namespace back_end.domain.Seeders
 
         public void Seed()
         {
-            var sessions = _context.DiningSessions.Where(s => s.SessionId <= 50).ToList();
-            if (!sessions.Any()) throw new InvalidOperationException("No dining sessions found. Seed sessions first.");
+            // Fetch some existing dining sessions, tables, and users to relate to
+            var diningSession = _context.DiningSessions.FirstOrDefault();
+            var table = _context.Tables.FirstOrDefault();
+            var userRequester = _context.Users.FirstOrDefault(u => u.Role == UserRoles.Customer);
+            var userClaimer = _context.Users.FirstOrDefault(u => u.Role != UserRoles.Customer);
 
-            var staff = _context.Users.Where(u => u.Role == UserRole.Staff && u.UserId >= 2 && u.UserId <= 4).ToList();
-            var customers = _context.Users.Where(u => u.Role == UserRole.Customer && u.UserId >= 5 && u.UserId <= 14).ToList();
-
-            int created = 0;
-
-            var common = new[]
+            if (diningSession == null || table == null || userRequester == null)
             {
-                "Need more water","Request chopsticks","Need napkins","Request soy sauce","Need wasabi",
-                "Request ginger","Need spoons","Request check","Clean plates please","Need assistance"
-            };
-
-            foreach (var s in sessions)
-            {
-                var tables = _context.SessionTables.Where(st => st.SessionId == s.SessionId).Select(st => st.Table).ToList();
-                if (!tables.Any()) continue;
-
-                var sessionParticipants = _context.SessionParticipants
-                    .Where(p => p.SessionId == s.SessionId && customers.Select(c => c.UserId).Contains(p.UserId))
-                    .ToList();
-
-                foreach (var p in sessionParticipants)
-                {
-                    var joined = EnsureUtc(p.JoinedAt);
-                    var left = EnsureUtc(p.LeftAt);
-                    var ended = EnsureUtc(s.EndedAt);
-                    var now = DateTime.UtcNow;
-
-                    int numReq = _rng.Next(0, 4); // 0–3
-
-                    for (int i = 0; i < numReq; i++)
-                    {
-                        var sessionEnd = ended ?? now;
-                        var maxTime = left ?? sessionEnd;
-                        var durMin = Math.Max(5, (int)(maxTime - joined).TotalMinutes);
-                        var createdAt = joined.AddMinutes(_rng.Next(5, durMin + 1));
-
-                        var table = tables[_rng.Next(tables.Count)];
-
-                        ServiceRequestStatus status;
-                        if (s.SessionId <= 5) // active
-                            status = new[] { ServiceRequestStatus.Pending, ServiceRequestStatus.Claimed, ServiceRequestStatus.Completed }[_rng.Next(3)];
-                        else
-                            status = ServiceRequestStatus.Completed;
-
-                        int? claimedBy = null;
-                        DateTime? claimedAt = null;
-                        DateTime? completedAt = null;
-
-                        if (status is ServiceRequestStatus.Claimed or ServiceRequestStatus.Completed)
-                        {
-                            claimedBy = staff[_rng.Next(staff.Count)].UserId;
-                            claimedAt = createdAt.AddMinutes(_rng.Next(1, 6));
-                            if (status == ServiceRequestStatus.Completed)
-                                completedAt = claimedAt.Value.AddMinutes(_rng.Next(2, 11));
-                        }
-
-                        var req = new ServiceRequest
-                        {
-                            SessionId = s.SessionId,
-                            TableId = table.TableId,
-                            RequestedBy = p.UserId,
-                            ClaimedBy = claimedBy,
-                            Notes = common[_rng.Next(common.Length)],
-                            Status = status,
-                            CreatedAt = createdAt,
-                            ClaimedAt = claimedAt,
-                            CompletedAt = completedAt
-                        };
-
-                        _context.ServiceRequests.Add(req);
-                        created++;
-
-                        if (created % 100 == 0) _context.SaveChanges();
-                    }
-                }
+                _logger.LogWarning("Cannot seed ServiceRequest - missing DiningSession, TableEntity, or User");
+                return;
             }
 
-            _context.SaveChanges();
+            var serviceRequests = new List<ServiceRequest>
+            {
+                new ServiceRequest
+                {
+                    Session_Id = diningSession.Session_Id,
+                    Table_Id = table.Table_Id,
+                    Request_By = userRequester.User_id,
+                    Claimed_By = userClaimer?.User_id,
+                    Notes = "Need extra napkins",
+                    Status = ServiceRequestStatus.Pending,
+                    Created_At = DateTime.Now,
+                    Claimed_At = null,
+                    Completed_At = null
+                },
+                new ServiceRequest
+                {
+                    Session_Id = diningSession.Session_Id,
+                    Table_Id = table.Table_Id,
+                    Request_By = userRequester.User_id,
+                    Claimed_By = userClaimer?.User_id,
+                    Notes = "Requesting water refill",
+                    Status = ServiceRequestStatus.Claimed,
+                    Created_At = DateTime.Now.AddMinutes(-15),
+                    Claimed_At = DateTime.Now.AddMinutes(-10),
+                    Completed_At = null
+                },
+                new ServiceRequest
+                {
+                    Session_Id = diningSession.Session_Id,
+                    Table_Id = table.Table_Id,
+                    Request_By = userRequester.User_id,
+                    Claimed_By = userClaimer?.User_id,
+                    Notes = "Bill requested",
+                    Status = ServiceRequestStatus.Completed,
+                    Created_At = DateTime.Now.AddHours(-2),
+                    Claimed_At = DateTime.Now.AddHours(-1).AddMinutes(-30),
+                    Completed_At = DateTime.Now.AddHours(-1)
+                }
+            };
 
-            var pending = _context.ServiceRequests.Count(r => r.Status == ServiceRequestStatus.Pending);
-            var claimed = _context.ServiceRequests.Count(r => r.Status == ServiceRequestStatus.Claimed);
-            var completed = _context.ServiceRequests.Count(r => r.Status == ServiceRequestStatus.Completed);
+            _context.ServiceRequests.AddRange(serviceRequests);
+           // _context.SaveChanges();
 
-            _logger.LogInformation($"Created {created} service requests ({pending} pending, {claimed} claimed, {completed} completed)");
+            _logger.LogInformation($"Added {serviceRequests.Count} service requests");
         }
-
-        private static DateTime EnsureUtc(DateTime? dt) => (dt?.Kind ?? DateTimeKind.Utc) == DateTimeKind.Utc
-            ? (dt ?? DateTime.UtcNow)
-            : DateTime.SpecifyKind(dt ?? DateTime.UtcNow, DateTimeKind.Utc);
     }
 }

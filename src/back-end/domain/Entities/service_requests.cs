@@ -14,10 +14,10 @@ namespace back_end.domain.Entities
         [ForeignKey(nameof(Table))]
         public int Table_Id { get; set; }
 
-        [ForeignKey(nameof(RequestedByUser))]
+        //[ForeignKey(nameof(RequestedByUser))]
         public int Request_By { get; set; }
 
-        [ForeignKey(nameof(ClaimedByUser))]
+        //[ForeignKey(nameof(ClaimedByUser))]
         public int? Claimed_By { get; set; }
 
         [MaxLength(500)]
@@ -34,7 +34,9 @@ namespace back_end.domain.Entities
 
         public DiningSession DiningSession { get; set; } = null!;
         public TableEntity Table { get; set; } = null!;
+        [ForeignKey("Request_By")]
         public User RequestedByUser { get; set; } = null!;
+        [ForeignKey("Claimed_By")]
         public User? ClaimedByUser { get; set; }
         
 

@@ -74,7 +74,7 @@ namespace back_end.controllers
                     Total_Count = NewBill.Total_Count,
                     Status = NewBill.Status.ToString(),
                     Created_At = NewBill.Created_At,
-                    Closed_At = NewBill.Closed_At,
+                    Closed_At = NewBill.Closed_At.ToString(),
                     Table_Numbers = new List<int>()
                 });
             }
@@ -122,7 +122,7 @@ namespace back_end.controllers
                     Total_Count = bill.Total_Count,
                     Status = bill.Status.ToString(),
                     Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At,
+                    Closed_At = bill.Closed_At.ToString(),
                     Table_Numbers = new List<int>()
                 }).ToList();
                 return Ok(billResponses);
@@ -155,7 +155,7 @@ namespace back_end.controllers
                     Total_Count = session.Total_Count,
                     Status = session.Status.ToString(),
                     Created_At = session.Created_At,
-                    Closed_At = session.Closed_At,
+                    Closed_At = session.Closed_At.ToString(),
                     Table_Numbers = new List<int>()
                 });
             }
@@ -189,7 +189,7 @@ namespace back_end.controllers
                     return BadRequest(new { message = "Cannot close bill with pending orders" });
                 }
                 bill.Status = BillStatus.Closed;
-                bill.Closed_At = DateTime.UtcNow.ToString("o");
+                bill.Closed_At = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
                 await _context.Entry(bill).ReloadAsync();
                 return Ok(new BillResponse
@@ -203,7 +203,7 @@ namespace back_end.controllers
                     Total_Count = bill.Total_Count,
                     Status = bill.Status.ToString(),
                     Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At,
+                    Closed_At = bill.Closed_At.ToString(),
                     Table_Numbers = new List<int>()
                 });
 
@@ -242,7 +242,7 @@ namespace back_end.controllers
                     }
                 }
                 bill.Status = BillStatus.Cancelled;
-                bill.Closed_At = DateTime.UtcNow.ToString("o");
+                bill.Closed_At = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
                 await _context.Entry(bill).ReloadAsync();
                 return Ok(new BillResponse
@@ -256,7 +256,7 @@ namespace back_end.controllers
                     Total_Count = bill.Total_Count,
                     Status = bill.Status.ToString(),
                     Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At,
+                    Closed_At = bill.Closed_At.ToString(),
                     Table_Numbers = new List<int>()
                 });
             }
@@ -317,7 +317,7 @@ namespace back_end.controllers
                     Total_Count = bill.Total_Count,
                     Status = bill.Status.ToString(),
                     Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At,
+                    Closed_At = bill.Closed_At.ToString(),
                     Table_Numbers = new List<int>()
                 }).ToList();
 

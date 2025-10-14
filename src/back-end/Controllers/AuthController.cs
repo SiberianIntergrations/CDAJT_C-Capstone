@@ -29,7 +29,6 @@ namespace back_end.controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginDTO request)
         {
-
             string UserEmail = request.UserEmail ?? string.Empty;
             string UserPassword = request.UserPassword ?? string.Empty;
             var ReturnedUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == UserEmail);
@@ -44,7 +43,8 @@ namespace back_end.controllers
                 _context.Users.Update(ReturnedUser);
                 await _context.SaveChangesAsync();
 
-                var token = GenerateJwtToken(ReturnedUser.Email, ReturnedUser.Role.ToString());
+                //Generate the JWT token with Returned user assigned above
+                var token = GenerateJwtToken(ReturnedUser);
                 return Ok(new
                 {
                     access_token = token,
@@ -104,20 +104,26 @@ namespace back_end.controllers
             return Ok(new { message = "User created successfully" });
         }
 
-    private string GenerateJwtToken(string username,string? role = null)
+    private string GenerateJwtToken(domain.Entities.User user)
         {
+
+            var keyStr = _config["Jwt:Key"];
+            Console.WriteLine($"[JWT SIGN] Key len: {keyStr?.Length}, First8: {keyStr?[..Math.Min(8, keyStr!.Length)]}");
+
             var securityKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
+            //Add all the claims based on the user's information and their role
             var claims = new[]
             {
-            new Claim(ClaimTypes.Name, username),
-            new Claim(ClaimTypes.Email, username),
-            new Claim(ClaimTypes.Role, role ?? "User"),
-            new Claim(JwtRegisteredClaimNames.Sub, username),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        };
+                new Claim(ClaimTypes.NameIdentifier, user.User_id.ToString()),
+                new Claim(ClaimTypes.Name, user.Email),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            };
 
             var token = new JwtSecurityToken(
                 issuer: _config["Jwt:Issuer"],
