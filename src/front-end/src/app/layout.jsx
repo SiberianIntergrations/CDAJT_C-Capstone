@@ -11,7 +11,7 @@ import "@/styles/global.css";
 
 import { PublicClientApplication } from '@azure/msal-browser';
 import { MsalProvider } from '@azure/msal-react';
-import { msalConfig } from '@/config/authconfig';
+import { msalConfig } from '@/config/auth';
 
 
 

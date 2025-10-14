@@ -1,4 +1,4 @@
-import { API_SCOPE } from "@/config/authconfig";
+import { API_SCOPE } from "@/config/auth";
 
 
 
