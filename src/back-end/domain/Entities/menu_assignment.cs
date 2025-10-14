@@ -21,6 +21,7 @@ namespace back_end.domain.Entities
         public int Total_Units_Ordered { get; set; }
 
         public DateTime LastOrdered { get; set; }
+        public DateTime Last_Viewed_At { get; set; }
 
         public int Total_Views { get; set; }
 

@@ -12,28 +12,28 @@ namespace back_end.domain.Entities
 
         [Required]
         [MaxLength(255)]
-        public string Category_name { get; set; } = string.Empty;
+        public string Category_Name { get; set; } = string.Empty;
 
         [Required]
         
         public string Description { get; set; } = string.Empty;
 
-        public string? image_url { get; set; }
+        public string? Image_Url { get; set; }
 
         [MaxLength(255)]
-        public int total_views { get; set; } = 0;
+        public int Total_Views { get; set; } = 0;
 
-        public int total_view_seconds { get; set; } = 0;
+        public int Total_View_Seconds { get; set; } = 0;
 
-        public DateTime last_viewed_at { get; set; }
+        public DateTime Last_Viewed_At { get; set; }
 
-        public int adult_limit { get; set; } = 0;
+        public int Adult_Limit { get; set; } = 0;
 
-        public int child_limit { get; set; } = 0;
+        public int Child_Limit { get; set; } = 0;
 
-        public int senior_limit { get; set; } = 0;
+        public int Senior_Limit { get; set; } = 0;
 
-        public int total_limit { get; set; } = 0;
+        public int Total_Limit { get; set; } = 0;
 
         public ICollection<Menu_Item> MenuItems { get; set; } = new List<Menu_Item>();
     }

@@ -52,7 +52,7 @@ namespace back_end.controllers
                         Started_At = session.Started_At,
                         Ended_At = session.Ended_At,
                         First_Order_At = session.First_Order_At,
-                        Table_Numbers = session.Tables.Select(t => t.table_number).ToList(),
+                        Table_Numbers = session.Tables.Select(t => t.Table_Number).ToList(),
                         Active_Participants = active_participants,
                         Bills = session.Bills.Select(b => new DashBoardBillDTO
                         {
