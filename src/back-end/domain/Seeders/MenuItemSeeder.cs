@@ -125,7 +125,7 @@ namespace back_end.domain.Seeders
                         Adult_Limit = categoryConfig.AdultLimit,
                         Child_limit = categoryConfig.ChildLimit,
                         Senior_limit = categoryConfig.SeniorLimit,
-                        Total_Limit = categoryConfig.TotLimit,
+                        Tot_Limit = categoryConfig.TotLimit,
                         Total_Units_Ordered = 0,
                         Total_Views = 0,
                         Total_View_Seconds = 0,

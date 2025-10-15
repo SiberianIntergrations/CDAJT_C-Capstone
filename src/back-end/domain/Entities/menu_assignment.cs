@@ -36,7 +36,7 @@ namespace back_end.domain.Entities
 
         public int Senior_limit { get; set; }
 
-        public int Total_Limit { get; set; }
+        public int Tot_Limit { get; set; }
 
         public Menu Menu { get; set; } = null!;
 
