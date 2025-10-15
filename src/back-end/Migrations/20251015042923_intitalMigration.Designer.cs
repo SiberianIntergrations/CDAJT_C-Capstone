@@ -12,7 +12,7 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251015040658_intitalMigration")]
+    [Migration("20251015042923_intitalMigration")]
     partial class intitalMigration
     {
         /// <inheritdoc />
@@ -240,6 +240,9 @@ namespace back_end.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime>("LastOrdered")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("LastViewedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<decimal>("Price")

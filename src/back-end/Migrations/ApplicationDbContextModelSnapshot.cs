@@ -239,6 +239,9 @@ namespace back_end.Migrations
                     b.Property<DateTime>("LastOrdered")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<DateTime>("LastViewedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(65,30)");
 

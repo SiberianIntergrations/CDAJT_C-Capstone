@@ -219,6 +219,7 @@ namespace back_end.Migrations
                     Price = table.Column<decimal>(type: "decimal(65,30)", nullable: false),
                     Total_Units_Ordered = table.Column<int>(type: "int", nullable: false),
                     LastOrdered = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    LastViewedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Total_Views = table.Column<int>(type: "int", nullable: false),
                     Total_View_Seconds = table.Column<int>(type: "int", nullable: false),
                     Is_Add_On = table.Column<bool>(type: "tinyint(1)", nullable: false),

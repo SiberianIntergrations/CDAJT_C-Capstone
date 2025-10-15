@@ -167,7 +167,7 @@ namespace back_end.Controllers
         {
             try
             {
-                var location = _context.Locations.Where(l => l.Location_Id == location_id);
+                var location = _context.Locations.Where(l => l.Location_Id == location_id).FirstOrDefault();
                 if (location == null)
                 {
                     return NotFound("Location was not found");
@@ -197,7 +197,7 @@ namespace back_end.Controllers
         {
             try
             {
-                var menuDeletion = _context.MenuLocations.Where(ml => ml.Location_Id == location_id && ml.Menu_Id == menu_id).FirstOrDefaultAsync();
+                var menuDeletion = await  _context.MenuLocations.Where(ml => ml.Location_Id == location_id && ml.Menu_Id == menu_id).FirstOrDefaultAsync();
                 if (menuDeletion == null)
                 {
                     return NotFound("Menu Location was not found.");

@@ -118,7 +118,7 @@ namespace back_end.Controllers
                 }
                 if (updateData.Last_Viewed_At.HasValue)
                 {
-                    assignment.LastOrdered = DateTime.UtcNow;
+                    assignment.LastViewedAt = DateTime.UtcNow;
                 }
                 assignment.Price = updateData.Price;
                 assignment.Is_Add_On = updateData.Is_Add_on;
@@ -169,7 +169,7 @@ namespace back_end.Controllers
         {
             try
             {
-                var existingMenu = await _context.Menus.Where(m => m.Name == new_menu_name).FirstAsync();
+                var existingMenu = await _context.Menus.Where(m => m.Name == new_menu_name).FirstOrDefaultAsync();
                 if (existingMenu != null)
                 {
                     return Conflict("Menu Name Already Exist");
@@ -187,7 +187,7 @@ namespace back_end.Controllers
                 {
                     newAssignment.Add(new MenuItemAssignment
                     {
-                        Menu_Id = element.Menu_Id,
+                        Menu_Id = new_menu.Menu_id,
                         Item_Id = element.Item_Id,
                         Price = element.Price,
                         Adult_Limit = element.Adult_Limit,
