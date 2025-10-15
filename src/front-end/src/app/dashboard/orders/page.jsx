@@ -15,7 +15,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BillSelect from "@/components/customer/OrderDashboard/components/BillSelect";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const OrdersAccordion = () => {
   const router = useRouter();
@@ -33,22 +33,14 @@ const OrdersAccordion = () => {
     CANCELLED: "#f44336",
   };
 
-  const getToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
-    return null;
-  };
-
+  // TODO: Double check API endpoints and modify router push paths if needed.
   // Fetch active session ID
   useEffect(() => {
     const getActiveSession = async () => {
       try {
-        const response = await axiosInstance.get(
-          createApiUrl("/dining-sessions/participants/active-session-id")
-        );
+        const response = await api.get("/DiningSession/participants/active-session-id");
 
-        if (response.statusText !== "OK") {
+        if (response.status < 200 || response.status >= 300) {
           throw new Error("Failed to fetch active session");
         }
 
@@ -72,46 +64,42 @@ const OrdersAccordion = () => {
 
   const fetchOrders = async (billId = "") => {
     try {
-      const token = getToken();
-      if (!token) {
-        setError("No authentication token found");
-        setLoading(false);
-        return;
-      }
+      setLoading(true);
+      setError(null);
 
-      let url = "/orders/my-active-session/orders";
-      if (billId) {
-        url += `?bill_id=${billId}`;
-      }
+      const params = {};
+      if (billId) params.bill_id = billId;
 
-      const response = await axiosInstance.get(createApiUrl(url));
+      // api from old project: /orders/my-active-session/orders GET
+      const response = await api.get("/Order", {
+        params,
+      });
 
-      if (response.statusText !== "OK") {
+      if (response.status < 200 || response.status >= 300) {
         throw new Error("Failed to fetch orders");
       }
 
-      if (!response.data) {
+      const orders = response.data || [];
+      if (!orders.length) {
         setGroupedOrders({});
         setLoading(false);
         return;
       }
 
-      const orderDetailsPromises = response.data.map((order) =>
-        axiosInstance.get(createApiUrl(`/orders/${order.order_id}/order-items`))
-      );
+      const orderDetailsPromises = orders.map((order) =>
+        // api from old project: /orders/{orderId}/order-items GET
+        api.get(`/Order/session/${order.sessionId}`));
 
-      const orderDetails = await Promise.all(orderDetailsPromises);
+      const orderDetailsResponse = await Promise.all(orderDetailsPromises);
 
-      const ordersWithItems = response.data.map((order, index) => ({
+      const ordersWithItems = orders.map((order, index) => ({
         ...order,
-        items: orderDetails[index]?.data || [],
+        items: orderDetailsResponse[index]?.data || [],
       }));
 
       const grouped = ordersWithItems.reduce((acc, order) => {
-        const status = order.status.toUpperCase();
-        if (!acc[status]) {
-          acc[status] = [];
-        }
+        const status = (order.status || "PENDING").toUpperCase();
+        if (!acc[status]) acc[status] = [];
         acc[status].push(order);
         return acc;
       }, {});
@@ -125,6 +113,7 @@ const OrdersAccordion = () => {
           ? err.response.data.detail
           : "Error loading orders"
       );
+      setGroupedOrders({});
       setLoading(false);
     }
   };
@@ -135,10 +124,12 @@ const OrdersAccordion = () => {
     fetchOrders(billId);
   };
 
+  // TODO: Check if this is needed
   const handleNewOrder = (event) => {
     event.preventDefault();
     router.push("/menu/full-menu");
   };
+  
   useEffect(() => {
     fetchOrders(selectedBillId);
     const interval = setInterval(() => fetchOrders(selectedBillId), 30000);

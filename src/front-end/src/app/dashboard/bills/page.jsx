@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { Plus } from "lucide-react";
 import { styled } from "@mui/material/styles";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 import NewBillDialog from "@/components/staff/SessionDashboard/components/dialogs/NewBillDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
 
@@ -61,8 +61,7 @@ const BillCard = styled(Card)(({ theme, $statusColor }) => ({
 const SessionContextWrapper = ({ children }) => {
   const createBill = async (sessionId, billData) => {
     try {
-      const res = await axiosInstance.post(
-        createApiUrl(`/Bill/create_bill/${sessionId}`),
+      const res = await api.post(`/Bill/create_bill/${sessionId}`,
         {
           bill_name: billData.billName,
           adult_count: parseInt(billData.adultCount),
@@ -114,7 +113,7 @@ const fetchActiveSession = async () => {
   setLoading(true);
   setError(null);
   try {
-    const res = await axiosInstance.get(createApiUrl("/Dashboard/sessions"));
+    const res = await api.get("/Dashboard/sessions");
     if (res.status !== 200) throw new Error();
     const sessions = Array.isArray(res.data) ? res.data : [];
     const s = sessions[0] || null;
@@ -144,9 +143,7 @@ useEffect(() => {
         setBills([]);
         return;
       }
-      const res = await axiosInstance.get(
-        createApiUrl(`/Bill/get_bills/${sid}`)
-      );
+      const res = await api.get(`/Bill/get_bills/${sid}`);
       if (res.status !== 200) throw new Error("Failed to fetch bills");
       setBills(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
