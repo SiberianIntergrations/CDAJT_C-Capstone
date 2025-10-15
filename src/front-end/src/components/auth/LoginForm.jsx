@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import {
   Box,
@@ -12,7 +11,7 @@ import {
 } from "@mui/material";
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const LoginForm = () => {
   const router = useRouter();
@@ -38,8 +37,7 @@ const LoginForm = () => {
 
     try {
       console.log("Attempting login...");
-      const response = await axiosInstance.post(
-        createApiUrl("/Auth/login"),
+      const response = await api.post("/auth/login",
         {
           email: formData.email,
           password: formData.password,

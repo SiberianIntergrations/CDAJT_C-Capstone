@@ -1,6 +1,7 @@
+"use client";
 import React, { useState } from "react";
 import Link from "next/link";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 import {
   Box,
   Button,
@@ -25,9 +26,7 @@ export const ForgotPasswordForm = () => {
     setLoading(true);
 
     try {
-      await axiosInstance.post(createApiUrl("/auth/forgot-password"), {
-        email,
-      });
+      await await api.post("/auth/forgot-password", { email });
     } catch (err) {
       setError(
         err.response?.data?.detail ||

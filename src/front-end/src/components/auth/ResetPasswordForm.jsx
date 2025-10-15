@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,7 +12,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { KeyRound } from "lucide-react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const ResetPasswordForm = () => {
   const router = useRouter();
@@ -43,7 +44,7 @@ const ResetPasswordForm = () => {
     }
 
     try {
-      await axiosInstance.post(createApiUrl("/auth/reset-password"), {
+      await api.post("/auth/reset-password", {
         token,
         new_password: formData.newPassword,
       });

@@ -13,7 +13,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { UserPlus } from "lucide-react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -43,8 +43,7 @@ const RegisterForm = () => {
     setError("");
 
     try {
-      const response = await axiosInstance.post(
-        createApiUrl("/auth/register"),
+      const response = await api.post("/auth/register",
         {
           email: formData.email,
           password: formData.password,
