@@ -8,7 +8,7 @@ import {
   Collapse,
 } from "@mui/material";
 import { Bell, Check, AlertCircle } from "lucide-react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const ServiceRequests = ({ session, onRequestsUpdate }) => {
   const [requests, setRequests] = useState([]);
@@ -17,10 +17,10 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const response = await axiosInstance.get(
-        createApiUrl(`/service-requests/by-session/${session.session_id}`)
-      );
-      if (response.statusText !== "OK") {
+      // TODO: ServiceRequest endpoint GET ${sessionId} needed (api from old project: /service-requests/by-session/{sessionId})
+      // TODO: Look over useCallback and dependencies
+      const response = await api.get(`/service-requests/by-session/${session.session_id}`);
+      if (response.statusText !== 200) {
         throw new Error("Failed to fetch service requests");
       }
 
@@ -48,10 +48,9 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
   const handleComplete = async (requestId) => {
     try {
       setLoading(true);
-      const response = await axiosInstance.post(
-        createApiUrl(`/service-requests/${requestId}/complete`)
-      );
-      if (response.statusText !== "OK") {
+      // TODO: ServiceRequest endpoint POST complete needed (api from old project: /service-requests/{requestId}/complete)
+      const response = await api.post(`/service-requests/${requestId}/complete`);
+      if (response.statusText !== 200) {
         throw new Error("Failed to complete request");
       }
 
@@ -70,9 +69,7 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
 
   useEffect(() => {
     fetchRequests();
-
     const intervalId = setInterval(fetchRequests, 5000);
-
     return () => clearInterval(intervalId);
   }, [fetchRequests]);
 

@@ -7,7 +7,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import Box from "@mui/material/Box";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const ActiveOrdersAccordion = () => {
   const [activeOrderIds, setActiveOrderIds] = useState([]);
@@ -15,19 +15,14 @@ const ActiveOrdersAccordion = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const getToken = () => localStorage.getItem("access_token");
-
   useEffect(() => {
     const fetchActiveOrders = async () => {
       try {
-        const response = await axiosInstance.get(
-          createApiUrl("/orders/my-active-session/pending-orders")
-        );
+        const response = await api.get("/orders/my-active-session/pending-orders");
         setActiveOrderIds(response.data);
 
         const itemPromises = response.data.map((orderId) =>
-          axiosInstance.get(createApiUrl(`/orders/${orderId}/pending-items`))
-        );
+          api.get(`/orders/${orderId}/pending-items`));
 
         const itemResponses = await Promise.all(itemPromises);
         const itemsByOrder = itemResponses.reduce((acc, response, index) => {

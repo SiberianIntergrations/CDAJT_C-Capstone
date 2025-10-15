@@ -18,7 +18,7 @@ import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";
 import { useSession } from "../../context/SessionContext";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const CardWrapper = styled("div")(({ theme }) => ({
   position: "relative",
@@ -136,11 +136,11 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
   const fetchRequests = useCallback(async () => {
     try {
-      const response = await axiosInstance.get(
-        createApiUrl(`/service-requests/by-session/${session.session_id}`)
-      );
+      // previously used /service-requests/by-session/{sessionId}
+      // TODO: Endpoint to get service requests for a session
+      const response = await api.get(`/service-requests/by-session/${session.session_id}`);
 
-      if (!response.statusText === "OK")
+      if (response.status !== 200)
         throw new Error("Failed to fetch requests");
       const data = response.data;
       setRequests(data);
@@ -183,11 +183,11 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
   const handleComplete = async (requestId) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/service-requests/${requestId}/complete`)
-      );
+      // previously used /service-requests/{requestId}/complete
+      // TODO: Endpoint to mark a service request as complete
+      const response = await api.post(`/service-requests/${requestId}/complete`);
 
-      if (!response.statusText === "OK")
+      if (response.status !== 200)
         throw new Error("Failed to complete request");
       await fetchRequests();
     } catch (error) {

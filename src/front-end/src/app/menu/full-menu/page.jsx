@@ -18,7 +18,7 @@ import BillSelect from "@/components/customer/OrderDashboard/components/BillSele
 import OrderSummary from "@/components/customer/OrderDashboard/components/OrderSummaryItem";
 import useMenuSearch from "@/components/menu/searchUtils";
 import Tags from "@/components/Tags";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const SWIPE_THRESHOLD = 50;
 const ANIMATION_DURATION = 300;
@@ -162,13 +162,6 @@ const FullMenu = () => {
     });
   };
 
-  const getToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
-    return null;
-  };
-
   const getSelectedItemsStats = (categoryId) => {
     if (!quantities[categoryId]) return { itemCount: 0, totalQuantity: 0 };
 
@@ -195,17 +188,16 @@ const FullMenu = () => {
     );
   };
 
-  useEffect(() => {
+useEffect(() => {
     const getActiveSession = async () => {
       try {
-        const response = await axiosInstance.get(
-          createApiUrl("/dining-sessions/participants/active-session-id")
+        setError(null);
+        // api from old project: /dining-sessions/participants/active-session-id GET
+        const response = await api.get(
+          "/DiningSession/participants/active-session-id"
         );
-        if (response.statusText !== "OK") {
-          throw new Error("Failed to fetch active session");
-        }
-        if (response.data) {
-          setSessionId(response.data.session_id);
+        if (response?.status >= 200 && response.status < 300 && response.data) {
+          setSessionId(response.data.session_id ?? response.data);
         } else {
           setError("No active session found");
         }
@@ -218,27 +210,28 @@ const FullMenu = () => {
     getActiveSession();
   }, []);
 
-  useEffect(() => {
+    useEffect(() => {
     if (!sessionId || sessionId < 1) {
       console.log("Invalid sessionId. Skipping menu fetch.");
       return;
     }
     const fetchMenu = async () => {
       try {
-        const response = await axiosInstance.get(
-          createApiUrl(`/dining-sessions/session-menu/${sessionId}`)
+        setError(null);
+        // api from old project: /dining-sessions/session-menu/{sessionId} GET
+        const response = await api.get(
+          `/DiningSession/session-menu/${sessionId}`
         );
-        if (response.statusText !== "OK") {
-          throw new Error("Failed to fetch menu");
-        }
-        if (response.data) {
-          const newMenuId = response.data.menu_id;
-          setMenuId(newMenuId);
+        if (response?.status >= 200 && response.status < 300 && response.data) {
+          setMenuId(response.data.menu_id ?? response.data);
         } else {
-          console.error("No menu found");
+          console.warn("No menu found", response?.data);
+          setError("No menu found for this session");
         }
-      } catch (error) {
+      } catch (err) {
         console.error("Error fetching menu:", error);
+        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching menu";
+        setError(message);
       }
     };
     fetchMenu();
@@ -255,43 +248,39 @@ const FullMenu = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axiosInstance.get(createApiUrl("/categories"));
-        if (response.statusText !== "OK") {
-          throw new Error("Failed to fetch categories");
-        }
+        setError(null);
+        const response = await api.get("/Category");
         const data = response.data;
         if (Array.isArray(data)) {
           setCategories(data);
         } else {
           console.error("Categories data is not an array");
         }
-      } catch (error) {
+      } catch (err) {
         console.error("Error fetching categories:", error);
+        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
+        setError(message);
       }
     };
     fetchCategories();
   }, []);
 
+  // TODO: Update api endpoints
   const fetchMenuItems = async (categoryId, menu_id) => {
     if (!menu_id || menuItems[categoryId]) return;
     try {
-      const response = await axiosInstance.get(
-        createApiUrl(`/menus/${menu_id}/items?category_id=${categoryId}`)
+      const response = await api.get(
+        `/menus/${menu_id}/items?category_id=${categoryId}`
       );
-      if (response.statusText !== "OK") {
-        throw new Error(
-          `Failed to fetch menu items for category ${categoryId}`
-        );
-      }
-
-      for (const item of response.data) {
-        const itemTagsResponse = await axiosInstance.get(
-          createApiUrl(`/menu-items/${item.item_id}/tags-with-colors`)
-        );
-        item.tags = itemTagsResponse.data;
-      }
-
+      if (response.status === 200) {
+        for (const item of response.data) {
+          const itemTagsResponse = await api.get(
+            `/menu-items/${item.item_id}/tags-with-colors`
+          );
+          item.tags = itemTagsResponse.data;
+        }
       setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
+      }
     } catch (error) {
       console.error(
         `Error fetching menu items for category ${categoryId}:`,
@@ -306,7 +295,6 @@ const FullMenu = () => {
   };
 
   const createOrderItems = async (orderId) => {
-    const token = getToken();
     const errors = [];
 
     const orderItemPromises = Object.entries(quantities).flatMap(
@@ -327,12 +315,11 @@ const FullMenu = () => {
 
               console.log("Menu Item Price: ", menuItem.price);
               console.log("Is add on: ", menuItem.is_add_on);
+
               let newPrice = menuItem.is_add_on ? menuItem.price : 0;
               console.log("New Price: ", newPrice);
 
-              const response = await axiosInstance.post(
-                createApiUrl(`/orders/${orderId}/items`),
-                {
+              const response = await api.post(`/orders/${orderId}/items`, {
                   order_id: orderId,
                   menu_id: menuId,
                   item_id: parseInt(itemId),
@@ -341,10 +328,9 @@ const FullMenu = () => {
                   status: "pending",
                 }
               );
-              if (response.statusText !== "OK") {
+              if (response.status !== 200 && response.status !== 201) {
                 throw new Error(`Failed to add item ${itemId}`);
               }
-
               return response.data;
             } catch (error) {
               errors.push(`Failed to add item ${itemId}: ${error.message}`);
@@ -386,16 +372,15 @@ const FullMenu = () => {
     setError(null);
 
     try {
-      const orderResponse = await axiosInstance.post(createApiUrl("/orders"), {
+      const orderResponse = await api.post("/orders", {
         session_id: sessionId,
         bill_id: selectedBillId,
       });
-      if (!orderResponse.statusText === "OK") {
+      if (orderResponse.status !== 200 && orderResponse.status !== 201) {
         throw new Error("Failed to create order");
       }
 
       const newOrderId = orderResponse.data.order_id;
-
       await createOrderItems(newOrderId);
 
       setQuantities({});

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 import {
   Dialog,
   DialogTitle,
@@ -38,15 +38,13 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
       setError(null);
 
       // First, get all active tables
-      const tablesResponse = await axiosInstance.get(
-        createApiUrl("/table-entities")
-      );
+      // previously used /table-entities
+      const tablesResponse = await api.get("/Table");
       const allTables = tablesResponse.data;
 
       // Then, get tables in all active sessions
-      const sessionsResponse = await axiosInstance.get(
-        createApiUrl("/dashboard/sessions")
-      );
+      // previously used /dashboard/sessions
+      const sessionsResponse = await api.get("/Session/active");
       const activeSessions = sessionsResponse.data;
 
       // Gather all tables in use across all sessions

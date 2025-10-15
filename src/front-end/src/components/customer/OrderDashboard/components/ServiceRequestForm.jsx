@@ -11,7 +11,7 @@ import {
   Alert,
   CircularProgress,
 } from "@mui/material";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const ServiceRequestForm = () => {
   const [message, setMessage] = useState("");
@@ -33,9 +33,8 @@ const ServiceRequestForm = () => {
   useEffect(() => {
     const getActiveSession = async () => {
       try {
-        const response = await axiosInstance.get(
-          createApiUrl("/dining-sessions/participants/active-session-id")
-        );
+        // TODO: Update endpoint (previous endpoint: /dining-sessions/participants/active-session-id)
+        const response = await api.get("/dining-sessions/participants/active-session-id");
 
         if (response && response.data) {
           setSessionId(response.data.session_id);
@@ -63,15 +62,15 @@ const ServiceRequestForm = () => {
     setSuccess(false);
 
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/service-requests/${sessionId}`),
+      // TODO: Update endpoint (previous endpoint: /service-requests/{sessionId}) Need POST ServiceRequest/${sessionId}
+      const response = await api.post(`/service-requests/${sessionId}`,
         { notes: message }
       );
       console.log("Response:", response);
 
-      if (!response.statusText === "OK") {
+      if (response.status !== 200) {
         const data = response.data;
-        throw new Error(data.detail || "Failed to submit request");
+        throw new Error(data?.detail || "Failed to submit request");
       }
 
       setSuccess(true);
