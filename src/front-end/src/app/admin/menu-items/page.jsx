@@ -42,6 +42,7 @@ export default function MenuItemsPage() {
           return;
         }
 
+        // TODO: Fix role-based access control
         const tokenData = JSON.parse(atob(token.split(".")[1]));
         
         // if (tokenData.role !== "admin") {

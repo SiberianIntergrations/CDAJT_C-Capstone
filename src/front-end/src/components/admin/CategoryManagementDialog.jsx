@@ -1,4 +1,4 @@
-import { axiosInstance, createApiUrl } from "@/config/api"; // Adjust path as needed
+import api from "@/config/api";
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -33,6 +33,7 @@ const CategoryManagementDialog = ({
   const [submitting, setSubmitting] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
+  // TODO: Update API endpoints for categories
   useEffect(() => {
     if (selectedCategory) {
       setFormData({
@@ -62,12 +63,9 @@ const CategoryManagementDialog = ({
 
     try {
       if (selectedCategory) {
-        await axiosInstance.put(
-          createApiUrl(`/categories/${selectedCategory.category_id}`),
-          formData
-        );
+        await api.put(`/Category/update_category${selectedCategory._categoryId}`, formData);
       } else {
-        await axiosInstance.post(createApiUrl("/categories"), formData);
+        await api.post("/Category"), formData;
       }
 
       onSuccess();
@@ -86,9 +84,7 @@ const CategoryManagementDialog = ({
 
     try {
       // Check for menu items in category
-      const itemsResponse = await axiosInstance.get(
-        createApiUrl(`/categories/${selectedCategory.category_id}/menu-items`)
-      );
+      const itemsResponse = await api.get(`/categories/${selectedCategory.category_id}/menu-items`);
 
       if (itemsResponse.data && itemsResponse.data.length > 0) {
         throw new Error(
@@ -97,9 +93,7 @@ const CategoryManagementDialog = ({
       }
 
       // Delete the category
-      await axiosInstance.delete(
-        createApiUrl(`/categories/${selectedCategory.category_id}`)
-      );
+      await api.delete(`/categories/${selectedCategory.category_id}`);
 
       onSuccess();
       onClose();
