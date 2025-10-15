@@ -15,7 +15,7 @@ namespace back_end.DTO.MenuItems
         public int Category_Id { get; set; }
         public string? Item_Image_Url { get; set; }
         //public bool is_add_on {get;set;}
-        public MenuItemStatus status { get; set; } = MenuItemStatus.Available;
+        public MenuItemStatus Status { get; set; } = MenuItemStatus.Available;
     }
 
     // public class MenuItemResponseDTO
