@@ -69,7 +69,7 @@ namespace back_end.controllers
         }
 
         [HttpGet("get_list_dining_sessions")]
-        public async Task<IActionResult> list_dining_sessions([FromQuery] bool act)
+        public async Task<IActionResult> list_dining_sessions([FromQuery] ListDiningSessionsRequestDTO act)
         {
             try
             {
@@ -77,7 +77,7 @@ namespace back_end.controllers
                     .Include(s => s.Tables)
                     .Include(s => s.Participants)
                     .AsQueryable();
-                if (act == true)
+                if (act.ActiveOnly)
                 {
                     query = query.Where(ds => ds.Ended_At == null);
                 }
