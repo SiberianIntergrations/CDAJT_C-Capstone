@@ -11,7 +11,7 @@ namespace back_end.DTO.MenuDTO{
         [JsonPropertyName("name")]
         public string Name { get; set; } = string.Empty;
         [JsonPropertyName("description")]
-        public string? description { get; set; }
+        public string? Description { get; set; }
         [JsonPropertyName("start_time")]
         public TimeOnly? Start_Time { get; set; }
         [JsonPropertyName("end_time")]

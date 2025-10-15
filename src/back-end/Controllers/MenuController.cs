@@ -6,6 +6,9 @@ using back_end.domain;
 using System.Linq.Expressions;
 using back_end.DTO.MenuItems;
 using Microsoft.AspNetCore.Authorization;
+using back_end.DTO.MenuDTO;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using back_end.domain.Seeders;
 
 namespace back_end.Controllers
 {
@@ -249,7 +252,90 @@ namespace back_end.Controllers
             }
         }
 
-        
+        [Authorize(Roles = "Admin")]
+        [HttpPut("/{menu_id}")]
+        public async Task<IActionResult> Update_Menu(
+            int menu_id,
+            MenuUpdateDTO menu_data
+        )
+        {
+            try
+            {
+                var menu = _context.Menus.FirstOrDefault(m => m.Menu_id == menu_id);
+                if (menu == null)
+                {
+                    return NotFound("Menu Id was not Found");
+                }
+                if ((menu_data.Name != null) && (menu_data.Name != menu.Name))
+                {
+                    var existingMenu = await _context.Menus.FirstOrDefaultAsync(m => m.Name == menu_data.Name && m.Menu_id != menu_id);
+                    if (existingMenu != null)
+                    {
+                        return Conflict("Menu with this name already Exists");
+                    }
+                }
+                ;
+                if (menu_data.Name != null)
+                {
+                    menu.Name = menu_data.Name;
+                }
+                if (menu_data.Description != null)
+                {
+                    menu.Description = menu_data.Description;
+                }
+                if (menu_data.Start_Time.HasValue)
+                {
+                    menu.Start_time = (TimeOnly)menu_data.Start_Time;
+                }
+                if (menu_data.End_Time.HasValue)
+                {
+                    menu.End_time = (TimeOnly)menu_data.End_Time;
+                }
+                if (menu_data.Is_Active.HasValue)
+                {
+                    menu.Is_active = (bool)menu_data.Is_Active;
+                }
+                _context.Update(menu);
+                await _context.SaveChangesAsync();
+                return Ok(new MenuResponseDTO
+                {
+                    Menu_Id = menu.Menu_id,
+                    Name = menu.Name,
+                    Description = menu.Description,
+                    Start_Time = menu.Start_time,
+                    End_Time = menu.End_time,
+                    Is_Active = menu.Is_active
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Can't update the menu: {menu_data.Name}");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("menu_id")]
+        public async Task<IActionResult> Delete_Menu(
+            int menu_id
+        )
+        {
+            try
+            {
+                var menuToDelete = await _context.Menus.FirstOrDefaultAsync(m => m.Menu_id == menu_id);
+                if (menuToDelete == null)
+                {
+                    return NotFound("Could Not Find the Menu To Delete");
+                }
+                _context.Remove(menuToDelete);
+                await _context.SaveChangesAsync();
+                return Ok("Menu Was deleted");
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, $"Can't update the menu Id: {menu_id}");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
 
            
 
