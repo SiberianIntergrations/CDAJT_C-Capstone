@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace back_end.domain.Entities
 {
-    [Table("User")]
+    [Table("user")]
 
     public class User
     {
