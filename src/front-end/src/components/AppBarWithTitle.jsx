@@ -30,6 +30,10 @@ import {
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
+// MSAL imports
+import { useMsal } from "@azure/msal-react";
+import { loginRequest } from "@/config/auth"; // Ensure this path matches your project structure
+
 const AppBarWithTitle = ({ title }) => {
   const router = useRouter();
   const theme = useTheme();
@@ -37,88 +41,68 @@ const AppBarWithTitle = ({ title }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  const decodeJWT = (token) => {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      return JSON.parse(
-        decodeURIComponent(
-          atob(base64)
-            .split("")
-            .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-            .join("")
-        )
-      );
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      return null;
-    }
-  };
-
-  const verifyLogin = () => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      const decoded = decodeJWT(token);
-      console.log("Decoded JWT:", decoded); // Debug log
-      
-      // Extract role from Microsoft claims format
-      const roleClaimKey = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
-      const backendRole = decoded?.[roleClaimKey] || decoded?.role;
-      
-      if (backendRole) {
-        // Map backend role to frontend role format
-        const frontendRole = mapBackendRoleToFrontend(backendRole);
-        console.log("Backend role:", backendRole, "Frontend role:", frontendRole);
-        setUserRole(frontendRole);
-        setIsLoggedIn(true);
-      } else {
-        console.log("No role found in token, logging out");
-        handleLogout();
-      }
-    } else {
-      setIsLoggedIn(false);
-      setUserRole(null);
-    }
-  };
+  const [activeAccount, setActiveAccount] = useState(null);
+  const msalInstance = useMsal();
 
   // Helper function to map backend roles to frontend roles
-  const mapBackendRoleToFrontend = (backendRole) => {
-    switch (backendRole?.toLowerCase()) {
-      case 'admin':
-        return 'admin';
-      case 'employee':
-        return 'staff';
-      case 'customer':
-      default:
-        return 'customer';
-    }
+  const mapBackendRoleToFrontend = (roles) => {
+    // roles can be a string or array
+    const roleList = Array.isArray(roles) ? roles : [roles];
+    if (roleList.includes("user.Admin")) return "admin";
+    if (roleList.includes("user.Staff")) return "staff";
+    // Default to customer if no match
+    return "customer";
   };
 
   useEffect(() => {
-    verifyLogin();
-    const interval = setInterval(verifyLogin, 5000);
-    const handleRouteChange = () => {
-      verifyLogin();
-      setDrawerOpen(false);
-    };
+    // Get accounts from MSAL context
+    const accounts = msalInstance.accounts;
+    const account = accounts && accounts.length > 0 ? accounts[0] : null;
+    if (account) {
+      msalInstance.instance.setActiveAccount(account);
+      setActiveAccount(account);
+      setIsLoggedIn(true);
+      msalInstance.instance.acquireTokenSilent({ ...loginRequest, account }).then((response) => {
+        console.log("Active account claims:", response.idTokenClaims);
+        // Extract roles from claims (array or string)
+        const roles = response.idTokenClaims?.roles || response.idTokenClaims?.role;
+        const frontendRole = mapBackendRoleToFrontend(roles);
+        setUserRole(frontendRole);
+      }).catch(() => {
+        setIsLoggedIn(false);
+        setUserRole(null);
+      });
+    } else {
+      setIsLoggedIn(false);
+      setUserRole(null);
+      setActiveAccount(null);
+    }
+    // ...existing cleanup logic...
+  }, [msalInstance.accounts]);
 
-    // router.events.on("routeChangeComplete", handleRouteChange);
-    window.addEventListener("storage", verifyLogin);
-
-    return () => {
-      clearInterval(interval);
-      router.events.off("routeChangeComplete", handleRouteChange);
-      window.removeEventListener("storage", verifyLogin);
-    };
-  }, [router.events]);
+  const handleLogin = async () => {
+    try {
+      const loginResponse = await msalInstance.instance.loginPopup(loginRequest);
+      msalInstance.instance.setActiveAccount(loginResponse.account);
+      setActiveAccount(loginResponse.account);
+      setIsLoggedIn(true);
+      // Print claims to console
+      console.log("Active account claims:", loginResponse.idTokenClaims);
+      // Extract roles from claims (array or string)
+      const roles = loginResponse.idTokenClaims?.roles || loginResponse.idTokenClaims?.role;
+      const frontendRole = mapBackendRoleToFrontend(roles);
+      setUserRole(frontendRole);
+    } catch (error) {
+      console.error("MSAL login error:", error);
+    }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    msalInstance.instance.logoutPopup();
     setIsLoggedIn(false);
     setUserRole(null);
     setDrawerOpen(false);
+    setActiveAccount(null);
     router.push("/auth/login");
   };
 
@@ -262,9 +246,9 @@ const AppBarWithTitle = ({ title }) => {
           <Button
             color="inherit"
             onClick={
-              isLoggedIn ? handleLogout : () => handleNavigation("/auth/login")
+              activeAccount ? handleLogout : handleLogin
             }
-            startIcon={isLoggedIn ? <LogOut /> : <LogIn />}
+            startIcon={activeAccount ? <LogOut /> : <LogIn />}
             sx={{
               minWidth: { xs: 40, sm: "auto" },
               px: { xs: 1, sm: 2 },
@@ -274,7 +258,7 @@ const AppBarWithTitle = ({ title }) => {
             }}
           >
             <Typography sx={{ display: { xs: "none", sm: "block" } }}>
-              {isLoggedIn ? "Logout" : "Login"}
+              {activeAccount ? "Logout" : "Login"}
             </Typography>
           </Button>
         </Box>
