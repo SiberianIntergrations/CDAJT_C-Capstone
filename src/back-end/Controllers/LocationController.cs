@@ -57,7 +57,7 @@ namespace back_end.Controllers
                 };
                 _context.Locations.Add(newLocation);
                 await _context.SaveChangesAsync();
-                return Ok("Location was crated");
+                return Ok("Location was created");
             }
             catch (Exception ex)
             {
