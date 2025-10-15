@@ -21,6 +21,12 @@ namespace back_end.DTO.DashBoardDTOs
 
     }
 
+    public class ListDiningSessionsRequestDTO
+    {
+        [JsonPropertyName("active_only")]
+        public bool ActiveOnly { get; set; }
+    }
+
     public class DiningSessionResponseDTO
     {
         public int Session_Id { get; set; }
