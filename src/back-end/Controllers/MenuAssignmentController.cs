@@ -187,7 +187,7 @@ namespace back_end.Controllers
                 {
                     newAssignment.Add(new MenuItemAssignment
                     {
-                        Menu_Id = element.Menu_Id,
+                        Menu_Id = new_menu.Menu_Id,
                         Item_Id = element.Item_Id,
                         Price = element.Price,
                         Adult_Limit = element.Adult_Limit,
