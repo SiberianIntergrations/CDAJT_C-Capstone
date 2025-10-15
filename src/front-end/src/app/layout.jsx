@@ -9,9 +9,8 @@ import { MenuProvider } from "@/contexts/MenuContext";
 import Layout from "@/components/Layout.jsx";
 import "@/styles/global.css";
 
-import { PublicClientApplication } from '@azure/msal-browser';
 import { MsalProvider } from '@azure/msal-react';
-import { msalConfig } from '@/config/auth';
+import msalInstance from '@/config/msalInstance';
 
 
 
@@ -101,10 +100,6 @@ const theme = createTheme({
 });
 
 export default function RootLayout({ children }) {
-  const msalInstance = new PublicClientApplication(msalConfig);
-
-
-
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>

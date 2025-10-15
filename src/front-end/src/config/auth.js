@@ -1,4 +1,5 @@
 import { LogLevel } from '@azure/msal-browser';
+import { useRouter } from "next/navigation";
 
 export const API_SCOPE =
   process.env.NEXT_PUBLIC_API_SCOPE || "";
@@ -67,6 +68,10 @@ export const loginRequest = {
 
 //to use: userHasAnyRole(msalInstance.getActiveAccount()?.idTokenClaims, ["admin.UpdateOTISStatus"])
 export function userHasAnyRole(claims, rolesToCheck) {
+    if (claims = undefined) {
+        return false;
+    }
+    
     if (typeof claims !== 'object' || !Array.isArray(rolesToCheck)) {
         throw new Error("Invalid arguments: claims must be an object and rolesToCheck must be an array.");
     }
