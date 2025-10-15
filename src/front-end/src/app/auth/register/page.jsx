@@ -1,17 +1,12 @@
-import Head from "next/head";
 import RegisterForm from "@/components/auth/RegisterForm";
+
+export const metadata = {
+  title: 'Register | Sushi Toshi',
+  description: 'Create a new account at Sushi Toshi',
+};
 
 export default function RegisterPage() {
   return (
-    <>
-      <Head>
-        <title>Register | Sushi Toshi</title>
-        <meta
-          name="description"
-          content="Create a new account at Sushi Toshi"
-        />
-      </Head>
-      <RegisterForm />
-    </>
+    <RegisterForm />
   );
 }
