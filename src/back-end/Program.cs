@@ -7,6 +7,8 @@ using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using System.Security.Claims;
+using Microsoft.Identity.Web;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,30 +30,36 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "API for Sushi Toshi Restaurant Management System"
     });
-    
-    // Add JWT Authentication to Swagger
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
-    });
-    
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
+
+    var scopes = new Dictionary<string, string>()
+    { };
+    scopes.Add($"{builder.Configuration["ApiScopeUrl"]}user_impersonation", "Access application on user behalf");
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement() {
         {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-            {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference
-                {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
+            new OpenApiSecurityScheme {
+                Reference = new OpenApiReference {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "oauth2"
+                },
+                Scheme = "oauth2",
+                Name = "oauth2",
+                In = ParameterLocation.Header
             },
-            Array.Empty<string>()
+            new List<string> ()
+        }
+    });
+    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.OAuth2,
+        Flows = new OpenApiOAuthFlows
+        {
+            Implicit = new OpenApiOAuthFlow()
+            {
+                AuthorizationUrl = new Uri("https://renovationstationexsm3943.ciamlogin.com/e90f24c7-0844-464a-a0b1-aab345a6adff/oauth2/v2.0/authorize"),
+                //TokenUrl = new Uri("https://renovationstationexsm3943.ciamlogin.com/e90f24c7-0844-464a-a0b1-aab345a6adff/oauth2/v2.0/token"),
+                Scopes = scopes,
+                
+            }
         }
     });
 });
@@ -66,32 +74,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Seeders registration
 builder.Services.AddDatabaseSeeders();
 
-// JWT Auth
-builder.Services.AddAuthentication(options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd");
+builder.Services.AddAuthorization(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.IncludeErrorDetails = builder.Environment.IsDevelopment();
-    options.TokenValidationParameters = new TokenValidationParameters
+    //example policy based on role claims
+    options.AddPolicy("projectManagersOnly", policy =>
     {
-        //We'll need to set these to true - but okay now for testing
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
-        NameClaimType = ClaimTypes.NameIdentifier,
-        RoleClaimType = ClaimTypes.Role,
-        ClockSkew = TimeSpan.Zero
-    };
-
-    // Force JwtSecurityTokenHandler
-    options.TokenHandlers.Clear();
-    options.TokenHandlers.Add(new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler());
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("projectmanager");
+    });
 });
+
 
 builder.Services.AddAuthorization();
 
@@ -159,6 +152,8 @@ if (app.Environment.IsDevelopment())
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sushi Toshi API v1");
         c.RoutePrefix = "swagger"; // Access Swagger UI at /swagger
+        c.OAuthClientId("99ffb099-af80-41d1-9c16-e844f8ed5308");
+        c.OAuthAppName("Sushi Toshi App API");
     });
 }
 else
