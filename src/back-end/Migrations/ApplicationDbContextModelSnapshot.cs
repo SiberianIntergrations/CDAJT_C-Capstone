@@ -3,7 +3,6 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using back_end.domain.DbContexts;
 
@@ -12,11 +11,9 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251013042135_FixServiceRequestRelationships")]
-    partial class FixServiceRequestRelationships
+    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
-        /// <inheritdoc />
-        protected override void BuildTargetModel(ModelBuilder modelBuilder)
+        protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -242,6 +239,9 @@ namespace back_end.Migrations
                     b.Property<DateTime>("LastOrdered")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<DateTime>("LastViewedAt")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(65,30)");
 
@@ -251,7 +251,7 @@ namespace back_end.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int>("Total_Limit")
+                    b.Property<int>("Tot_Limit")
                         .HasColumnType("int");
 
                     b.Property<int>("Total_Units_Ordered")
