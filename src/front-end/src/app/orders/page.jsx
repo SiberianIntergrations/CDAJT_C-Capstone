@@ -1,17 +1,21 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useContext } from "react";
 import { useRouter } from "next/navigation";
 import Orders from "@/components/employee/Orders";
+import { AuthContext } from "@/app/layout";
 
-const OrdersPage = ({ user }) => {
+const OrdersPage = () => {
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
   const router = useRouter();
 
-  useEffect(() => {
-    if (!user || user.role !== "employee") {
-      router.push("/unauthorized");
-    }
-  }, [user, router]);
-  if (!user || user.role !== "employee") return null;
+  if (authLoading) {
+    return null;
+  }
+
+  if (!isLoggedIn || userRole !== "staff") {
+    console.warn("Unauthorized access attempt to Orders page.");
+    return null;
+  }
 
   return <Orders />;
 };
