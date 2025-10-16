@@ -16,5 +16,8 @@
             "password": "root"
         }
     ],
-    "github.copilot.nextEditSuggestions.enabled": false
+    "github.copilot.nextEditSuggestions.enabled": false,
+    "cSpell.words": [
+        "Swashbuckle"
+    ]
 }

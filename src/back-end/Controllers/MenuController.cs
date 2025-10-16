@@ -4,6 +4,11 @@ using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain;
 using System.Linq.Expressions;
+using back_end.DTO.MenuItems;
+using Microsoft.AspNetCore.Authorization;
+using back_end.DTO.MenuDTO;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using back_end.domain.Seeders;
 
 namespace back_end.Controllers
 {
@@ -19,6 +24,65 @@ namespace back_end.Controllers
         {
             _context = context;
             _logger = logger;
+        }
+
+
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("/")]
+        public async Task<IActionResult> Create_Menu_Item(
+            MenuItemCreateDTO item_data
+        )
+        {
+            try
+            {
+                var existing = await _context.MenuItems.Where(mi => mi.Name == item_data.Name).FirstOrDefaultAsync();
+                if (existing != null)
+                {
+                    return Conflict($"Menu Item with Name Exists: {item_data.Name}");
+
+                }
+                var new_item = new Menu_Item
+                {
+                    Name = item_data.Name,
+                    Description = item_data.Description,
+                    Category_id = item_data.Category_Id,
+                    image_url = item_data.Item_Image_Url,
+                    Status = MenuItemStatus.Available
+                };
+                if (item_data.Tag_Ids.Count > 0)
+                {
+                    var tags = await _context.Tags.Where(t => item_data.Tag_Ids.Contains(t.tag_id)).ToListAsync();
+                    foreach (var tag in tags)
+                    {
+                        new_item.MenuItemTags.Add(new MenuItemTag { Tag = tag });
+                    }
+                }
+                _context.Add(new_item);
+                await _context.SaveChangesAsync();
+                return Ok(new MenuItemResponseDTO
+                {
+                    Item_Id = new_item.item_id,
+                    Name = new_item.Name,
+                    Description = new_item.Description,
+                    Category_Id = new_item.Category_id,
+                    Item_Image_Url = new_item.image_url,
+                    Status = new_item.Status,
+                    Tags = new_item.MenuItemTags.Select(t => new FullTagResponseDTO
+                    {
+                        Tag_Id = t.Tag.tag_id,
+                        Name = t.Tag.tag_name,
+                        Color_Code = t.Tag.tag_color
+                    }).ToList(),
+
+                });
+
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating menu item");
+                return StatusCode(500, "Internal Server Error");
+            }
         }
 
         //GET: api/menu
@@ -82,7 +146,7 @@ namespace back_end.Controllers
                 //Check if time given is proper
                 else if (!TimeOnly.TryParse(time, out currentTime))
                 {
-                    return BadRequest(new { message = "Imporper time given." });
+                    return BadRequest(new { message = "Improper time given." });
                 }
                 //Get the correct menu for time slot
                 //*note to self* Test this part more
@@ -128,7 +192,7 @@ namespace back_end.Controllers
                             .ToListAsync();
 
                     //Arrange details into a user friendly fashion
-                    //Only takes tag name and colour
+                    //Only takes tag name and color
                     var menuItems = itemInfo.Select(m => new
                     {
                         itemId = m.Item_Id,
@@ -188,6 +252,93 @@ namespace back_end.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPut("/{menu_id}")]
+        public async Task<IActionResult> Update_Menu(
+            int menu_id,
+            MenuUpdateDTO menu_data
+        )
+        {
+            try
+            {
+                var menu = _context.Menus.FirstOrDefault(m => m.Menu_id == menu_id);
+                if (menu == null)
+                {
+                    return NotFound("Menu Id was not Found");
+                }
+                if ((menu_data.Name != null) && (menu_data.Name != menu.Name))
+                {
+                    var existingMenu = await _context.Menus.FirstOrDefaultAsync(m => m.Name == menu_data.Name && m.Menu_id != menu_id);
+                    if (existingMenu != null)
+                    {
+                        return Conflict("Menu with this name already Exists");
+                    }
+                }
+                ;
+                if (menu_data.Name != null)
+                {
+                    menu.Name = menu_data.Name;
+                }
+                if (menu_data.Description != null)
+                {
+                    menu.Description = menu_data.Description;
+                }
+                if (menu_data.Start_Time.HasValue)
+                {
+                    menu.Start_time = (TimeOnly)menu_data.Start_Time;
+                }
+                if (menu_data.End_Time.HasValue)
+                {
+                    menu.End_time = (TimeOnly)menu_data.End_Time;
+                }
+                if (menu_data.Is_Active.HasValue)
+                {
+                    menu.Is_active = (bool)menu_data.Is_Active;
+                }
+                _context.Update(menu);
+                await _context.SaveChangesAsync();
+                return Ok(new MenuResponseDTO
+                {
+                    Menu_Id = menu.Menu_id,
+                    Name = menu.Name,
+                    Description = menu.Description,
+                    Start_Time = menu.Start_time,
+                    End_Time = menu.End_time,
+                    Is_Active = menu.Is_active
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Can't update the menu: {menu_data.Name}");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+        [Authorize(Roles = "Admin")]
+        [HttpDelete("menu_id")]
+        public async Task<IActionResult> Delete_Menu(
+            int menu_id
+        )
+        {
+            try
+            {
+                var menuToDelete = await _context.Menus.FirstOrDefaultAsync(m => m.Menu_id == menu_id);
+                if (menuToDelete == null)
+                {
+                    return NotFound("Could Not Find the Menu To Delete");
+                }
+                _context.Remove(menuToDelete);
+                await _context.SaveChangesAsync();
+                return Ok("Menu Was deleted");
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, $"Can't update the menu Id: {menu_id}");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+           
 
     }
 }
