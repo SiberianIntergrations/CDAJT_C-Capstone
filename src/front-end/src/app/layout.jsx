@@ -108,12 +108,14 @@ export default function RootLayout({ children }) {
   const [userRole, setUserRole] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [roles, setRoles] = useState([]);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     // Only run on client
     if (typeof window === "undefined") return;
 
     let isMounted = true;
+    setAuthLoading(true);
 
     msalInstance.initialize().then(() => {
       if (!isMounted) return;
@@ -130,16 +132,19 @@ export default function RootLayout({ children }) {
           if (roleList.includes("user.Admin")) setUserRole("admin");
           else if (roleList.includes("user.Staff")) setUserRole("staff");
           else setUserRole("customer");
+          setAuthLoading(false);
         }).catch(() => {
           setIsLoggedIn(false);
           setUserRole(null);
           setRoles([]);
+          setAuthLoading(false);
         });
       } else {
         setIsLoggedIn(false);
         setUserRole(null);
         setActiveAccount(null);
         setRoles([]);
+        setAuthLoading(false);
       }
     });
 
@@ -151,7 +156,7 @@ export default function RootLayout({ children }) {
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider theme={theme}>
           <MsalProvider instance={msalInstance}>
-            <AuthContext.Provider value={{ activeAccount, userRole, roles, isLoggedIn, setActiveAccount, setUserRole, setRoles, setIsLoggedIn }}>
+            <AuthContext.Provider value={{ activeAccount, userRole, roles, isLoggedIn, authLoading, setActiveAccount, setUserRole, setRoles, setIsLoggedIn }}>
               <CssBaseline />
               <MenuProvider>
                 <Layout>{children}</Layout>

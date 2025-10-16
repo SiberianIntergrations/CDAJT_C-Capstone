@@ -57,11 +57,11 @@ export const createLoginRequest = (redirectUri) => ({
  * https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
  */
 export const loginRequest = {
-    scopes: ["openid", "offline_access", "profile",API_SCOPE],
+    scopes: ["openid", "offline_access", "profile", API_SCOPE],
 };
 
  export const silentRequest = {
-     scopes: ["openid", "offline_access", "profile",API_SCOPE],
+     scopes: ["openid", "offline_access", "profile", API_SCOPE],
      loginHint: "example@renovationstationexsm3943.onmicrosoft.com"
  };
  
