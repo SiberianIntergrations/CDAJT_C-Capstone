@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using back_end.domain.enums;
+
 namespace back_end.domain.Entities
 {
     [Table("service_request")]
@@ -38,7 +40,7 @@ namespace back_end.domain.Entities
         public User RequestedByUser { get; set; } = null!;
         [ForeignKey("Claimed_By")]
         public User? ClaimedByUser { get; set; }
-        
+
 
     }
 
