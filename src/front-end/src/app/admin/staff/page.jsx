@@ -1,8 +1,8 @@
 "use client";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useContext } from "react";
 import dynamic from "next/dynamic";
 import { Box, CircularProgress } from "@mui/material";
+import { AuthContext } from "@/app/layout";
 
 const StaffManagementPage = dynamic(
   () => import("@/components/admin/StaffManagementPage"),
@@ -22,25 +22,25 @@ const StaffManagementPage = dynamic(
 );
 
 const StaffPage = () => {
-  const router = useRouter();
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
 
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      router.push("/auth/login");
-      return;
-    }
+  if (authLoading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-    try {
-      const tokenData = JSON.parse(atob(token.split(".")[1]));
-      if (tokenData.role !== "admin") {
-        router.push("/unauthorized");
-      }
-    } catch (error) {
-      console.error("Error verifying token:", error);
-      router.push("/auth/login");
-    }
-  }, [router]);
+  if (!isLoggedIn || userRole !== "admin") {
+    console.warn("Unauthorized access attempt to Staff Management page.");
+    return null;
+  }
 
   return <StaffManagementPage />;
 };

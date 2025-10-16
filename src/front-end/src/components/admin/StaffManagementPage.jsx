@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Box,
   Button,
@@ -15,6 +15,7 @@ import StaffManagementForm from "@/components/admin/StaffManagementForm";
 import StaffList from "@/components/admin/StaffList";
 import PasswordChangeDialog from "@/components/admin/PasswordChangeDialog";
 import { axiosInstance, createApiUrl } from "@/config/api";
+import { AuthContext } from "@/app/layout";
 
 const StaffManagementPage = () => {
   const [staff, setStaff] = useState([]);
@@ -30,6 +31,10 @@ const StaffManagementPage = () => {
     severity: "success",
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Get current user from AuthContext
+  const { activeAccount } = useContext(AuthContext);
+  const currentUser = activeAccount?.idTokenClaims?.sub ?? null;
 
   const fetchStaff = async () => {
     try {
@@ -63,10 +68,6 @@ const StaffManagementPage = () => {
       height: 30,
     },
   }));
-
-  const token = localStorage.getItem("access_token");
-  const tokenData = JSON.parse(atob(token.split(".")[1]));
-  const currentUser = tokenData.sub;
 
   useEffect(() => {
     fetchStaff();
