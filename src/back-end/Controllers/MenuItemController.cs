@@ -447,7 +447,7 @@ namespace back_end.Controllers
             }
         }          
        
-        // [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Roles = "Admin,Staff")]
         [HttpDelete("{item_id}/tags/{tag_id}")]
         public async Task<IActionResult> Remove_Tag_To_Menu (
             int item_id,
