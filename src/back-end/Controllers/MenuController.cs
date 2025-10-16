@@ -4,6 +4,8 @@ using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain;
 using System.Linq.Expressions;
+using back_end.DTO.MenuItems;
+using Microsoft.AspNetCore.Authorization;
 
 namespace back_end.Controllers
 {
@@ -19,6 +21,64 @@ namespace back_end.Controllers
         {
             _context = context;
             _logger = logger;
+        }
+
+
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("/")]
+        public async Task<IActionResult> Create_Menu_Item(
+            MenuItemCreateDTO item_data
+        )
+        {
+            try
+            {
+                var existing = await _context.MenuItems.Where(mi => mi.Name == item_data.Name).FirstOrDefaultAsync();
+                if (existing != null)
+                {
+                    return Conflict($"Menu Item with Name Exists: {item_data.Name}");
+
+                }
+                var new_item = new Menu_Item
+                {
+                    Name = item_data.Name,
+                    Description = item_data.Description,
+                    Category_id = item_data.Category_Id,
+                    image_url = item_data.Item_Image_Url,
+                    Status = MenuItemStatus.Available
+                };
+                if (item_data.Tag_Ids.Count > 0)
+                {
+                    var tags = await _context.Tags.Where(t => item_data.Tag_Ids.Contains(t.tag_id)).ToListAsync();
+                    foreach (var tag in tags)
+                    {
+                        new_item.MenuItemTags.Add(new MenuItemTag { Tag = tag });
+                    }
+                }
+                _context.Add(new_item);
+                await _context.SaveChangesAsync();
+                return Ok(new MenuItemResponseDTO
+                {
+                    Item_Id = new_item.item_id,
+                    Name = new_item.Name,
+                    Description = new_item.Description,
+                    Category_Id = new_item.Category_id,
+                    Item_Image_Url = new_item.image_url,
+                    status = new_item.Status,
+                    Tags = new_item.MenuItemTags.Select(t => new FullTagResponseDTO
+                    {
+                        Tag_Id = t.Tag.tag_id,
+                        Name = t.Tag.tag_name,
+                        Color_Code = t.Tag.tag_color
+                    }).ToList(),
+                });
+
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating menu item");
+                return StatusCode(500, "Internal Server Error");
+            }
         }
 
         //GET: api/menu
@@ -82,7 +142,7 @@ namespace back_end.Controllers
                 //Check if time given is proper
                 else if (!TimeOnly.TryParse(time, out currentTime))
                 {
-                    return BadRequest(new { message = "Imporper time given." });
+                    return BadRequest(new { message = "Improper time given." });
                 }
                 //Get the correct menu for time slot
                 //*note to self* Test this part more
@@ -128,7 +188,7 @@ namespace back_end.Controllers
                             .ToListAsync();
 
                     //Arrange details into a user friendly fashion
-                    //Only takes tag name and colour
+                    //Only takes tag name and color
                     var menuItems = itemInfo.Select(m => new
                     {
                         itemId = m.Item_Id,
@@ -188,6 +248,8 @@ namespace back_end.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
+
+           
 
     }
 }
