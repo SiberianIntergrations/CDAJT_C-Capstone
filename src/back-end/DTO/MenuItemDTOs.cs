@@ -68,7 +68,15 @@ namespace back_end.DTO.MenuItems
         public List<string> Tag_Names { get; set; } = [];
         public decimal? Current_Price { get; set; }
         public int Total_Orders { get; set; }
-    
+
+    }
+    public class MenuItemUpdateDTO{
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+        public int? Category_Id { get; set; }
+        public string? Item_Image_Url { get; set; }
+        public MenuItemStatus? Status { get; set; }
+        public List<int>? Tag_Ids { get; set; }  
     }
     
 }
