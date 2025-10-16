@@ -1,42 +1,15 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useContext } from "react";
 import Head from "next/head";
 import { Box, CircularProgress } from "@mui/material";
 import LocationManagement from "@/components/location/LocationManagement";
 import MenuManagement from "@/components/location/MenuManagement";
+import { AuthContext } from "@/app/layout";
 
 const LocationPage = () => {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      try {
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
-        if (tokenData.role !== "admin") {
-          router.push("/unauthorized");
-          return;
-        }
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-        return;
-      }
-
-      setIsLoading(false);
-    };
-
-    checkAuth();
-  }, [router]);
-
-  if (isLoading) {
+  if (authLoading) {
     return (
       <Box
         display="flex"
@@ -47,6 +20,11 @@ const LocationPage = () => {
         <CircularProgress />
       </Box>
     );
+  }
+
+  if (!isLoggedIn || userRole !== "admin") {
+    console.warn("Unauthorized access attempt to Location Management page.");
+    return null;
   }
 
   return (
