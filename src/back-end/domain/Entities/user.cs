@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using back_end.domain.enums;
+
 namespace back_end.domain.Entities
 {
     [Table("users")]
@@ -36,7 +38,7 @@ namespace back_end.domain.Entities
         public DateTime Created_at { get; set; } = DateTime.Now;
 
         public DateTime? Last_Interaction_at { get; set; }
-        
+
         public bool Is_email_confirmed { get; set; } = false;
 
 

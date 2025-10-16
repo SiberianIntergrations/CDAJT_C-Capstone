@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using back_end.domain;
+using back_end.domain.enums;
 
 namespace back_end.DTO.UserDTOs
 {
@@ -60,4 +61,35 @@ namespace back_end.DTO.UserDTOs
         public int total { get; set; }
         public List<UserResponseDTO> items { get; set; } = new();
     }
+
+    public class StaffUserUpdateDTO
+    {
+        [MaxLength(255), EmailAddress]
+        public string? Email { get; set; }
+
+        [MaxLength(100)]
+        public string? First_name { get; set; }
+
+        [MaxLength(100)]
+        public string? Last_name { get; set; }
+
+        // allow moving between Staff/Admin only
+        public UserRoles? Role { get; set; }
+    }
+
+    public class PasswordChangeDTO
+    {
+        [Required, MinLength(8), MaxLength(200)]
+        public string Current_password { get; set; } = string.Empty;
+
+        [Required, MinLength(8), MaxLength(200)]
+        public string New_password { get; set; } = string.Empty;
+    }
+
+    public class ResetPasswordRequestDTO
+    {
+        [Required, MinLength(8), MaxLength(200)]
+        public string New_password { get; set; } = string.Empty;
+    }
+
 }

@@ -1,0 +1,214 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using BCrypt.Net;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using back_end.DTO.UserDTOs;
+using back_end.domain.DbContexts;
+using back_end.domain.Entities;
+using back_end.domain.enums;
+
+namespace back_end.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class StaffController : ControllerBase
+    {
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<StaffController> _logger;
+
+        public StaffController(ApplicationDbContext context, ILogger<StaffController> logger)
+        {
+            _context = context;
+            _logger = logger;
+        }
+
+        // Create a new staff or admin user by Admin only.
+        // POST: /api/staff?role=Admin
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<UserResponseDTO>> CreateStaff(
+            [FromBody] UserCreateDTO user_data,
+            [FromQuery] UserRoles role
+        )
+        {
+            if (role != UserRoles.Staff && role != UserRoles.Admin)
+                return BadRequest("Role must be either staff or admin");
+
+            if (!ModelState.IsValid) return ValidationProblem(ModelState);
+
+            var email = user_data.Email.Trim().ToLowerInvariant();
+            var emailExists = await _context.Users.AnyAsync(u => u.Email.ToLower() == email);
+            if (emailExists) return Conflict("Email already registered");
+
+            var now = DateTime.UtcNow;
+
+            var entity = new User
+            {
+                Email = email,
+                Password_hash = BCrypt.Net.BCrypt.HashPassword(user_data.Password, workFactor: 12),
+                First_name = user_data.First_name.Trim(),
+                Last_name = user_data.Last_name.Trim(),
+                Role = role,
+                Status = user_data.Status,
+                Is_email_confirmed = true,
+                Created_at = now,
+                Last_Interaction_at = now
+            };
+
+            _context.Users.Add(entity);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(
+                nameof(GetStaff),
+                new { user_id = entity.User_id },
+                ToResponse(entity)
+            );
+        }
+
+        // List all staff and/or admin users with pagination.
+        // GET: /api/staff?role=Staff&skip=0&limit=100
+        [HttpGet]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<ActionResult<IEnumerable<UserResponseDTO>>> ListStaff(
+            [FromQuery] UserRoles? role = null,
+            [FromQuery] int skip = 0,
+            [FromQuery] int limit = 100)
+        {
+            if (skip < 0) return BadRequest("skip must be >= 0");
+            if (limit < 1 || limit > 100) return BadRequest("limit must be between 1 and 100");
+
+            var q = _context.Users.AsNoTracking()
+                .Where(u => u.Role == UserRoles.Staff || u.Role == UserRoles.Admin);
+
+            if (role.HasValue)
+            {
+                if (role != UserRoles.Staff && role != UserRoles.Admin)
+                    return BadRequest("Role must be either staff or admin");
+                q = q.Where(u => u.Role == role);
+            }
+
+            var users = await q
+                .OrderByDescending(u => u.Created_at)
+                .Skip(skip)
+                .Take(limit)
+                .Select(u => ToResponse(u))
+                .ToListAsync();
+
+            return Ok(users);
+        }
+        
+        // Get details of a specific staff/admin user.
+        // GET: /api/staff/5
+        [HttpGet("{user_id:int}")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<ActionResult<UserResponseDTO>> GetStaff(int user_id)
+        {
+            var u = await _context.Users.AsNoTracking()
+                .Where(x => x.User_id == user_id &&
+                            (x.Role == UserRoles.Staff || x.Role == UserRoles.Admin))
+                .FirstOrDefaultAsync();
+
+            if (u == null) return NotFound("Staff user not found");
+            return Ok(ToResponse(u));
+        }
+
+        // Update a staff/admin user's details.
+        // PUT: /api/staff/5
+        [HttpPut("{user_id:int}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<UserResponseDTO>> UpdateStaff(int user_id, [FromBody] StaffUserUpdateDTO user_data)
+        {
+            var user = await _context.Users
+                .Where(x => x.User_id == user_id &&
+                            (x.Role == UserRoles.Staff || x.Role == UserRoles.Admin))
+                .FirstOrDefaultAsync();
+
+            if (user == null) return NotFound("Staff user not found");
+
+            if (!string.IsNullOrWhiteSpace(user_data.Email))
+            {
+                var newEmail = user_data.Email.Trim().ToLowerInvariant();
+                if (!newEmail.Equals(user.Email, StringComparison.OrdinalIgnoreCase))
+                {
+                    var exists = await _context.Users.AnyAsync(u => u.Email.ToLower() == newEmail && u.User_id != user_id);
+                    if (exists) return Conflict("Email already registered");
+                    user.Email = newEmail;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(user_data.First_name)) user.First_name = user_data.First_name.Trim();
+            if (!string.IsNullOrWhiteSpace(user_data.Last_name))  user.Last_name  = user_data.Last_name.Trim();
+
+            if (user_data.Role.HasValue)
+            {
+                if (user_data.Role != UserRoles.Staff && user_data.Role != UserRoles.Admin)
+                    return BadRequest("Role must be either staff or admin");
+                user.Role = user_data.Role.Value;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(ToResponse(user));
+        }
+
+        // Change a staff user's password by Admin only.
+        // POST: /api/staff/5/change-password
+        [HttpPost("{user_id:int}/change-password")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<UserResponseDTO>> ChangeStaffPassword(int user_id, [FromBody] PasswordChangeDTO password_data)
+        {
+            var user = await _context.Users
+                .Where(x => x.User_id == user_id &&
+                            (x.Role == UserRoles.Staff || x.Role == UserRoles.Admin))
+                .FirstOrDefaultAsync();
+
+            if (user == null) return NotFound("Staff user not found");
+
+            var ok = BCrypt.Net.BCrypt.Verify(password_data.Current_password, user.Password_hash);
+            if (!ok) return BadRequest("Incorrect current password");
+
+            user.Password_hash = BCrypt.Net.BCrypt.HashPassword(password_data.New_password, workFactor: 12);
+            user.Last_Interaction_at = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return Ok(ToResponse(user));
+        }
+
+        // Reset a staff user's password by Admin only.
+        // POST: /api/staff/5/reset-password
+        [HttpPost("{user_id:int}/reset-password")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<UserResponseDTO>> ResetStaffPassword(int user_id, [FromBody] ResetPasswordRequestDTO request)
+        {
+            var user = await _context.Users
+                .Where(x => x.User_id == user_id &&
+                            (x.Role == UserRoles.Staff || x.Role == UserRoles.Admin))
+                .FirstOrDefaultAsync();
+
+            if (user == null) return NotFound("Staff user not found");
+
+            user.Password_hash = BCrypt.Net.BCrypt.HashPassword(request.New_password, workFactor: 12);
+            user.Last_Interaction_at = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+            return Ok(ToResponse(user));
+        }
+
+        private static UserResponseDTO ToResponse(User u) => new UserResponseDTO
+        {
+            User_id = u.User_id,
+            Email = u.Email,
+            First_name = u.First_name,
+            Last_name = u.Last_name,
+            Role = u.Role,
+            Status = u.Status,
+            Created_at = u.Created_at,
+            Last_Interaction_at = u.Last_Interaction_at,
+            Is_email_confirmed = u.Is_email_confirmed
+        };
+    }
+}
