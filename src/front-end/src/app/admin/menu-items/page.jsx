@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useContext, useEffect, useState } from "react";
 import Head from "next/head";
 import { Box, CircularProgress } from "@mui/material";
 import dynamic from "next/dynamic";
+import { AuthContext } from "@/app/layout";
 
 const MenuItemManagement = dynamic(
   () => import("@/components/admin/MenuItemManagement"),
@@ -23,34 +23,9 @@ const MenuItemManagement = dynamic(
 );
 
 const MenuItemsPage = () => {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      try {
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
-        if (tokenData.role !== "admin") {
-          router.push("/unauthorized");
-          return;
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  if (isLoading) {
+  if (authLoading) {
     return (
       <Box
         display="flex"
@@ -61,6 +36,11 @@ const MenuItemsPage = () => {
         <CircularProgress />
       </Box>
     );
+  }
+
+  if (!isLoggedIn || userRole !== "admin") {
+    console.warn("Unauthorized access attempt to Menu Items Management page.");
+    return null;
   }
 
   return (
