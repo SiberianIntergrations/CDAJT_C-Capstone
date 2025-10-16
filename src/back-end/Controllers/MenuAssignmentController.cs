@@ -20,7 +20,7 @@ namespace back_end.Controllers
             _context = context;
             _logger = logger;
         }
-        [HttpPost("/")]
+        [HttpPost]
         public async Task<IActionResult> Create_Menu_Item_Assignment(
             MenuAssignmentCreate assignmentData
         )
