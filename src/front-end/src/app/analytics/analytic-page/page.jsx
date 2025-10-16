@@ -1,10 +1,21 @@
 "use client";
-import React from "react";
+import React, { useContext } from "react";
+import { AuthContext } from "@/app/layout";
 import { useRouter } from "next/navigation";
 import styles from "@/styles/Analytics.module.css";
 
 function AnalyticsPage() {
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
   const router = useRouter();
+
+  if (authLoading) {
+    return <div className={styles.menuTitleContainer}><p>Loading...</p></div>;
+  }
+
+  if (!isLoggedIn || userRole !== "admin") {
+    console.warn("Unauthorized access attempt to Analytics page.");
+    return null;
+  }
 
   return (
     <div className={styles.menuTitleContainer}>

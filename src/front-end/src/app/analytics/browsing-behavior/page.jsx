@@ -1,10 +1,21 @@
 "use client";
-import React from "react";
+import React, { useContext } from "react";
 import { useRouter } from "next/navigation";
 import BrowsingBehavior from "@/components/analytics/BrowsingBehavior";
+import { AuthContext } from "@/app/layout";
 
 const BrowsingBehaviorPage = () => {
   const router = useRouter();
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
+
+  if (authLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!isLoggedIn || userRole !== "admin") {
+    console.warn("Unauthorized access attempt to Browsing Behavior page.");
+    return null;
+  }
 
   return (
     <div>
