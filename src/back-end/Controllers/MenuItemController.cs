@@ -341,18 +341,31 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
-        
+
 
 
         [Authorize]
         [HttpGet("{item_id}/tags")]
-        public async Task<IActionResult> Get_Item_Tags (
+        public async Task<IActionResult> Get_Item_Tags(
             int item_id,
             MenuItemStatus menu_status
         )
         {
             try
             {
+                var menu_item = _context.MenuItems.FirstOrDefault(mi => mi.item_id == item_id);
+                if (menu_item is null)
+                {
+                    return NotFound("Menu Item was not found");
+                }
+                var tags = await _context.Tags.Where(t => t.MenuItemTags.Any(mt => mt.Menu_item_id == item_id)).OrderBy(t => t.tag_name).ToListAsync();
+                var response = tags.Select(t => new TagResponseDTO
+                {
+                    Name = t.tag_name,
+                    Tag_Id = t.tag_id
+                }).ToList();
+                
+                return Ok(response);
 
             }
             catch (Exception ex)
@@ -360,10 +373,119 @@ namespace back_end.Controllers
                 _logger.LogError(ex, "Error Getting Menu Item Tags");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
-        }       
+        }
         
         
+        [Authorize]
+        [HttpGet("{item_id}/tags-with-colors")]
+        public async Task<IActionResult> Get_Item_Tags_with_Colors (
+            int item_id
+        )
+        {
+            try
+            {
+                var menu_item = _context.MenuItems.FirstOrDefault(mi => mi.item_id == item_id);
+                if (menu_item is null)
+                {
+                    return NotFound("Menu Item was not found");
+                }
+                var tags = await _context.Tags.Where(t => t.MenuItemTags.Any(mt => mt.Menu_item_id == item_id)).OrderBy(t => t.tag_name).ToListAsync();
+                var response = tags.Select(t => new FullTagResponseDTO
+                {
+                    Name = t.tag_name,
+                    Tag_Id = t.tag_id,
+                    Color_Code =t.tag_color
+                }).ToList();
+                
+                return Ok(response);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }           
         
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("{item_id}/tags/{tag_id}")]
+        public async Task<IActionResult> Add_Tag_To_Menu (
+            int item_id,
+            int tag_id
+        )
+        {
+            try
+            {
+                var menu_item = await _context.MenuItems.Include(mi => mi.MenuItemTags).FirstOrDefaultAsync(mi => mi.item_id == item_id); ;
+                if (menu_item is null)
+                {
+                    return NotFound("Menu Item was not found");
+                }
+                var returnedTag = await _context.Tags.FirstOrDefaultAsync(t => t.tag_id == tag_id);
+                if (returnedTag is null)
+                {
+                    return NotFound("Item Tag Was not found");
+                }
+                if(menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
+                {
+                    return Conflict("Can not Assign tag to same Menu Item");
+                }
+                menu_item.MenuItemTags.Add(new MenuItemTag
+                {
+                    Menu_item_id = menu_item.item_id,
+                    Tag_id = returnedTag.tag_id,
+                    Tag = returnedTag
+                });
+                await _context.SaveChangesAsync();
+                return Ok(menu_item);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }          
+       
+        // [Authorize(Roles = "Admin,Staff")]
+        [HttpDelete("{item_id}/tags/{tag_id}")]
+        public async Task<IActionResult> Remove_Tag_To_Menu (
+            int item_id,
+            int tag_id
+        )
+        {
+            try
+            {
+                var menu_item = await _context.MenuItems.Include(mi => mi.MenuItemTags).FirstOrDefaultAsync(mi => mi.item_id == item_id); ;
+                if (menu_item is null)
+                {
+                    return NotFound("Menu Item was not found");
+                }
+                var returnedTag = await _context.Tags.FirstOrDefaultAsync(t => t.tag_id == tag_id);
+                if (returnedTag is null)
+                {
+                    return NotFound("Item Tag Was not found");
+                }
+                if(!menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
+                {
+                    return Conflict("Item does not exist on menu");
+                }
+                menu_item.MenuItemTags.Remove(new MenuItemTag
+                {
+                    Menu_item_id = menu_item.item_id,
+                    Tag_id = returnedTag.tag_id,
+                    Tag = returnedTag
+                });
+                await _context.SaveChangesAsync();
+                return Ok(menu_item);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }                  
 
     
     }
