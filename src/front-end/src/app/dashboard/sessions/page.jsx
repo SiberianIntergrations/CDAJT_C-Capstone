@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Head from "next/head";
 import { Box, CircularProgress } from "@mui/material";
 import { ErrorBoundary } from "react-error-boundary";
 import SessionDashboard from "@/components/staff/SessionDashboard";
 import styled from "@emotion/styled";
+import { AuthContext } from "@/app/layout";
 
 const ErrorMessage = styled.div`
   padding: 16px;
@@ -33,36 +34,15 @@ function ErrorFallback({ error }) {
 
 const SessionsPage = () => {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        router.push("/auth/login");
-        return false;
-      }
-
-      try {
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
-        if (!["staff", "admin"].includes(tokenData.role)) {
-          router.push("/unauthorized");
-          return false;
-        }
-        return true;
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-        return false;
-      }
-    };
-
-    if (checkAuth()) {
-      setIsLoading(false);
+    if (!authLoading && !isLoggedIn) {
+      router.push("/auth/login");
     }
-  }, [router]);
+  }, [authLoading, isLoggedIn, router]);
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <Box
         display="flex"
@@ -73,6 +53,11 @@ const SessionsPage = () => {
         <CircularProgress />
       </Box>
     );
+  }
+
+  if (!isLoggedIn || !["staff", "admin"].includes(userRole)) {
+    console.warn("Unauthorized access attempt to Sessions page.");
+    return null;
   }
 
   return (
