@@ -20,7 +20,7 @@ namespace back_end.Controllers
             _logger = logger;
         }
 
-        //GETL api/order
+        //GET api/order
         //Get all Orders
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SessionOrder>>> GetAllOrder()
