@@ -1,8 +1,8 @@
 "use client";
 import dynamic from "next/dynamic";
 import { Box, CircularProgress } from "@mui/material";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useContext } from "react";
+import { AuthContext } from "@/app/layout";
 
 const TagManagement = dynamic(() => import("@/components/tags/TagManagement"), {
   loading: () => (
@@ -19,34 +19,9 @@ const TagManagement = dynamic(() => import("@/components/tags/TagManagement"), {
 });
 
 const TagManagementPage = () => {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
 
-  useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      try {
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
-        if (!["admin"].includes(tokenData.role)) {
-          router.push("/unauthorized");
-          return;
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-      }
-    };
-
-    checkAuth();
-  }, [router]);
-
-  if (isLoading) {
+  if (authLoading) {
     return (
       <Box
         display="flex"
@@ -57,6 +32,11 @@ const TagManagementPage = () => {
         <CircularProgress />
       </Box>
     );
+  }
+
+  if (!isLoggedIn || userRole !== "admin") {
+    console.warn("Unauthorized access attempt to Tag Management page.");
+    return null;
   }
 
   return (
