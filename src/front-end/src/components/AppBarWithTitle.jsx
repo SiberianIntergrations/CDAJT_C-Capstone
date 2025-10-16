@@ -1,4 +1,6 @@
 "use client";
+import { useContext } from "react";
+import { AuthContext } from "@/app/layout";
 import { useState, useEffect } from "react";
 import {
   AppBar,
@@ -32,66 +34,27 @@ import Image from "next/image";
 
 // MSAL imports
 import { useMsal } from "@azure/msal-react";
-import { loginRequest } from "@/config/auth"; // Ensure this path matches your project structure
 
 const AppBarWithTitle = ({ title }) => {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [userRole, setUserRole] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [activeAccount, setActiveAccount] = useState(null);
+  const { activeAccount, userRole, isLoggedIn, setActiveAccount, setUserRole, setIsLoggedIn } = useContext(AuthContext);
   const msalInstance = useMsal();
-
-  // Helper function to map backend roles to frontend roles
-  const mapBackendRoleToFrontend = (roles) => {
-    // roles can be a string or array
-    const roleList = Array.isArray(roles) ? roles : [roles];
-    if (roleList.includes("user.Admin")) return "admin";
-    if (roleList.includes("user.Staff")) return "staff";
-    // Default to customer if no match
-    return "customer";
-  };
-
-  useEffect(() => {
-    // Get accounts from MSAL context
-    const accounts = msalInstance.accounts;
-    const account = accounts && accounts.length > 0 ? accounts[0] : null;
-    if (account) {
-      msalInstance.instance.setActiveAccount(account);
-      setActiveAccount(account);
-      setIsLoggedIn(true);
-      msalInstance.instance.acquireTokenSilent({ ...loginRequest, account }).then((response) => {
-        console.log("Active account claims:", response.idTokenClaims);
-        // Extract roles from claims (array or string)
-        const roles = response.idTokenClaims?.roles || response.idTokenClaims?.role;
-        const frontendRole = mapBackendRoleToFrontend(roles);
-        setUserRole(frontendRole);
-      }).catch(() => {
-        setIsLoggedIn(false);
-        setUserRole(null);
-      });
-    } else {
-      setIsLoggedIn(false);
-      setUserRole(null);
-      setActiveAccount(null);
-    }
-    // ...existing cleanup logic...
-  }, [msalInstance.accounts]);
 
   const handleLogin = async () => {
     try {
-      const loginResponse = await msalInstance.instance.loginPopup(loginRequest);
+      const loginResponse = await msalInstance.instance.loginPopup(require("@/config/auth").loginRequest);
       msalInstance.instance.setActiveAccount(loginResponse.account);
       setActiveAccount(loginResponse.account);
       setIsLoggedIn(true);
-      // Print claims to console
-      console.log("Active account claims:", loginResponse.idTokenClaims);
-      // Extract roles from claims (array or string)
+      // Extract roles from claims
       const roles = loginResponse.idTokenClaims?.roles || loginResponse.idTokenClaims?.role;
-      const frontendRole = mapBackendRoleToFrontend(roles);
-      setUserRole(frontendRole);
+      const roleList = Array.isArray(roles) ? roles : [roles];
+      if (roleList.includes("user.Admin")) setUserRole("admin");
+      else if (roleList.includes("user.Staff")) setUserRole("staff");
+      else setUserRole("customer");
     } catch (error) {
       console.error("MSAL login error:", error);
     }

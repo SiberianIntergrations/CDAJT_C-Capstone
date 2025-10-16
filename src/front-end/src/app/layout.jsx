@@ -11,6 +11,8 @@ import "@/styles/global.css";
 
 import { MsalProvider } from '@azure/msal-react';
 import msalInstance from '@/config/msalInstance';
+import { useEffect, useState, createContext } from "react";
+import { silentRequest } from "@/config/auth";
 
 
 
@@ -99,16 +101,62 @@ const theme = createTheme({
   },
 });
 
+export const AuthContext = createContext();
+
 export default function RootLayout({ children }) {
+  const [activeAccount, setActiveAccount] = useState(null);
+  const [userRole, setUserRole] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [roles, setRoles] = useState([]);
+
+  useEffect(() => {
+    // Only run on client
+    if (typeof window === "undefined") return;
+
+    let isMounted = true;
+
+    msalInstance.initialize().then(() => {
+      if (!isMounted) return;
+      const accounts = msalInstance.getAllAccounts();
+      const account = accounts && accounts.length > 0 ? accounts[0] : null;
+      if (account) {
+        msalInstance.setActiveAccount(account);
+        setActiveAccount(account);
+        setIsLoggedIn(true);
+        msalInstance.acquireTokenSilent({ ...silentRequest, account }).then((response) => {
+          let rawRoles = response.idTokenClaims?.roles || response.idTokenClaims?.role || [];
+          const roleList = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
+          setRoles(roleList);
+          if (roleList.includes("user.Admin")) setUserRole("admin");
+          else if (roleList.includes("user.Staff")) setUserRole("staff");
+          else setUserRole("customer");
+        }).catch(() => {
+          setIsLoggedIn(false);
+          setUserRole(null);
+          setRoles([]);
+        });
+      } else {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setActiveAccount(null);
+        setRoles([]);
+      }
+    });
+
+    return () => { isMounted = false; };
+  }, []);
+
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider theme={theme}>
           <MsalProvider instance={msalInstance}>
-            <CssBaseline />
-            <MenuProvider>
-              <Layout>{children}</Layout>
-            </MenuProvider>
+            <AuthContext.Provider value={{ activeAccount, userRole, roles, isLoggedIn, setActiveAccount, setUserRole, setRoles, setIsLoggedIn }}>
+              <CssBaseline />
+              <MenuProvider>
+                <Layout>{children}</Layout>
+              </MenuProvider>
+            </AuthContext.Provider>
           </MsalProvider>
         </ThemeProvider>
       </body>
