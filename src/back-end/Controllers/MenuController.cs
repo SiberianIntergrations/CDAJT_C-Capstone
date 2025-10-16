@@ -44,7 +44,7 @@ namespace back_end.Controllers
                 var new_item = new Menu_Item
                 {
                     Name = item_data.Name,
-                    Description = item_data.Name,
+                    Description = item_data.Description,
                     Category_id = item_data.Category_Id,
                     image_url = item_data.Item_Image_Url,
                     Status = MenuItemStatus.Available
@@ -80,7 +80,7 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Can't find Order for User ID:");
+                _logger.LogError(ex, "Error creating menu item");
                 return StatusCode(500, "Internal Server Error");
             }
         }
