@@ -16,9 +16,9 @@ import { Edit, Delete, Plus, Menu, AlertTriangle, Trash2 } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import LocationForm from "@/components/location/LocationForm";
 import MenuAssignmentForm from "@/components/location/MenuAssignmentForm";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import { axiosInstance, createApiUrl, msalAxiosClient } from "@/config/api";
 
-const LocationManagement = () => {
+const LocationManagement = ({ msalInstance }) => {
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,7 +31,9 @@ const LocationManagement = () => {
 
   const fetchLocations = async () => {
     try {
-      const response = await axiosInstance.get(createApiUrl("/locations"));
+      setLoading(true);
+      const msalAxios = msalAxiosClient(msalInstance);
+      const response = await msalAxios.get(createApiUrl("/locations"));
       setLocations(response.data);
     } catch (err) {
       setError("Failed to fetch locations");

@@ -2,7 +2,7 @@ import { LogLevel } from '@azure/msal-browser';
 import { useRouter } from "next/navigation";
 
 export const API_SCOPE =
-  process.env.NEXT_PUBLIC_API_SCOPE || "";
+  process.env.NEXT_PUBLIC_API_SCOPE || "api://99ffb099-af80-41d1-9c16-e844f8ed5308/user_impersonation";
 
 export const msalConfig = {
   auth: {

@@ -5,9 +5,11 @@ import { Box, CircularProgress } from "@mui/material";
 import LocationManagement from "@/components/location/LocationManagement";
 import MenuManagement from "@/components/location/MenuManagement";
 import { AuthContext } from "@/app/layout";
+import { useMsal } from "@azure/msal-react";
 
 const LocationPage = () => {
   const { userRole, isLoggedIn, authLoading } = useContext(AuthContext);
+  const msalInstance = useMsal().instance;
 
   if (authLoading) {
     return (
@@ -34,7 +36,7 @@ const LocationPage = () => {
         <meta name="description" content="Manage restaurant locations" />
       </Head>
       <Box sx={{ flexGrow: 1, p: 0 }}>
-        <LocationManagement />
+        <LocationManagement msalInstance={msalInstance} />
         <MenuManagement />
       </Box>
     </>

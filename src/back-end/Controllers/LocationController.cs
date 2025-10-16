@@ -2,11 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
+using Microsoft.AspNetCore.Authorization;
 
 namespace back_end.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/locations")]
+    [Authorize()]
 
     public class LocationController : ControllerBase
     {
