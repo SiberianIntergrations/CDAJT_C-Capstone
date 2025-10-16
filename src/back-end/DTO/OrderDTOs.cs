@@ -96,13 +96,13 @@ namespace back_end.DTO.OrdersDTOs
 
     public class OrderResponseDTO
     {
-        public int OrderId { get; set; }
-        public int SessionId { get; set; }
-        public int BillId { get; set; }
-        public int UserId { get; set; }
+        public int Order_Id { get; set; }
+        public int Session_Id { get; set; }
+        public int Bill_Id { get; set; }
+        public int User_Id { get; set; }
         public OrderStatus Status { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime? CompletedAt { get; set; }
+        public DateTime Created_At { get; set; }
+        public DateTime? Completed_At { get; set; }
         public List<OrderItemResponseDTO> OrderItems { get; set; } = new();
 
         // Automatically calculated from OrderItems

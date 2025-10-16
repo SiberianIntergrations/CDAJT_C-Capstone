@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain;
+using back_end.DTO.OrdersDTOs;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace back_end.Controllers
 {
@@ -19,7 +22,202 @@ namespace back_end.Controllers
             _context = context;
             _logger = logger;
         }
+        
+        [Authorize]
+        [HttpPost]
+        public async Task<ActionResult<IEnumerable<SessionOrder>>> CreateOrder(
+            OrderCreateDTO order_data
+        )
+        {
+            try
+            {
+                var session = await _context.DiningSessions.FirstOrDefaultAsync(ds => ds.Session_Id == order_data.Session_Id);
+                if (session is null)
+                {
+                    return NotFound("Dinning Session was not found in the current context");
+                }
+                var bill = await _context.Bills.FirstOrDefaultAsync(b => b.Bill_Id == order_data.Bill_Id && b.Status == BillStatus.Open);
+                if (bill is null)
+                {
+                    return NotFound("Bill Was not found for the current session order Create Bill");
+                }
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var newOrder = new SessionOrder
+                {
+                    session_id = order_data.Session_Id,
+                    Bill_Id = order_data.Bill_Id,
+                    User_Id = userId,
+                    Status = OrderStatus.Pending,
+                    Created_At = DateTime.UtcNow
+                };
+                _context.SessionOrders.Add(newOrder);
+                await _context.SaveChangesAsync();
 
+                return Ok(new OrderResponseDTO
+                {
+                    Order_Id = newOrder.Order_Id,
+                    Session_Id = newOrder.session_id,
+                    Bill_Id = newOrder.Bill_Id,
+                    User_Id = newOrder.User_Id,
+                    Status = newOrder.Status,
+                    Created_At = newOrder.Created_At
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        [Authorize]
+        [HttpPut("{order_id}")]
+        public async Task<IActionResult> UpdateOrder(
+            int order_id,
+            OrderUpdateDTO order_data
+        )
+        {
+            try
+            {
+                var order = await _context.SessionOrders.FirstOrDefaultAsync(so => so.Order_Id == order_id);
+                if (order is null)
+                {
+                    return NotFound("Order Data was not found");
+                }
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                if (order.Status != OrderStatus.Pending)
+                {
+                    if ((foundUser.Role != UserRoles.Staff || foundUser.Role != UserRoles.Admin) || userId != order.User_Id)
+                    {
+                        return Conflict("Can not Modify a Approved Order");
+                    }
+                }
+                var response = new OrderResponseDTO
+                {
+                    Order_Id = order.Order_Id,
+                    Session_Id = order.session_id,
+                    Bill_Id = order.Bill_Id,
+                    User_Id = order.User_Id,
+                    Status = order_data.Status,
+                    Created_At = order.Created_At,
+                };
+                return Ok(response);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+        
+        [Authorize]
+        [HttpDelete("{order_id}/items/{item_id}")]
+        public async Task<IActionResult> DeleteOrder (
+            int order_id,   
+            int item_id
+        )
+        {
+            try
+            {
+                var order = await _context.SessionOrders.FirstOrDefaultAsync(so => so.Order_Id == order_id);
+                if (order is null)
+                {
+                    return NotFound("Order Data was not found");
+                }
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                if (order.Status != OrderStatus.Pending)
+                {
+                    if ((foundUser.Role != UserRoles.Staff || foundUser.Role != UserRoles.Admin) || userId != order.User_Id)
+                    {
+                        return Conflict("Can not Modify a Approved Order");
+                    }
+                }
+                var item = await _context.OrderItems.FirstOrDefaultAsync(oi => oi.Order_Item_Id == order_id && oi.Item_Id == item_id);
+                if (item is null)
+                {
+                    return BadRequest("Order Item was not found");
+                }
+                _context.OrderItems.Remove(item);
+                await _context.SaveChangesAsync();
+                return Ok("Item was Deleted");
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("{order_id}/status")]
+        public async Task<IActionResult> UpdateOrderStatus (
+            int order_id,   
+            OrderStatus new_Status
+        )
+        {
+            try
+            {
+                var order = await _context.SessionOrders.FirstOrDefaultAsync(so => so.Order_Id == order_id);
+                if (order is null)
+                {
+                    return NotFound("Order Data was not found");
+                }
+                order.Status = new_Status;
+                if (order.Status == OrderStatus.Delivered)
+                {
+                    order.Completed_At = DateTime.UtcNow;
+                } 
+                _context.SessionOrders.Update(order);
+                await _context.SaveChangesAsync();
+                return Ok("Item was Updated");
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("items/{item_id}/complete")]
+        public async Task<IActionResult> CompleteOrderItem (
+            int item_id  
+        )
+        {
+            try
+            {
+                var item = await _context.OrderItems.FirstOrDefaultAsync(or => or.Order_Item_Id == item_id);
+                if (item is null)
+                {
+                    return NotFound("Item in a Order was not found");
+                }
+                item.Order_Item_Status = OrderStatus.Delivered;
+                item.Completed_At = DateTime.UtcNow;
+                _context.OrderItems.Update(item);
+                await _context.SaveChangesAsync();
+                var response = new OrderItemResponseDTO
+                {
+                    Order_Item_Id = item.Order_Item_Id,
+                    Order_Id = item.Order_Key,
+                    Menu_Id = item.Menu_Id,
+                    Item_Id = item.Item_Id,
+                    Quantity = item.Quantity,
+                    Price_At_Time = item.Price_At_Time,
+                    Status = item.Order_Item_Status,
+                    Completed_At = item.Completed_At,
+                };
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
         //GET api/order
         //Get all Orders
         [HttpGet]
@@ -30,6 +228,49 @@ namespace back_end.Controllers
                 var order = await _context.SessionOrders.ToListAsync();
 
                 return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+                [Authorize]
+        [HttpPost("{order_id}/cancel")]
+        public async Task<IActionResult> CancelOrder (
+            int order_id
+        )
+        {
+            try
+            {
+                var order = await _context.SessionOrders.FirstOrDefaultAsync(so => so.Order_Id == order_id);
+                if (order is null)
+                {
+                    return NotFound("Order was not found to cancel");
+                }
+                if (order.Status != OrderStatus.Pending)
+                {
+                    return Conflict("Issue Canceling Order that is Approved");
+                }
+                if (order.Status == OrderStatus.Delivered)
+                {
+                    return BadRequest("Can not cancel a completed / delivered Order");
+                }
+                order.Status = OrderStatus.Cancelled;
+                _context.SessionOrders.Update(order);
+                await _context.SaveChangesAsync();
+                var response = new OrderResponseDTO
+                {
+                    Order_Id = order.Order_Id,
+                    Session_Id = order.session_id,
+                    Bill_Id = order.Bill_Id,
+                    User_Id = order.User_Id,
+                    Status = order.Status,
+                    Created_At = order.Created_At,
+                };
+                return Ok(response);
+
             }
             catch (Exception ex)
             {
