@@ -2,15 +2,14 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace back_end.domain.Entities
 {
-    [Table("user")]
+    [Table("users")]
 
     public class User
     {
         [Key]
         public int User_id { get; set; }
 
-        [Required]
-        [MaxLength(255)]
+        [Required, MaxLength(255), EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required]
@@ -30,7 +29,6 @@ namespace back_end.domain.Entities
         public string Last_name { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(100)]
         public UserRoles Role { get; set; } = UserRoles.Customer;
 
         public UserStatus Status { get; set; } = UserStatus.Active;
