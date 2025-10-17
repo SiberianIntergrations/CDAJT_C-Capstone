@@ -13,12 +13,10 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { UserPlus } from "lucide-react";
-// import api from "@/config/api";
 import { registerUser } from "@/utils/auth";
 
 const RegisterForm = () => {
   const router = useRouter();
-  // const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: "jamie2@example.com",
     password: "somethingCool1",
@@ -51,27 +49,6 @@ const RegisterForm = () => {
     }
 
     try {
-      // const response = await api.post("/auth/register",
-      //   {
-      //     email: formData.email,
-      //     password: formData.password,
-      //     first_name: formData.firstName,
-      //     last_name: formData.lastName,
-      //   }
-      // );
-
-      // if (response.status === 200) {
-      //   setIsSuccess(true);
-      //   // Reset form fields
-      //   setFormData({
-      //     email: "",
-      //     password: "",
-      //     confirmPassword: "",
-      //     firstName: "",
-      //     lastName: "",
-      //   });
-      // }
-
       await registerUser({
         email: formData.email,
         password: formData.password,
