@@ -83,13 +83,14 @@ namespace back_end.Controllers
                     Description    = new_item.Description,
                     Category_Id    = new_item.Category_id,
                     Item_Image_Url = new_item.image_url,
-                    status         = new_item.Status,
+                    Status = new_item.Status,
                     Tags = new_item.MenuItemTags.Select(t => new FullTagResponseDTO
                     {
                         Tag_Id    = t.Tag.tag_id,
                         Name      = t.Tag.tag_name,
                         Color_Code= t.Tag.tag_color
                     }).ToList(),
+
                 });
             }
             catch (Exception ex)

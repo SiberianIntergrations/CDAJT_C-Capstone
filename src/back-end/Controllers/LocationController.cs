@@ -38,7 +38,7 @@ namespace back_end.Controllers
             }
         }
 
-        [HttpPost("/")]
+        [HttpPost]
         public async Task<IActionResult> Create_Location(
             LocationCreateDTO createLocation
         )
