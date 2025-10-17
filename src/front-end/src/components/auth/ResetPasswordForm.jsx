@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,7 +15,7 @@ import {
 import { KeyRound } from "lucide-react";
 import { axiosInstance, createApiUrl } from "@/config/api";
 
-const ResetPasswordForm = () => {
+const ResetPasswordFormContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
@@ -196,6 +196,27 @@ const ResetPasswordForm = () => {
         </Box>
       </Paper>
     </Box>
+  );
+};
+
+const ResetPasswordForm = () => {
+  return (
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      }
+    >
+      <ResetPasswordFormContent />
+    </Suspense>
   );
 };
 
