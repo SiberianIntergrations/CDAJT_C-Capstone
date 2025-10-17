@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+// import api from "@/config/api";
 import { loginUser } from "@/utils/auth";
 
 const LoginForm = () => {
@@ -39,7 +40,29 @@ const LoginForm = () => {
       console.log("Attempting login...");
       const response = await loginUser(formData.email, formData.password);
       console.log("Login response:", response);
+      // const response = await api.post("/auth/login",
+      //   {
+      //     email: formData.email,
+      //     password: formData.password,
+      //     grant_type: "password",
+      //   },
+      //   {
+      //     headers: {
+      //       "Content-Type": "application/json",
+      //     },
+      //   }
+      // );
+      // console.log("Login response:", response.data);
+
+      // if (response.data.access_token) {
+      //   console.log(response.data.access_token);
+      //   localStorage.setItem("access_token", response.data.access_token);
+      //   if (response.data.refresh_token) {
+      //     localStorage.setItem("refresh_token", response.data.refresh_token);
+      //   }
+      console.log("Login response: Success");
       router.push("/");
+      // }
     } catch (err) {
       console.error("Login error:", err);
       setError(

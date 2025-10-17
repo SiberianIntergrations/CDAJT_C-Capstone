@@ -1,7 +1,4 @@
-// Not being used. Moving to archive folder for now.
-// Originally found in front-end/src/components/Login.jsx
-
-//import React, { useState } from "react";
+// import React, { useState } from "react";
 // import { TextField, Button, Container, Typography, Alert } from "@mui/material";
 // import axios from "axios";
 
