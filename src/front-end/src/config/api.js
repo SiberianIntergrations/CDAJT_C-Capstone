@@ -1,43 +1,41 @@
 import axios from "axios";
+import { getAccessToken, setAuthTokens, clearAuthTokens } from "@/utils/token";
 
 export const API_BASE_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) || "http://localhost:5264";
 
-// Added for SSR safety with localStorage to prevent build failures
-const getLocal = (key) =>
-  typeof window !== "undefined" ? localStorage.getItem(key) : null;
-const setLocal = (key, value) =>
-  typeof window !== "undefined" ? localStorage.setItem(key, value) : undefined;
-const removeLocal = (key) =>
-  typeof window !== "undefined" ? localStorage.removeItem(key) : undefined;
-
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   timeout: 10000,
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
 // Add auth header interceptor
 api.interceptors.request.use((config) => {
-  const token = getLocal("access_token");
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+  },
+  (error) => Promise.reject(error)
+);
 
 // Refresh token logic to prevent multiple refresh attempts/api spam
 let isRefreshing = false;
 let refreshSubscribers = [];
 
 const subscribeTokenRefresh = (cb) => refreshSubscribers.push(cb);
+
 const onRefreshed = (token) => {
   refreshSubscribers.forEach((cb) => cb(token));
   refreshSubscribers = [];
 };
 
-const clearAndRedirectToLogin = () => {
-  removeLocal("access_token");
-  removeLocal("refresh_token");
+const redirectToLogin = () => {
+  clearAuthTokens();
   if (typeof window !== "undefined") {
     window.location.href = "/auth/login";
   }
@@ -49,6 +47,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error?.config;
 
+    // Early return for non-auth errors or missing original request
     if (!error?.response || !originalRequest) {
       return Promise.reject(error);
     }
@@ -62,12 +61,13 @@ api.interceptors.response.use(
     if (status === 401 && !originalRequest._retry && !isRefreshEndpoint) {
       originalRequest._retry = true;
 
-      const refreshToken = getLocal("refresh_token");
+      const refreshToken = getAccessToken();
       if (!refreshToken) {
-        clearAndRedirectToLogin();
+        redirectToLogin();
         return Promise.reject(error);
       }
 
+      // Queue request if a refresh is already in progress
       if (isRefreshing) {
         return new Promise((resolve,  reject) => {
           subscribeTokenRefresh((newToken) => {
@@ -89,10 +89,12 @@ api.interceptors.response.use(
         );
 
         const { access_token } = response.data;
+
         if (!access_token) {
           throw new Error("No access token in refresh response");
         }
-        // Store the new access token
+
+        // Store the new access token and notify subscribers
         setLocal("access_token", access_token);
         onRefreshed(access_token);
 
@@ -101,8 +103,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Clear tokens and redirect to login if refresh fails
+        console.error("Token refresh error:", refreshError);
         onRefreshed(null);
-        clearAndRedirectToLogin();
+        redirectToLogin();
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
