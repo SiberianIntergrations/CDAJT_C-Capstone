@@ -27,8 +27,8 @@ namespace back_end.Controllers
             _logger = logger;
         }
 
-        // Create a new staff or admin user by Admin only.
         // POST: /api/staff?role=Admin
+        // Create a new staff or admin user by Admin only.
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> CreateStaff(
@@ -70,8 +70,8 @@ namespace back_end.Controllers
             );
         }
 
-        // List all staff and/or admin users with pagination.
         // GET: /api/staff?role=Staff&skip=0&limit=100
+        // List all staff and/or admin users with pagination.
         [HttpGet]
         [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<IEnumerable<UserResponseDTO>>> ListStaff(
@@ -101,9 +101,9 @@ namespace back_end.Controllers
 
             return Ok(users);
         }
-        
-        // Get details of a specific staff/admin user.
+
         // GET: /api/staff/5
+        // Get details of a specific staff/admin user.
         [HttpGet("{user_id:int}")]
         [Authorize(Roles = "Admin,Staff")]
         public async Task<ActionResult<UserResponseDTO>> GetStaff(int user_id)
@@ -117,8 +117,8 @@ namespace back_end.Controllers
             return Ok(ToResponse(u));
         }
 
-        // Update a staff/admin user's details.
         // PUT: /api/staff/5
+        // Update a staff/admin user's details.
         [HttpPut("{user_id:int}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> UpdateStaff(int user_id, [FromBody] StaffUserUpdateDTO user_data)
@@ -142,7 +142,7 @@ namespace back_end.Controllers
             }
 
             if (!string.IsNullOrWhiteSpace(user_data.First_name)) user.First_name = user_data.First_name.Trim();
-            if (!string.IsNullOrWhiteSpace(user_data.Last_name))  user.Last_name  = user_data.Last_name.Trim();
+            if (!string.IsNullOrWhiteSpace(user_data.Last_name)) user.Last_name = user_data.Last_name.Trim();
 
             if (user_data.Role.HasValue)
             {
@@ -155,8 +155,8 @@ namespace back_end.Controllers
             return Ok(ToResponse(user));
         }
 
-        // Change a staff user's password by Admin only.
         // POST: /api/staff/5/change-password
+        // Change a staff user's password by Admin only.
         [HttpPost("{user_id:int}/change-password")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> ChangeStaffPassword(int user_id, [FromBody] PasswordChangeDTO password_data)
@@ -178,8 +178,8 @@ namespace back_end.Controllers
             return Ok(ToResponse(user));
         }
 
-        // Reset a staff user's password by Admin only.
         // POST: /api/staff/5/reset-password
+        // Reset a staff user's password by Admin only.
         [HttpPost("{user_id:int}/reset-password")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> ResetStaffPassword(int user_id, [FromBody] ResetPasswordRequestDTO request)
