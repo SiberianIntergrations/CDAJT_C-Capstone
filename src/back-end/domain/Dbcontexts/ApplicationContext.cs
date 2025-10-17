@@ -42,9 +42,6 @@ namespace back_end.domain.DbContexts
             modelBuilder.Entity<MenuLocations>()
                 .HasKey(ml => new { ml.Menu_Id, ml.Location_Id });
 
-            modelBuilder.Entity<SessionParticipant>()
-                .HasKey(sp => new { sp.Session_Id, sp.User_Id });
-
             modelBuilder.Entity<Sessions>()
                 .HasKey(s => new { s.Session_Id, s.Table_Id });
 
