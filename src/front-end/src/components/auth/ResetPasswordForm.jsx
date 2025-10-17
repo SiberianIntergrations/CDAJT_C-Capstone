@@ -1,5 +1,7 @@
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+"use client";
+
+import React, { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Box,
@@ -13,9 +15,11 @@ import {
 import { KeyRound } from "lucide-react";
 import { axiosInstance, createApiUrl } from "@/config/api";
 
-const ResetPasswordForm = () => {
+const ResetPasswordFormContent = () => {
   const router = useRouter();
-  const { token } = router.query;
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+
   const [formData, setFormData] = useState({
     newPassword: "",
     confirmPassword: "",
@@ -38,6 +42,12 @@ const ResetPasswordForm = () => {
 
     if (formData.newPassword !== formData.confirmPassword) {
       setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
+
+    if (!token) {
+      setError("Reset token is missing");
       setLoading(false);
       return;
     }
@@ -72,7 +82,7 @@ const ResetPasswordForm = () => {
     >
       <Paper
         sx={{
-          padding: 1,
+          padding: 4,
           width: "100%",
           maxWidth: 400,
           backgroundColor: "white",
@@ -89,7 +99,7 @@ const ResetPasswordForm = () => {
         >
           <KeyRound
             className="w-12 h-12 text-primary"
-            sx={{ fontSize: 48, color: "primary.main" }}
+            style={{ fontSize: 48 }}
           />
 
           <Typography
@@ -109,7 +119,8 @@ const ResetPasswordForm = () => {
             </Alert>
           )}
 
-          <form
+          <Box
+            component="form"
             onSubmit={handleSubmit}
             sx={{
               width: "100%",
@@ -181,10 +192,31 @@ const ResetPasswordForm = () => {
                 </Button>
               </Link>
             </Box>
-          </form>
+          </Box>
         </Box>
       </Paper>
     </Box>
+  );
+};
+
+const ResetPasswordForm = () => {
+  return (
+    <Suspense
+      fallback={
+        <Box
+          sx={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      }
+    >
+      <ResetPasswordFormContent />
+    </Suspense>
   );
 };
 
