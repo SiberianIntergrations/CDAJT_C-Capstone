@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using back_end.domain.enums;
+
 namespace back_end.domain.Entities
 {
     [Table("session_order")]
@@ -28,7 +30,7 @@ namespace back_end.domain.Entities
         public Billing Bill { get; set; } = null!;
         public User User { get; set; } = null!;
         public ICollection<OrderItems> OrderItems { get; set; } = new List<OrderItems>();
-        
+
     }
 
 }

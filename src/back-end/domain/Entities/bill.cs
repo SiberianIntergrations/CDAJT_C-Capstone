@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.SignalR;
+using back_end.domain.enums;
+
 namespace back_end.domain.Entities
 {
     [Table("bills")]

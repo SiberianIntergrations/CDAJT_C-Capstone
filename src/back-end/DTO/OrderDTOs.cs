@@ -1,8 +1,6 @@
-
-
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
-using back_end.domain;
+using back_end.domain.enums;
 
 namespace back_end.DTO.OrdersDTOs
 {

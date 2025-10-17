@@ -2,8 +2,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using back_end.domain;
+using back_end.domain.enums;
 using Microsoft.AspNetCore.SignalR;
-
 
 namespace back_end.DTO.MenuItemAssignmentDTO
 {
