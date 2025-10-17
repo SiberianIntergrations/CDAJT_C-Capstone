@@ -16,12 +16,7 @@ import api from "@/config/api";
 
 const ResetPasswordForm = () => {
   const router = useRouter();
-  /**
-   * TODO: Commented out due to npm build error.
-   * Error occurred prerendering page "/auth/reset-password". Read more: https://nextjs.org/docs/messages/prerender-error
-   * TypeError: Cannot destructure property 'token' of 'a.query' as it is undefined.
-   */
-  // const { token } = router.query;
+  const { token } = router.query;
   const [formData, setFormData] = useState({
     newPassword: "",
     confirmPassword: "",
