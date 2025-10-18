@@ -32,7 +32,8 @@ Call Servers
 
 Staff
  - Ability to reset password for customer user ??
- Session Management 
+ 
+  Session Management 
   - View tables in use
   - Active Session / tables showed promptly
 
@@ -41,6 +42,7 @@ Staff
    - add new Bill to a session
    - close a table 
    - End Session 
+  
   Address Requests
    - Respond and close out a table service request. 
 
