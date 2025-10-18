@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using back_end.domain;
 using back_end.domain.Entities;
 using back_end.domain.DbContexts;
+using back_end.domain.enums;
 
 namespace back_end.domain.Seeders
 {
@@ -266,9 +267,9 @@ namespace back_end.domain.Seeders
 
         private class MenuItemData
         {
-            public string Name { get; set; }
-            public string Description { get; set; }
-            public string[] Tags { get; set; }
+            public string Name { get; set; } = string.Empty; 
+            public string Description { get; set; } = string.Empty; 
+            public string[] Tags { get; set; } = Array.Empty<string>();
         }
 
         private class CategoryConfig
