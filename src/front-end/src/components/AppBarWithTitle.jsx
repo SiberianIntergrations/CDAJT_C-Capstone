@@ -19,6 +19,7 @@ import {
 } from "@mui/material";
 import {
   Menu as MenuIcon,
+  MenuSquare,
   LogOut,
   LogIn,
   Home,
@@ -56,7 +57,7 @@ const AppBarWithTitle = ({ title }) => {
     customer: [
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Bills", path: "/dashboard/bills" },
-      { icon: MenuIcon, label: "Menu", path: "/menu/full-menu" },
+      { icon: MenuSquare, label: "Menu", path: "/menu/full-menu" },
       { icon: Users, label: "Orders", path: "/dashboard/orders" },
       { icon: Phone, label: "Call Server", path: "/dashboard/call-server" },
     ],

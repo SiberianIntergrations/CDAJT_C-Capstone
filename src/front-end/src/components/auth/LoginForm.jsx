@@ -16,8 +16,8 @@ import { loginUser } from "@/utils/auth";
 const LoginForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: "jamie2@example.com",
-    password: "somethingCool1",
+    email: "",
+    password: "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
