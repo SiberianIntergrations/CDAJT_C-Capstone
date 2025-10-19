@@ -26,7 +26,7 @@ export const ForgotPasswordForm = () => {
     setLoading(true);
 
     try {
-      await await api.post("/auth/forgot-password", { email });
+      await api.post("/auth/forgot-password", { email });
     } catch (err) {
       setError(
         err.response?.data?.detail ||

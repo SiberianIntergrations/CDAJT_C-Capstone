@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -38,94 +38,12 @@ const AppBarWithTitle = ({ title }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  // const [userRole, setUserRole] = useState(null);
-  // const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  // const decodeJWT = (token) => {
-  //   try {
-  //     const base64Url = token.split(".")[1];
-  //     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-  //     return JSON.parse(
-  //       decodeURIComponent(
-  //         atob(base64)
-  //           .split("")
-  //           .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
-  //           .join("")
-  //       )
-  //     );
-  //   } catch (error) {
-  //     console.error("Error decoding token:", error);
-  //     return null;
-  //   }
-  // };
-
-  // const verifyLogin = () => {
-  //   const token = localStorage.getItem("access_token");
-  //   if (token) {
-  //     const decoded = decodeJWT(token);
-  //     console.log("Decoded JWT:", decoded); // Debug log
-      
-  //     // Extract role from Microsoft claims format
-  //     const roleClaimKey = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
-  //     const backendRole = decoded?.[roleClaimKey] || decoded?.role;
-      
-  //     if (backendRole) {
-  //       // Map backend role to frontend role format
-  //       const frontendRole = mapBackendRoleToFrontend(backendRole);
-  //       console.log("Backend role:", backendRole, "Frontend role:", frontendRole);
-  //       setUserRole(frontendRole);
-  //       setIsLoggedIn(true);
-  //     } else {
-  //       console.log("No role found in token, logging out");
-  //       handleLogout();
-  //     }
-  //   } else {
-  //     setIsLoggedIn(false);
-  //     setUserRole(null);
-  //   }
-  // };
-
-  // // Helper function to map backend roles to frontend roles
-  // const mapBackendRoleToFrontend = (backendRole) => {
-  //   switch (backendRole?.toLowerCase()) {
-  //     case 'admin':
-  //       return 'admin';
-  //     case 'employee':
-  //       return 'staff';
-  //     case 'customer':
-  //     default:
-  //       return 'customer';
-  //   }
-  // };
-
-  // useEffect(() => {
-  //   verifyLogin();
-  //   const interval = setInterval(verifyLogin, 5000);
-  //   const handleRouteChange = () => {
-  //     verifyLogin();
-  //     setDrawerOpen(false);
-  //   };
-
-  //   // router.events.on("routeChangeComplete", handleRouteChange);
-  //   window.addEventListener("storage", verifyLogin);
-
-  //   return () => {
-  //     clearInterval(interval);
-  //     router.events.off("routeChangeComplete", handleRouteChange);
-  //     window.removeEventListener("storage", verifyLogin);
-  //   };
-  // }, [router.events]);
 
   const { isAuthenticated, userRole, loading } = useAuth();
 
   const handleLogout = async () => {
-    // localStorage.removeItem("access_token");
-    // localStorage.removeItem("refresh_token");
-    // setIsLoggedIn(false);
-    // setUserRole(null);
     await logoutUser();
     setDrawerOpen(false);
-    // router.push("/auth/login");
   };
 
   const handleNavigation = (path) => {
