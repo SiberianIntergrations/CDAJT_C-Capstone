@@ -217,7 +217,7 @@ const TagManagement = () => {
   const handleDeleteConfirm = async () => {
     try {
       const response = await api.delete(`/tag/${tagToDelete.tag_id}`);
-      if (response.statusText !== 200) {
+      if (response.status !== 200) {
         throw new Error(response.data.detail || "Failed to delete tag");
       }
       setSuccessMessage("Tag deleted successfully");
@@ -235,7 +235,7 @@ const TagManagement = () => {
       setItemsError(null);
 
       const response = await api.get(`/tag/${tagId}/menu_items`);
-      if (response.statusText !== "OK") {
+      if (response.status !== 200) {
         throw new Error("Failed to fetch menu items");
       }
 
@@ -316,7 +316,7 @@ const TagManagement = () => {
       try {
         const response = await api.delete(`/menu-items/${itemId}/tags/${selectedTagForItems.tag_id}`);
 
-        if (response.statusText !== "OK") {
+        if (response.status !== 200) {
           throw new Error("Failed to remove tag from item");
         }
         setMenuItems(menuItems.filter((item) => item.item_id !== itemId));
@@ -464,7 +464,7 @@ const TagManagement = () => {
     try {
       // TODO: Tag/colours ???
       const response = await api.get("/Tag/colors");
-      if (response.statusText !== "OK") {
+      if (response.status !== 200) {
         throw new Error("Failed to fetch tags");
       }
       setTags(response.data);
@@ -526,7 +526,7 @@ const TagManagement = () => {
       if (dialogMode === "add") {
         // TODO: Need Tag Controller
         const response = await api.post("/Tag", currentTag);
-        if (response.statusText !== 200) {
+        if (response.status !== 200) {
           throw new Error("Failed to create tag");
         }
         setSuccessMessage("Tag created successfully");
@@ -535,7 +535,7 @@ const TagManagement = () => {
           `/Tag/${currentTag.tag_id}`,
           currentTag
         );
-        if (response.statusText !== 200) {
+        if (response.status !== 200) {
           throw new Error("Failed to update tag");
         }
         setSuccessMessage("Tag updated successfully");

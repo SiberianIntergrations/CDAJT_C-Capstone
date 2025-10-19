@@ -16,7 +16,7 @@ const SessionList = () => {
     try {
       // TODO: ServiceRequest endpoint by session ID
       const response = await api.get(`/ServiceRequest/by-session/${sessionId}`);
-      if (response.statusText !== 200) return 0;
+      if (response.status !== 200) return 0;
       const data = response.data;
       return data.length;
     } catch (error) {

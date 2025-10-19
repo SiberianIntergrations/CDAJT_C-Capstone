@@ -20,7 +20,7 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
       // TODO: ServiceRequest endpoint GET ${sessionId} needed (api from old project: /service-requests/by-session/{sessionId})
       // TODO: Look over useCallback and dependencies
       const response = await api.get(`/service-requests/by-session/${session.session_id}`);
-      if (response.statusText !== 200) {
+      if (response.status !== 200) {
         throw new Error("Failed to fetch service requests");
       }
 
@@ -50,7 +50,7 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
       setLoading(true);
       // TODO: ServiceRequest endpoint POST complete needed (api from old project: /service-requests/{requestId}/complete)
       const response = await api.post(`/service-requests/${requestId}/complete`);
-      if (response.statusText !== 200) {
+      if (response.status !== 200) {
         throw new Error("Failed to complete request");
       }
 

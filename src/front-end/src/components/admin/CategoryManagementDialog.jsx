@@ -63,9 +63,10 @@ const CategoryManagementDialog = ({
 
     try {
       if (selectedCategory) {
-        await api.put(`/Category/update_category${selectedCategory._categoryId}`, formData);
+        // TODO: Update endpoints
+        await api.put(`/Category/update_category/${selectedCategory._categoryId}`, formData);
       } else {
-        await api.post("/Category"), formData;
+        await api.post("/Category", formData);
       }
 
       onSuccess();

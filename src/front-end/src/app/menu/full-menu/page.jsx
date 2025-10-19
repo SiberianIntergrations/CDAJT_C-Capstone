@@ -229,7 +229,7 @@ useEffect(() => {
           setError("No menu found for this session");
         }
       } catch (err) {
-        console.error("Error fetching menu:", error);
+        console.error("Error fetching menu:", err);
         const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching menu";
         setError(message);
       }
@@ -257,7 +257,7 @@ useEffect(() => {
           console.error("Categories data is not an array");
         }
       } catch (err) {
-        console.error("Error fetching categories:", error);
+        console.error("Error fetching categories:", er);
         const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
         setError(message);
       }
@@ -281,10 +281,10 @@ useEffect(() => {
         }
       setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
       }
-    } catch (error) {
+    } catch (err) {
       console.error(
         `Error fetching menu items for category ${categoryId}:`,
-        error
+        err
       );
     }
   };

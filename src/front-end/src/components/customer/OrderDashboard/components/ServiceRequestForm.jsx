@@ -70,7 +70,11 @@ const ServiceRequestForm = () => {
 
       if (response.status !== 200) {
         const data = response.data;
-        throw new Error(data?.detail || "Failed to submit request");
+        let errorMessage = "Failed to submit request";
+        if (data && typeof data === "object" && data.detail) {
+          errorMessage = data.detail;
+        }
+        throw new Error(errorMessage);
       }
 
       setSuccess(true);

@@ -40,7 +40,7 @@ const StaffManagementPage = () => {
       const response = await api.get("/staff");
       console.log(response);
       console.log(response.statusText);
-      if (response.statusText !== "OK")
+      if (response.status !== 200)
         throw new Error("Failed to fetch staff members");
 
       const data = response.data;
@@ -133,7 +133,7 @@ const StaffManagementPage = () => {
         formData
       );
 
-      if (response.statusText !== "OK")
+      if (response.status !== 200)
         throw new Error("Failed to update staff member");
 
       await fetchStaff();
@@ -159,7 +159,7 @@ const StaffManagementPage = () => {
       const response = await api.post(`/staff/${selectedStaff.user_id}/reset-password`,
         { new_password: passwordData.new_password }
       );
-      if (response.statusText !== 200) {
+      if (response.status !== 200) {
         throw new Error(response.data?.detail || "Failed to reset password");
       }
 

@@ -29,7 +29,7 @@ const NewSessionDialog = ({ open, onClose }) => {
   const fetchMenus = async () => {
     try {
       const response = await api.get("/Menu");
-      if (response.statusText !== 200)
+      if (response.status !== 200)
         throw new Error("Failed to fetch menus");
       const data = response.data;
       setAvailableMenus(data);
