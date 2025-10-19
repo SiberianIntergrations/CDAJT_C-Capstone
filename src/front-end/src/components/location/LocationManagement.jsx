@@ -183,7 +183,7 @@ const LocationManagement = () => {
         rows={locations}
         columns={columns}
         loading={loading}
-        getRowId={(row) => row.location_id ?? row.location_Id ?? row.id}
+        getRowId={(row) => row.location_id}
         disableSelectionOnClick
         sx={{
           bgcolor: "background.paper",

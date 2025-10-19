@@ -1,9 +1,9 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, CircularProgress } from "@mui/material";
 import dynamic from "next/dynamic";
+import { getAccessToken } from "@/utils/token";
 
 // export const metadata = {
 //   title: "Menu Item Management | Sushi Toshi",
@@ -35,7 +35,7 @@ export default function MenuItemsPage() {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const token = localStorage.getItem("access_token");
+        const token = getAccessToken();
         
         if (!token) {
           router.push("/auth/login");

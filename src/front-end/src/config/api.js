@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken, setAuthTokens, clearAuthTokens } from "@/utils/token";
+import { getAccessToken, getRefreshToken, setAuthTokens, clearAuthTokens } from "@/utils/token";
 
 export const API_BASE_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) || "http://localhost:5264";
@@ -61,7 +61,7 @@ api.interceptors.response.use(
     if (status === 401 && !originalRequest._retry && !isRefreshEndpoint) {
       originalRequest._retry = true;
 
-      const refreshToken = getAccessToken();
+      const refreshToken = getRefreshToken();
       if (!refreshToken) {
         redirectToLogin();
         return Promise.reject(error);
@@ -95,7 +95,7 @@ api.interceptors.response.use(
         }
 
         // Store the new access token and notify subscribers
-        setLocal("access_token", access_token);
+        setAuthTokens("access_token", access_token);
         onRefreshed(access_token);
 
         // Update the Authorization header and retry the original request
