@@ -7,8 +7,6 @@ using System.Text;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using System.Security.Claims;
-using back_end.Services;
-using back_end.Config.QRCodeSettings;
 
 var builder = WebApplication.CreateBuilder(args);
 
