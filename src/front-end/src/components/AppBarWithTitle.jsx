@@ -11,6 +11,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  ListItemButton,
   Box,
   useTheme,
   useMediaQuery,
@@ -89,8 +90,7 @@ const AppBarWithTitle = ({ title }) => {
         menuItems[userRole].map((item, index) => {
           const Icon = item.icon;
           return (
-            <ListItem
-              button
+            <ListItemButton
               key={index}
               onClick={() => handleNavigation(item.path)}
               sx={{
@@ -112,7 +112,7 @@ const AppBarWithTitle = ({ title }) => {
                 <Icon />
               </ListItemIcon>
               <ListItemText primary={item.label} />
-            </ListItem>
+            </ListItemButton>
           );
         })}
     </List>
