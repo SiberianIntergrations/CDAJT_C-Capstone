@@ -25,7 +25,7 @@ import {
 } from "@mui/material";
 import { Plus, Edit, Image as ImageIcon, Trash2, Eye, X } from "lucide-react";
 import { styled } from "@mui/material/styles";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 import TagChip from "./TagChip";
 
 const calculateColorDifference = (color1, color2) => {
@@ -71,6 +71,7 @@ const generatePastelColor = () => {
     .padStart(2, "0")}${finalB.toString(16).padStart(2, "0")}`;
 };
 
+// TODO: Extract to utils/colorGenerator.js, write tests, or use a library (chroma-js) to reduce complexity
 const generateColorSet = (count, existingColors) => {
   const colors = new Set();
   const existingSet = new Set(existingColors);
@@ -168,13 +169,6 @@ const TagManagement = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [tagToDelete, setTagToDelete] = useState(null);
 
-  const getToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
-    return null;
-  };
-
   const columns = [
     {
       field: "name",
@@ -222,10 +216,8 @@ const TagManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      const response = await axiosInstance.delete(
-        createApiUrl(`/tag/${tagToDelete.tag_id}`)
-      );
-      if (response.statusText !== "OK") {
+      const response = await api.delete(`/tag/${tagToDelete.tag_id}`);
+      if (response.status !== 200) {
         throw new Error(response.data.detail || "Failed to delete tag");
       }
       setSuccessMessage("Tag deleted successfully");
@@ -242,10 +234,8 @@ const TagManagement = () => {
       setLoadingItems(true);
       setItemsError(null);
 
-      const response = await axiosInstance.get(
-        createApiUrl(`/tag/${tagId}/menu_items`)
-      );
-      if (response.statusText !== "OK") {
+      const response = await api.get(`/tag/${tagId}/menu_items`);
+      if (response.status !== 200) {
         throw new Error("Failed to fetch menu items");
       }
 
@@ -324,13 +314,9 @@ const TagManagement = () => {
   const MenuItemsDialog = () => {
     const handleRemoveTag = async (itemId) => {
       try {
-        const response = await axiosInstance.delete(
-          createApiUrl(
-            `/menu-items/${itemId}/tags/${selectedTagForItems.tag_id}`
-          )
-        );
+        const response = await api.delete(`/menu-items/${itemId}/tags/${selectedTagForItems.tag_id}`);
 
-        if (response.statusText !== "OK") {
+        if (response.status !== 200) {
           throw new Error("Failed to remove tag from item");
         }
         setMenuItems(menuItems.filter((item) => item.item_id !== itemId));
@@ -476,8 +462,9 @@ const TagManagement = () => {
 
   const fetchTags = async () => {
     try {
-      const response = await axiosInstance.get(createApiUrl("/tag/colors"));
-      if (response.statusText !== "OK") {
+      // TODO: Tag/colours ???
+      const response = await api.get("/Tag/colors");
+      if (response.status !== 200) {
         throw new Error("Failed to fetch tags");
       }
       setTags(response.data);
@@ -536,20 +523,19 @@ const TagManagement = () => {
         return;
       }
 
-      const token = getToken();
-
       if (dialogMode === "add") {
-        const response = await axiosInstance.post("/tag", currentTag);
-        if (response.statusText !== "OK") {
+        // TODO: Need Tag Controller
+        const response = await api.post("/Tag", currentTag);
+        if (response.status !== 200) {
           throw new Error("Failed to create tag");
         }
         setSuccessMessage("Tag created successfully");
       } else {
-        const response = await axiosInstance.put(
-          `/tag/${currentTag.tag_id}`,
+        const response = await api.put(
+          `/Tag/${currentTag.tag_id}`,
           currentTag
         );
-        if (response.statusText !== "OK") {
+        if (response.status !== 200) {
           throw new Error("Failed to update tag");
         }
         setSuccessMessage("Tag updated successfully");

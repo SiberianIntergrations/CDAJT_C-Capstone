@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import styles from "../styles/Layout.module.css";
+import { useAuth } from "@/hooks/useAuth";
+import { logoutUser } from "@/utils/auth";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState(null);
   const dropdownRef = useRef(null);
-  const router = useRouter();
+
+  const { isAuthenticated, userRole } = useAuth();
 
   const toggleMenu = () => {
     setIsMenuOpen((prev) => !prev);
@@ -18,63 +18,8 @@ const Header = () => {
     setIsMenuOpen(false);
   };
 
-  const decodeJWT = (token) => {
-    try {
-      const base64Url = token.split(".")[1];
-      const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split("")
-          .map((c) => {
-            return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
-          })
-          .join("")
-      );
-      return JSON.parse(jsonPayload);
-    } catch (error) {
-      console.error("Error decoding token:", error);
-      return null;
-    }
-  };
-
-  const verifyLogin = () => {
-    const token = localStorage.getItem("access_token");
-    if (token) {
-      try {
-        const decoded = decodeJWT(token);
-        if (decoded && decoded.role) {
-          setUserRole(decoded.role);
-          setIsLoggedIn(true);
-        } else {
-          handleLogout();
-        }
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        handleLogout();
-      }
-    } else {
-      setIsLoggedIn(false);
-      setUserRole(null);
-    }
-  };
-
-  useEffect(() => {
-    verifyLogin();
-    window.addEventListener("storage", verifyLogin);
-    router.events.on("routeChangeComplete", verifyLogin);
-
-    return () => {
-      window.removeEventListener("storage", verifyLogin);
-      router.events.off("routeChangeComplete", verifyLogin);
-    };
-  }, [router.events]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
-    setIsLoggedIn(false);
-    setUserRole(null);
-    router.push("/auth/login");
+  const handleLogout = async () => {
+    await logoutUser();
   };
 
   useEffect(() => {
@@ -218,7 +163,7 @@ const Header = () => {
           </Link>
         </div>
         <div className={styles.navbarLinksContainer}>
-          {isLoggedIn && (
+          {isAuthenticated && (
             <>
               {userRole === "customer" && renderCustomerNavLinks()}
               {userRole === "staff" && renderStaffNavLinks()}
@@ -228,7 +173,7 @@ const Header = () => {
         </div>
         <div className={styles.navbarRightContainer}>
           <button className={styles.authButton} onClick={handleLogout}>
-            {isLoggedIn ? "Logout" : "Login"}
+            {isAuthenticated ? "Logout" : "Login"}
           </button>
         </div>
       </nav>

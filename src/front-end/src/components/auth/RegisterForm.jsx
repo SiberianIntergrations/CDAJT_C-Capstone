@@ -13,11 +13,10 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { UserPlus } from "lucide-react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import { registerUser } from "@/utils/auth";
 
 const RegisterForm = () => {
   const router = useRouter();
-  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: "jamie2@example.com",
     password: "somethingCool1",
@@ -39,42 +38,48 @@ const RegisterForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     setError("");
+    setLoading(true);
+
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
 
     try {
-      const response = await axiosInstance.post(
-        createApiUrl("/auth/register"),
-        {
-          email: formData.email,
-          password: formData.password,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-        }
-      );
+      await registerUser({
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+      });
 
-      if (response.status === 200) {
-        setIsSuccess(true);
-        // Reset form fields
-        setFormData({
-          email: "",
-          password: "",
-          confirmPassword: "",
-          firstName: "",
-          lastName: "",
-        });
-      }
+      setIsSuccess(true);
+
+      // Reset form fields
+      setFormData({
+        email: "",
+        password: "",
+        confirmPassword: "",
+        firstName: "",
+        lastName: "",
+      });
     } catch (err) {
       console.error("Registration error:", err);
+
       if (err.response) {
-        console.log(err.request.response);
-        if (err.response.status === 400) {
-          setError(err.request.response || "Password or Email invalid");
-        } else if (err.response.status === 422) {
+        const status = err.response.status;
+        const detail = err.response.data?.detail;
+
+        if (status === 400) {
+          setError(detail || "Password or Email invalid");
+        } else if (status === 422) {
           const errorMessage =
-            err.request.response || "Invalid input data";
+            detail || "Invalid input data";
           setError(errorMessage);
-        } else if (err.response.status === 409) {
+        } else if (status === 409) {
           setError("Email already registered");
         } else {
           setError("Registration failed. Please try again.");
@@ -86,7 +91,7 @@ const RegisterForm = () => {
       }
       console.error("Registration error:", err);
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 

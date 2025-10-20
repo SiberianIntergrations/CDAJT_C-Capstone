@@ -13,7 +13,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { KeyRound } from "lucide-react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const ResetPasswordFormContent = () => {
   const router = useRouter();
@@ -53,7 +53,7 @@ const ResetPasswordFormContent = () => {
     }
 
     try {
-      await axiosInstance.post(createApiUrl("/auth/reset-password"), {
+      await api.post("/auth/reset-password", {
         token,
         new_password: formData.newPassword,
       });

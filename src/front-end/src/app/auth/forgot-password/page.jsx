@@ -1,15 +1,12 @@
-"use client";
-import Head from "next/head";
 import ForgotPasswordForm from "@/components/auth/ForgotPasswordForm";
+
+export const metadata = {
+  title: "Forgot Password | Sushi Toshi",
+  description: "Reset your Sushi Toshi password",
+};
 
 export default function ForgotPasswordPage() {
   return (
-    <>
-      <Head>
-        <title>Forgot Password | Sushi Toshi</title>
-        <meta name="description" content="Reset your Sushi Toshi password" />
-      </Head>
-      <ForgotPasswordForm />
-    </>
+    <ForgotPasswordForm />
   );
 }
