@@ -64,7 +64,10 @@ const CategoryManagementDialog = ({
     try {
       if (selectedCategory) {
         // TODO: Update endpoints
-        await api.put(`/Category/update_category/${selectedCategory._categoryId}`, formData);
+        await api.put(
+          `/Category/update_category/${selectedCategory.category_id}`,
+          formData
+        );
       } else {
         await api.post("/Category", formData);
       }
@@ -85,7 +88,9 @@ const CategoryManagementDialog = ({
 
     try {
       // Check for menu items in category
-      const itemsResponse = await api.get(`/categories/${selectedCategory.category_id}/menu-items`);
+      const itemsResponse = await api.get(
+        `/categories/${selectedCategory.category_id}/menu-items`
+      );
 
       if (itemsResponse.data && itemsResponse.data.length > 0) {
         throw new Error(

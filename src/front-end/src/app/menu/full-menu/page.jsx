@@ -188,7 +188,7 @@ const FullMenu = () => {
     );
   };
 
-useEffect(() => {
+  useEffect(() => {
     const getActiveSession = async () => {
       try {
         setError(null);
@@ -210,7 +210,7 @@ useEffect(() => {
     getActiveSession();
   }, []);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!sessionId || sessionId < 1) {
       console.log("Invalid sessionId. Skipping menu fetch.");
       return;
@@ -230,7 +230,11 @@ useEffect(() => {
         }
       } catch (err) {
         console.error("Error fetching menu:", err);
-        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching menu";
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          "Error fetching menu";
         setError(message);
       }
     };
@@ -257,8 +261,12 @@ useEffect(() => {
           console.error("Categories data is not an array");
         }
       } catch (err) {
-        console.error("Error fetching categories:", er);
-        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
+        console.error("Error fetching categories:", err);
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          "Error fetching categories";
         setError(message);
       }
     };
@@ -279,7 +287,7 @@ useEffect(() => {
           );
           item.tags = itemTagsResponse.data;
         }
-      setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
+        setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
       }
     } catch (err) {
       console.error(
@@ -320,14 +328,13 @@ useEffect(() => {
               console.log("New Price: ", newPrice);
 
               const response = await api.post(`/orders/${orderId}/items`, {
-                  order_id: orderId,
-                  menu_id: menuId,
-                  item_id: parseInt(itemId),
-                  quantity: quantity,
-                  price_at_time: newPrice,
-                  status: "pending",
-                }
-              );
+                order_id: orderId,
+                menu_id: menuId,
+                item_id: parseInt(itemId),
+                quantity: quantity,
+                price_at_time: newPrice,
+                status: "pending",
+              });
               if (response.status !== 200 && response.status !== 201) {
                 throw new Error(`Failed to add item ${itemId}`);
               }

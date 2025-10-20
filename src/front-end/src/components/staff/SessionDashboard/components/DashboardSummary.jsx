@@ -75,7 +75,7 @@ const DashboardSummary = () => {
     try {
       const response = await api.get("/ServiceRequest"); // service-requests/for-all-sessions
 
-      if (response.statusText === 200) {
+      if (response.status === 200) {
         const data = response.data;
         setPreviousCount(serviceRequests);
         setServiceRequests(data.length);
