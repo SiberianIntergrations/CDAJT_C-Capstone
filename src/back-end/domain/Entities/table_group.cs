@@ -18,7 +18,6 @@ namespace back_end.domain.Entities
     public DateTime Created_At { get; set; } = DateTime.Now;
 
     public ICollection<TableEntity> Tables { get; set; } = new List<TableEntity>();
-
-    public ICollection<SessionTableGroup> SessionTableGroups { get; set; } = new List<SessionTableGroup>();
+    public ICollection<DiningSession> DiningSessions { get; set; } = new List<DiningSession>();
   }
 }
