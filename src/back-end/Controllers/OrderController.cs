@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
-using back_end.domain;
+using back_end.domain.enums;
 using back_end.DTO.OrdersDTOs;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;

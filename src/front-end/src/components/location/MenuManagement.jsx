@@ -15,7 +15,7 @@ import {
 import { Edit, Delete, Plus, AlertTriangle, Trash2 } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import MenuForm from "@/components/location/MenuForm";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const MenuManagement = () => {
   const [menus, setMenus] = useState([]);
@@ -43,7 +43,7 @@ const MenuManagement = () => {
 
   const fetchMenus = async () => {
     try {
-      const response = await axiosInstance.get("/menus");
+      const response = await api.get("/Menu");
       setMenus(response.data);
     } catch (err) {
       setError("Failed to fetch menus");
@@ -76,9 +76,7 @@ const MenuManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await axiosInstance.delete(
-        createApiUrl(`/menus/${menuToDelete.menu_id}`)
-      );
+      await api.delete(`/Menu/${menuToDelete.menu_id}`);
       await fetchMenus();
       setDeleteDialogOpen(false);
       setMenuToDelete(null);
@@ -91,10 +89,9 @@ const MenuManagement = () => {
   const handleSubmit = async (formData) => {
     try {
       if (formMode === "create") {
-        await axiosInstance.post(createApiUrl("/menus"), formData);
+        await api.post("/Menu", formData);
       } else {
-        await axiosInstance.put(
-          createApiUrl(`/menus/${selectedMenu.menu_id}`),
+        await api.put(`/Menu/${selectedMenu.menu_id}`,
           formData
         );
       }

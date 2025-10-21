@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using back_end.domain;
+using back_end.domain.enums;
 
 namespace back_end.Controllers
 {

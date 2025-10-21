@@ -1,4 +1,4 @@
-namespace back_end.domain
+namespace back_end.domain.enums
 {
     public enum UserStatus
     {

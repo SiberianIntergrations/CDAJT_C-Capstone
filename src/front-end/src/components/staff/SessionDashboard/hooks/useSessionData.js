@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 export const useSessionData = (updateTrigger = 0) => {
   const [sessions, setSessions] = useState([]);
@@ -14,11 +14,9 @@ export const useSessionData = (updateTrigger = 0) => {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const response = await axiosInstance.get(
-        createApiUrl("/dashboard/sessions")
-      );
+      const response = await api.get("/Dashboard/sessions");
 
-      if (response.statusText !== "OK")
+      if (response.status !== 200)
         throw new Error("Failed to fetch sessions");
       const data = response.data;
       setSessions(data);
@@ -30,10 +28,8 @@ export const useSessionData = (updateTrigger = 0) => {
 
   const fetchDashboardSummary = useCallback(async () => {
     try {
-      const response = await axiosInstance.get(
-        createApiUrl("/dashboard/summary")
-      );
-      if (!response.statusText === "OK")
+      const response = await api.get("/Dashboard/summary");
+      if (response.status !== 200)
         throw new Error("Failed to fetch summary");
       const data = response.data;
       setDashboardSummary(data);

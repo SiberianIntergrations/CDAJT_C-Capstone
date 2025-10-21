@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { X } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const NewSessionDialog = ({ open, onClose }) => {
   const { createSession } = useSession();
@@ -28,8 +28,8 @@ const NewSessionDialog = ({ open, onClose }) => {
 
   const fetchMenus = async () => {
     try {
-      const response = await axiosInstance.get(createApiUrl("/menus"));
-      if (response.statusText !== "OK")
+      const response = await api.get("/Menu");
+      if (response.status !== 200)
         throw new Error("Failed to fetch menus");
       const data = response.data;
       setAvailableMenus(data);

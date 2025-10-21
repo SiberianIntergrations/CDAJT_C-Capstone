@@ -194,21 +194,21 @@ namespace back_end.controllers
             {
                 // Filter out bills with null Closed_At because we need to group by Closed_At date/time
                 var filteredBills = _context.Bills
-                    .Where(b => b.Closed_At != null)
+                    .Where(b => b.Closed_At.HasValue)
                     .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize);
 
                 // Daily turnover query
                 var dailyTurnover = await filteredBills
                     .GroupBy(b => new
                     {
-                        Day = b.Closed_At.Value.Date,
+                        Day = b.Closed_At!.Value.Date,
                         PartySize = b.Senior_Count + b.Adult_Count + b.Child_Count
                     })
                     .Select(g => new TurnoverMetricDTO
                     {
                         Period = g.Key.Day.ToString("yyyy-MM-dd"),
                         AverageDuration = (int)Math.Round(
-                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At.Value))),
+                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At!.Value))),
                         PartySize = g.Key.PartySize
                     })
                     .ToListAsync();
@@ -217,14 +217,14 @@ namespace back_end.controllers
                 var monthlyTurnover = await filteredBills
                     .GroupBy(b => new
                     {
-                        Month = new DateTime(b.Closed_At.Value.Year, b.Closed_At.Value.Month, 1),
+                        Month = new DateTime(b.Closed_At!.Value.Year, b.Closed_At!.Value.Month, 1),
                         PartySize = b.Senior_Count + b.Adult_Count + b.Child_Count
                     })
                     .Select(g => new TurnoverMetricDTO
                     {
                         Period = g.Key.Month.ToString("yyyy-MM"),
                         AverageDuration = (int)Math.Round(
-                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At.Value))),
+                            g.Average(b => EF.Functions.DateDiffMinute(b.Created_At, b.Closed_At!.Value))),
                         PartySize = g.Key.PartySize
                     })
                     .ToListAsync();

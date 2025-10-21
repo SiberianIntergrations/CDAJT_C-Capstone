@@ -11,7 +11,7 @@ import {
   Stack,
 } from "@mui/material";
 import BillSelect from "@/components/customer/OrderDashboard/components/BillSelect";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const CreateOrderPage = () => {
   const [sessionId, setSessionId] = useState(null);
@@ -23,13 +23,9 @@ const CreateOrderPage = () => {
   useEffect(() => {
     const getActiveSession = async () => {
       try {
-        const response = await axiosInstance.get(
-          createApiUrl("/dining-sessions/participants/active-session-id")
-        );
-        if (!response.statusText === "OK") {
-          throw new Error("Failed to fetch active session");
-        }
-        if (!response.ok) {
+        // api from old project: /dining-sessions/participants/active-session-id GET
+        const response = await api.get("/DiningSession/participants/active-session-id");
+        if (response.status !== 200) {
           throw new Error("Failed to fetch active session");
         }
 
@@ -65,14 +61,14 @@ const CreateOrderPage = () => {
       setIsSubmitting(true);
       setError(null);
 
-      const response = await axiosInstance.post(createApiUrl("/orders"), {
+      // TODO: Update endpoint
+      const response = await api.post("/orders", {
         session_id: sessionId,
         bill_id: selectedBillId,
       });
 
-      if (!response.statusText === "OK") {
-        const errorData = response.data;
-        throw new Error(errorData.detail || "Failed to create order");
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || "Failed to create order");
       }
 
       setSelectedBillId("");

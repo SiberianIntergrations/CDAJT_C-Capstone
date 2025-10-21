@@ -7,6 +7,7 @@ using back_end.domain.Entities;
 using back_end.domain;
 using back_end.DTO.TagDTOs;
 using Swashbuckle.AspNetCore.Annotations;
+using back_end.domain.enums;
 
 namespace back_end.controllers
 {

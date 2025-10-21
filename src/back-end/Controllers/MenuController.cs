@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain;
+using back_end.domain.enums;
 using System.Linq.Expressions;
 using back_end.DTO.MenuItems;
 using Microsoft.AspNetCore.Authorization;
@@ -67,48 +68,64 @@ namespace back_end.Controllers
         {
             try
             {
-                var existing = await _context.MenuItems.Where(mi => mi.Name == item_data.Name).FirstOrDefaultAsync();
+                // Validate required fields
+                if (string.IsNullOrWhiteSpace(item_data.Name))
+                    return BadRequest("Name is required.");
+
+                if (item_data.Category_Id <= 0)
+                    return BadRequest("Category_Id is required.");
+
+                var existing = await _context.MenuItems
+                    .Where(mi => mi.Name == item_data.Name)
+                    .FirstOrDefaultAsync();
+
                 if (existing != null)
-                {
                     return Conflict($"Menu Item with Name Exists: {item_data.Name}");
 
-                }
+                // Use fallbacks for nullable strings to satisfy non-nullable entity properties
                 var new_item = new Menu_Item
                 {
-                    Name = item_data.Name,
-                    Description = item_data.Description,
+                    Name        = item_data.Name!,
+                    Description = item_data.Description ?? string.Empty,
                     Category_id = item_data.Category_Id,
-                    image_url = item_data.Item_Image_Url,
-                    Status = MenuItemStatus.Available
+                    image_url   = item_data.Item_Image_Url ?? string.Empty,
+                    Status      = MenuItemStatus.Available,
+                    // Ensure collection is initialized before adding tags (if your entity doesn’t do it)
+                    MenuItemTags = new List<MenuItemTag>()
                 };
-                if (item_data.Tag_Ids.Count > 0)
+
+                // Handle possible null Tag_Ids
+                if (item_data.Tag_Ids != null && item_data.Tag_Ids.Count > 0)
                 {
-                    var tags = await _context.Tags.Where(t => item_data.Tag_Ids.Contains(t.tag_id)).ToListAsync();
+                    var tags = await _context.Tags
+                        .Where(t => item_data.Tag_Ids.Contains(t.tag_id))
+                        .ToListAsync();
+
                     foreach (var tag in tags)
                     {
                         new_item.MenuItemTags.Add(new MenuItemTag { Tag = tag });
                     }
                 }
+
                 _context.Add(new_item);
                 await _context.SaveChangesAsync();
+
                 return Ok(new MenuItemResponseDTO
                 {
-                    Item_Id = new_item.item_id,
-                    Name = new_item.Name,
-                    Description = new_item.Description,
-                    Category_Id = new_item.Category_id,
+                    Item_Id        = new_item.item_id,
+                    Name           = new_item.Name,
+                    Description    = new_item.Description,
+                    Category_Id    = new_item.Category_id,
                     Item_Image_Url = new_item.image_url,
                     Status = new_item.Status,
                     Tags = new_item.MenuItemTags.Select(t => new FullTagResponseDTO
                     {
-                        Tag_Id = t.Tag.tag_id,
-                        Name = t.Tag.tag_name,
-                        Color_Code = t.Tag.tag_color
+                        Tag_Id    = t.Tag.tag_id,
+                        Name      = t.Tag.tag_name,
+                        Color_Code= t.Tag.tag_color
                     }).ToList(),
 
                 });
-
-
             }
             catch (Exception ex)
             {
