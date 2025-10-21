@@ -122,14 +122,14 @@ namespace back_end.Controllers
         var session = await _context.ServiceRequests.FirstOrDefaultAsync(sr => sr.Session_Id == session_id);
         if (session is null)
         {
-          return NotFound("The Service was not found");
+          return Ok(Enumerable.Empty<ServiceRequestResponseDTO>());
         }
         var sessionRequestList = await _context.ServiceRequests
             .Where(sr => sr.Session_Id == session_id && sr.Status == ServiceRequestStatus.Pending)
             .ToListAsync();
         if (sessionRequestList == null || !sessionRequestList.Any())
         {
-          return NotFound("No Pending Requests have been found");
+          return Ok(Enumerable.Empty<ServiceRequestResponseDTO>());
         }
         var response = sessionRequestList.Select(sr => new ServiceRequestResponseDTO
         {
