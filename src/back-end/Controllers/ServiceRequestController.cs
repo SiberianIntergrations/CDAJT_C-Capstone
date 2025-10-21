@@ -34,32 +34,67 @@ namespace back_end.Controllers
     {
       try
       {
-        var session = await _context.DiningSessions.Include(t => t.Tables).FirstOrDefaultAsync(ds => ds.Session_Id == session_id && ds.Ended_At == null);
+        var session = await _context.DiningSessions
+            .Include(ds => ds.Table)
+            .Include(ds => ds.TableGroup)
+                .ThenInclude(tg => tg.Tables)
+            .FirstOrDefaultAsync(ds => ds.Session_Id == session_id && ds.Ended_At == null);
+
         if (session is null)
         {
-          return NotFound("The Session Id was Not found");
+          return NotFound("The Session Id was not found");
         }
+
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var user = await _context.Users.FirstOrDefaultAsync(u => u.User_id == int.Parse(userId));
         if (user is null)
         {
           return BadRequest("Issue in processing your request");
         }
-        var participant = _context.SessionParticipants.FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Id == user.User_id && sp.Left_At == null);
+
+        var participant = await _context.SessionParticipants
+            .FirstOrDefaultAsync(sp => sp.Session_Id == session_id &&
+                                      sp.User_Id == user.User_id &&
+                                      sp.Left_At == null);
         if (participant is null)
         {
-          return BadRequest("Issue in Processing your request for session");
+          return BadRequest("Issue in processing your request for session");
         }
+
+        // Determine the table ID for the service request
+        int? tableId = null;
+        if (session.Table_Id.HasValue)
+        {
+          // Session has a single table assigned
+          tableId = session.Table_Id.Value;
+        }
+        else if (session.TableGroup_Id.HasValue && session.TableGroup.Tables.Any())
+        {
+          // Session has a table group - use the first table in the group
+          // Or you could allow the user to specify which table in the DTO
+          tableId = session.TableGroup.Tables.FirstOrDefault()?.Table_Id;
+        }
+
+        if (!tableId.HasValue)
+        {
+          return BadRequest("Session does not have a table or table group assigned");
+        }
+
         var serviceRequest = new ServiceRequest
         {
           Session_Id = session.Session_Id,
-          Table_Id = session.Tables.FirstOrDefault()?.Table_Id ?? 0,
+          Table_Id = tableId.Value,
           Request_By = user.User_id,
           Notes = request_data.Notes,
           Status = ServiceRequestStatus.Pending
         };
+
         _context.ServiceRequests.Add(serviceRequest);
         await _context.SaveChangesAsync();
+
+        // Reload to get table navigation property
+        await _context.Entry(serviceRequest).Reference(sr => sr.Table).LoadAsync();
+
         return Ok(new ServiceRequestResponseDTO
         {
           Request_Id = serviceRequest.request_id,
@@ -69,68 +104,75 @@ namespace back_end.Controllers
           Status = serviceRequest.Status,
           Notes = serviceRequest.Notes,
           Created_At = serviceRequest.Created_At,
-          Table_Number = serviceRequest.Table.Table_Id,
+          Table_Number = serviceRequest.Table.table_number,
         });
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+        _logger.LogError(ex, "Error creating service request");
         return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
       }
-
     }
 
     [Authorize(Roles = "Admin,Staff")]
     [HttpPost("{request_id}/complete")]
-    public async Task<IActionResult> CompleteServiceRequest(
-        int request_id
-    )
+    public async Task<IActionResult> CompleteServiceRequest(int request_id)
     {
       try
       {
-        var sessionRequest = await _context.ServiceRequests.FirstOrDefaultAsync(sr => sr.request_id == request_id);
+        var sessionRequest = await _context.ServiceRequests
+            .FirstOrDefaultAsync(sr => sr.request_id == request_id);
+
         if (sessionRequest is null)
         {
-          return NotFound("The Service was not found");
+          return NotFound("The service request was not found");
         }
+
         sessionRequest.Status = ServiceRequestStatus.Completed;
+
         var claimedByUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var claimedByUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == int.Parse(claimedByUserId));
+        var claimedByUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.User_id == int.Parse(claimedByUserId));
+
         sessionRequest.ClaimedByUser = claimedByUser;
         sessionRequest.Completed_At = DateTime.UtcNow;
+
         _context.ServiceRequests.Update(sessionRequest);
         await _context.SaveChangesAsync();
+
         return Ok(sessionRequest);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+        _logger.LogError(ex, "Error completing service request");
         return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
       }
-
     }
 
-
     [Authorize(Roles = "Admin,Staff")]
-    [HttpGet("by-session/{session_id}")]
-    public async Task<IActionResult> GetSessionServiceRequest(
-        int session_id
-    )
+    [HttpPost("by-session/{session_id}")]
+    public async Task<IActionResult> GetSessionServiceRequest(int session_id)
     {
       try
       {
-        var session = await _context.ServiceRequests.FirstOrDefaultAsync(sr => sr.Session_Id == session_id);
+        var session = await _context.DiningSessions
+            .FirstOrDefaultAsync(ds => ds.Session_Id == session_id);
+
         if (session is null)
         {
-          return Ok(Enumerable.Empty<ServiceRequestResponseDTO>());
+          return NotFound("The session was not found");
         }
+
         var sessionRequestList = await _context.ServiceRequests
+            .Include(sr => sr.Table)
             .Where(sr => sr.Session_Id == session_id && sr.Status == ServiceRequestStatus.Pending)
             .ToListAsync();
+
         if (sessionRequestList == null || !sessionRequestList.Any())
         {
-          return Ok(Enumerable.Empty<ServiceRequestResponseDTO>());
+          return NotFound("No pending requests have been found");
         }
+
         var response = sessionRequestList.Select(sr => new ServiceRequestResponseDTO
         {
           Request_Id = sr.request_id,
@@ -141,17 +183,18 @@ namespace back_end.Controllers
           Claimed_By = sr.Claimed_By,
           Notes = sr.Notes,
           Created_At = sr.Created_At,
-
+          Table_Number = sr.Table?.table_number ?? 0
         }).ToList();
 
         return Ok(response);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+        _logger.LogError(ex, "Error getting session service requests");
         return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
       }
     }
+
     //GET api/servicerequest
     //Get all current service requests
     [HttpGet]
@@ -159,15 +202,18 @@ namespace back_end.Controllers
     {
       try
       {
-        var request = await _context.ServiceRequests.ToListAsync();
+        var request = await _context.ServiceRequests
+            .Include(sr => sr.Table)
+            .Include(sr => sr.RequestedByUser)
+            .Include(sr => sr.ClaimedByUser)
+            .ToListAsync();
         return Ok(request);
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, "Error getting Service requests");
+        _logger.LogError(ex, "Error getting service requests");
         return StatusCode(500, "Internal Server Error");
       }
     }
-
   }
 }
