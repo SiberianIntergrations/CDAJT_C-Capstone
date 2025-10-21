@@ -15,6 +15,7 @@ const SessionList = () => {
   const fetchSessionRequests = useCallback(async (sessionId) => {
     try {
       // TODO: ServiceRequest endpoint by session ID
+      console.log("sessionID: ", sessionId);
       const response = await api.get(`/ServiceRequest/by-session/${sessionId}`);
       if (response.status !== 200) return 0;
       const data = response.data;
@@ -51,10 +52,11 @@ const SessionList = () => {
   // TODO: Consider debouncing with useRef to avoid excessive calls. Look over dependencies
   const updateSessionOrder = useCallback(async () => {
     const requests = {};
+    console.log("Sessions: ", sessions);
     await Promise.all(
       sessions.map(async (session) => {
-        requests[session.session_id] = await fetchSessionRequests(
-          session.session_id
+        requests[session.session_Id] = await fetchSessionRequests(
+          session.session_Id
         );
       })
     );
@@ -62,19 +64,19 @@ const SessionList = () => {
     setSessionRequests(requests);
 
     const ordered = [...sessions].sort((a, b) => {
-      const requestsA = requests[a.session_id] || 0;
-      const requestsB = requests[b.session_id] || 0;
+      const requestsA = requests[a.session_Id] || 0;
+      const requestsB = requests[b.session_Id] || 0;
       if (requestsB !== requestsA) {
         return requestsB - requestsA;
       }
-      return b.session_id - a.session_id;
+      return b.session_Id - a.session_Id;
     });
 
     setOrderedSessions(ordered);
 
     if (expandedSessionId) {
       const expandedSessionIndex = ordered.findIndex(
-        (s) => s.session_id === expandedSessionId
+        (s) => s.session_Id === expandedSessionId
       );
       if (expandedSessionIndex !== -1) {
         scrollToSession(expandedSessionId);
@@ -117,19 +119,19 @@ const SessionList = () => {
     <>
       {orderedSessions.map((session) => (
         <Box
-          key={session.session_id}
+          key={session.session_Id}
           ref={(el) => {
             if (el) {
-              sessionRefs.current[session.session_id] = el;
+              sessionRefs.current[session.session_Id] = el;
             }
           }}
         >
           <SessionCard
             session={session}
             onRequestUpdate={handleRequestUpdate}
-            expanded={expandedSessionId === session.session_id}
+            expanded={expandedSessionId === session.session_Id}
             onExpand={(isExpanded) =>
-              handleSessionExpand(session.session_id, isExpanded)
+              handleSessionExpand(session.session_Id, isExpanded)
             }
           />
         </Box>

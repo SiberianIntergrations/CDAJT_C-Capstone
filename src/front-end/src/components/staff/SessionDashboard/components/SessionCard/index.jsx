@@ -125,6 +125,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
   const touchStartX = useRef(null);
   const { endSession, actionError, clearActionError } = useSession();
 
+  console.log("SESSION: ", session);
+
   useEffect(() => {
     if (actionError) {
       console.log("Action error in SessionCard:", actionError);
@@ -135,21 +137,21 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
   }, [actionError]);
 
   const fetchRequests = useCallback(async () => {
+    console.log("fetching", session);
     try {
-      // previously used /service-requests/by-session/{sessionId}
-      // TODO: Endpoint to get service requests for a session
-      const response = await api.get(`/service-requests/by-session/${session.session_id}`);
+      const response = await api.get(
+        `/ServiceRequest/by-session/${session.session_Id}`
+      );
 
-      if (response.status !== 200)
-        throw new Error("Failed to fetch requests");
+      if (response.status !== 200) throw new Error("Failed to fetch requests");
       const data = response.data;
       setRequests(data);
       setIsBlinking(data.length > 0);
-      onRequestUpdate(session.session_id, data);
+      onRequestUpdate(session.session_Id, data);
     } catch (error) {
       console.error("Error fetching requests:", error);
     }
-  }, [session.session_id, onRequestUpdate]);
+  }, [session.session_Id, onRequestUpdate]);
 
   useEffect(() => {
     if (showConfirm && expanded) {
@@ -185,7 +187,9 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
     try {
       // previously used /service-requests/{requestId}/complete
       // TODO: Endpoint to mark a service request as complete
-      const response = await api.post(`/service-requests/${requestId}/complete`);
+      const response = await api.post(
+        `/service-requests/${requestId}/complete`
+      );
 
       if (response.status !== 200)
         throw new Error("Failed to complete request");
@@ -216,7 +220,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
     try {
       setIsEnding(true);
       clearActionError(); // Clear any previous errors
-      const success = await endSession(session.session_id);
+      const success = await endSession(session.session_Id);
       if (!success) {
         console.log("Session end failed, current action error:", actionError);
       }
@@ -326,7 +330,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
                 flexGrow: 1,
               }}
             >
-              End Session #{session.session_id}?
+              End Session #{session.session_Id}?
             </Typography>
             <Button
               variant="contained"
@@ -363,8 +367,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
       >
         <AccordionSummary
           expandIcon={<ChevronDown />}
-          aria-controls={`session-${session.session_id}-content`}
-          id={`session-${session.session_id}-header`}
+          aria-controls={`session-${session.session_Id}-content`}
+          id={`session-${session.session_Id}-header`}
         >
           <Box sx={{ width: "100%" }}>
             <Box
@@ -377,7 +381,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Typography variant="h6">
-                  Session #{session.session_id}
+                  Session #{session.session_Id}
                 </Typography>
                 {requests.length > 0 && (
                   <Chip
