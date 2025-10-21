@@ -150,7 +150,7 @@ namespace back_end.Controllers
     }
 
     [Authorize(Roles = "Admin,Staff")]
-    [HttpPost("by-session/{session_id}")]
+    [HttpGet("by-session/{session_id}")]
     public async Task<IActionResult> GetSessionServiceRequest(int session_id)
     {
       try
