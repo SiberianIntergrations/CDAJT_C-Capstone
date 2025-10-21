@@ -20,8 +20,8 @@ namespace back_end.domain.DbContexts
     public DbSet<ServiceRequest> ServiceRequests { get; set; } = null!;
     public DbSet<SessionOrder> SessionOrders { get; set; } = null!;
     public DbSet<SessionParticipant> SessionParticipants { get; set; } = null!;
-    public DbSet<Sessions> SessionTables { get; set; } = null!;
     public DbSet<TableEntity> Tables { get; set; } = null!;
+    public DbSet<TableGroup> TableGroups { get; set; } = null!;
     public DbSet<Tag> Tags { get; set; } = null!;
     public DbSet<User> Users { get; set; } = null!;
 
@@ -42,10 +42,29 @@ namespace back_end.domain.DbContexts
       modelBuilder.Entity<MenuLocations>()
           .HasKey(ml => new { ml.Menu_Id, ml.Location_Id });
 
-      modelBuilder.Entity<Sessions>()
-          .HasKey(s => new { s.Session_Id, s.Table_Id });
+      modelBuilder.Entity<DiningSession>()
+          .HasOne(ds => ds.Table)
+          .WithMany(t => t.DiningSessions)
+          .HasForeignKey(ds => ds.Table_Id)
+          .OnDelete(DeleteBehavior.Restrict);
 
-      // Configure ServiceRequest relationships to avoid ambiguity
+      modelBuilder.Entity<DiningSession>()
+          .HasOne(ds => ds.TableGroup)
+          .WithMany(tg => tg.DiningSessions)
+          .HasForeignKey(ds => ds.TableGroup_Id)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      modelBuilder.Entity<TableEntity>()
+          .HasOne(t => t.TableGroup)
+          .WithMany(tg => tg.Tables)
+          .HasForeignKey(t => t.TableGroup_Id)
+          .OnDelete(DeleteBehavior.SetNull);
+
+      modelBuilder.Entity<DiningSession>()
+          .ToTable(t => t.HasCheckConstraint(
+              "CK_DiningSession_TableAssignment",
+              "(Table_Id IS NOT NULL AND TableGroup_Id IS NULL) OR (Table_Id IS NULL AND TableGroup_Id IS NOT NULL)"));
+
       modelBuilder.Entity<ServiceRequest>()
           .HasOne(sr => sr.RequestedByUser)
           .WithMany(u => u.RequestedServices)
@@ -60,7 +79,5 @@ namespace back_end.domain.DbContexts
 
       base.OnModelCreating(modelBuilder);
     }
-
   }
-
 }
