@@ -50,7 +50,7 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
       // Gather all tables in use across all sessions
       const tablesInUse = new Set();
       activeSessions.forEach((session) => {
-        session.table_numbers.forEach((tableNum) => {
+        session.table_Numbers.forEach((tableNum) => {
           tablesInUse.add(tableNum);
         });
       });
