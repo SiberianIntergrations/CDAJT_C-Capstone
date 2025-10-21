@@ -7,7 +7,6 @@ namespace back_end.Controllers
 {
   [ApiController]
   [Route("api/[controller]")]
-
   public class SessionController : ControllerBase
   {
     private readonly ApplicationDbContext _context;
@@ -17,6 +16,33 @@ namespace back_end.Controllers
     {
       _context = context;
       _logger = logger;
+    }
+
+    // Helper method to get table information from session
+    private List<object> GetTableInfo(DiningSession session)
+    {
+      if (session.Table != null)
+      {
+        return new List<object>
+                {
+                    new
+                    {
+                        tableId = session.Table.Table_Id,
+                        tableNumber = session.Table.table_number,
+                        seatCount = session.Table.seat_count
+                    }
+                };
+      }
+      else if (session.TableGroup != null && session.TableGroup.Tables != null)
+      {
+        return session.TableGroup.Tables.Select(t => new
+        {
+          tableId = t.Table_Id,
+          tableNumber = t.table_number,
+          seatCount = t.seat_count
+        }).Cast<object>().ToList();
+      }
+      return new List<object>();
     }
 
     //GET api/session
@@ -49,8 +75,9 @@ namespace back_end.Controllers
                 .Include(s => s.Menu)
                 .Include(s => s.Participants)
                     .ThenInclude(se => se.User)
-                .Include(s => s.Sessions)
-                    .ThenInclude(ss => ss.Table)
+                .Include(s => s.Table)
+                .Include(s => s.TableGroup)
+                    .ThenInclude(tg => tg.Tables)
                 .Include(s => s.Orders)
                     .ThenInclude(so => so.OrderItems)
                 .FirstOrDefaultAsync();
@@ -81,13 +108,8 @@ namespace back_end.Controllers
             leftAt = s.Left_At
           }).ToList(),
 
-          //Get information about each table assigned to each participant
-          tables = session.Sessions.Select(s => new
-          {
-            tableId = s.Table_Id,
-            tableNumber = s.Table.table_number,
-            seatCount = s.Table.seat_count,
-          }).ToList(),
+          //Get information about each table assigned to the session
+          tables = GetTableInfo(session),
 
           //Get all of the orders in the session and their status/completed/done
           orders = session.Orders.Select(s => new
@@ -102,7 +124,6 @@ namespace back_end.Controllers
         };
 
         return Ok(sessionInfo);
-
       }
       catch (Exception ex)
       {
@@ -120,12 +141,14 @@ namespace back_end.Controllers
       {
         //Get all current active sessions (ended at is null)
         //Include Menu, Participants, and tables
-        var activeSessions = await _context.DiningSessions.Where(s => s.Ended_At == null)
+        var activeSessions = await _context.DiningSessions
+                            .Where(s => s.Ended_At == null)
                             .Include(s => s.Menu)
                             .Include(s => s.Participants)
                                 .ThenInclude(se => se.User)
-                            .Include(s => s.Sessions)
-                                .ThenInclude(ss => ss.Table)
+                            .Include(s => s.Table)
+                            .Include(s => s.TableGroup)
+                                .ThenInclude(tg => tg.Tables)
                             .ToListAsync();
 
         //Keep all key information
@@ -133,15 +156,11 @@ namespace back_end.Controllers
         var sessionInfo = activeSessions.Select(s => new
         {
           sessionId = s.Session_Id,
-          menuNAme = s.Menu.Name,
+          menuName = s.Menu.Name,
           startedAt = s.Started_At,
           participantCount = s.Participants.Count,
-          //Get the table number and ID and add  up total orders for the session
-          tables = s.Sessions.Select(se => new
-          {
-            tableNuber = se.Table.table_number,
-            tableId = se.Table_Id
-          }).ToList(),
+          //Get the table number and ID and add up total orders for the session
+          tables = GetTableInfo(s),
           orderCount = s.Orders.Count
         }).ToList();
 
@@ -166,21 +185,22 @@ namespace back_end.Controllers
         //Check if table exists
         if (sessionTable == null)
         {
-          return NotFound(new { message = $"Can't find session with table number: {table}" });
-
+          return NotFound(new { message = $"Can't find table with ID: {table}" });
         }
 
         //Find an active dining session connected to inputted table
-        //Include Menu, Participants, and User data
-        var sessionInfo = await _context.SessionTables
-                    .Where(s => s.Table_Id == table)
-                    .Include(s => s.DiningSession)
-                        .ThenInclude(se => se.Menu)
-                    .Include(s => s.DiningSession)
-                        .ThenInclude(ss => ss.Participants)
-                            .ThenInclude(ses => ses.User)
-                    .Where(s => s.DiningSession.Ended_At == null)
-                    .Select(s => s.DiningSession)
+        //Either directly assigned or through a table group
+        var sessionInfo = await _context.DiningSessions
+                    .Include(s => s.Menu)
+                    .Include(s => s.Table)
+                    .Include(s => s.TableGroup)
+                        .ThenInclude(tg => tg.Tables)
+                    .Include(s => s.Participants)
+                        .ThenInclude(p => p.User)
+                    .Where(s => s.Ended_At == null)
+                    .Where(s => s.Table_Id == table ||
+                               (s.TableGroup_Id.HasValue &&
+                                s.TableGroup.Tables.Any(t => t.Table_Id == table)))
                     .FirstOrDefaultAsync();
 
         //Check if there's an active Dining Session
@@ -203,18 +223,18 @@ namespace back_end.Controllers
           menuName = sessionInfo.Menu.Name,
           menuId = sessionInfo.Menu_Id,
           startedAt = sessionInfo.Started_At,
-          participants = sessionInfo.Participants.Where(s => s.Left_At == null)
-                                                .Select(s => new
-                                                {
-                                                  userId = s.User_Id,
-                                                  userName = $"{s.User.First_name} {s.User.Last_name}",
-                                                  joinedAt = s.Joined_At
-                                                }).ToList()
+          participants = sessionInfo.Participants
+                                    .Where(s => s.Left_At == null)
+                                    .Select(s => new
+                                    {
+                                      userId = s.User_Id,
+                                      userName = $"{s.User.First_name} {s.User.Last_name}",
+                                      joinedAt = s.Joined_At
+                                    }).ToList()
         };
 
         return Ok(sessionDetails);
       }
-
       catch (Exception ex)
       {
         _logger.LogError(ex, $"Can't get session for table ID: {table}");
@@ -244,8 +264,10 @@ namespace back_end.Controllers
                             .Include(s => s.DiningSession)
                                 .ThenInclude(se => se.Menu)
                             .Include(s => s.DiningSession)
-                                .ThenInclude(se => se.Sessions)
-                                    .ThenInclude(ss => ss.Table)
+                                .ThenInclude(se => se.Table)
+                            .Include(s => s.DiningSession)
+                                .ThenInclude(se => se.TableGroup)
+                                    .ThenInclude(tg => tg.Tables)
                             .Where(s => s.DiningSession.Ended_At == null)
                             .Select(s => s.DiningSession)
                             .FirstOrDefaultAsync();
@@ -263,8 +285,7 @@ namespace back_end.Controllers
         }
 
         //Get Session ID, Menu information, tables assigned 
-        //Then return the infomration for the active session
-        //Should I add their name?
+        //Then return the information for the active session
         var sessionDetails = new
         {
           activeSession = true,
@@ -272,19 +293,14 @@ namespace back_end.Controllers
           menuName = session.Menu.Name,
           menuId = session.Menu_Id,
           startedAt = session.Started_At,
-          tables = session.Sessions.Select(s => new
-          {
-            tableId = s.Table_Id,
-            tableNumber = s.Table.table_number
-          }).ToList()
+          tables = GetTableInfo(session)
         };
 
         return Ok(sessionDetails);
       }
-
       catch (Exception ex)
       {
-        _logger.LogError(ex, $"Cant get session for user ID: {userId}");
+        _logger.LogError(ex, $"Can't get session for user ID: {userId}");
         return StatusCode(500, "Internal Server Error");
       }
     }
