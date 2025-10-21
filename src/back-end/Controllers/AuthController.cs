@@ -26,7 +26,38 @@ namespace back_end.controllers
             _config = config;
         }
 
+       /// <summary>
+        /// Authenticates a user and returns a JWT access token.
+        /// </summary>
+        /// <param name="request">The login credentials containing email and password</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the JWT token and authentication details.
+        /// Returns HTTP 200 (OK) with the access token on successful authentication.
+        /// Returns HTTP 401 (Unauthorized) if the credentials are invalid.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during authentication.
+        /// </returns>
+        /// <response code="200">Returns the JWT access token and token metadata</response>
+        /// <response code="401">If the email or password is invalid</response>
+        /// <response code="500">If an internal error occurs during authentication</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/auth/login
+        ///     {
+        ///         "userEmail": "user@example.com",
+        ///         "userPassword": "SecurePassword123!"
+        ///     }
+        ///
+        /// Returns a JWT bearer token that expires in 2 hours.
+        /// The token should be included in subsequent requests in the Authorization header:
+        /// Authorization: Bearer {access_token}
+        /// 
+        /// Updates the user's last interaction timestamp upon successful login.
+        /// </remarks>
         [HttpPost("login")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Login([FromBody] LoginDTO request)
         {
             string UserEmail = request.UserEmail ?? string.Empty;
@@ -57,7 +88,46 @@ namespace back_end.controllers
 
         }
     
+        /// <summary>
+        /// Registers a new user account in the system.
+        /// </summary>
+        /// <param name="request">The registration data containing email, password, first name, and last name</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the registration.
+        /// Returns HTTP 200 (OK) with a success message when the user is created.
+        /// Returns HTTP 400 (Bad Request) if validation fails or required fields are missing.
+        /// Returns HTTP 409 (Conflict) if the email is already in use.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during registration.
+        /// </returns>
+        /// <response code="200">Returns a success message when the user is created</response>
+        /// <response code="400">If validation fails or required fields are missing</response>
+        /// <response code="409">If the email is already registered</response>
+        /// <response code="500">If an internal error occurs during registration</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/auth/register
+        ///     {
+        ///         "userEmail": "newuser@example.com",
+        ///         "userPassword": "SecurePassword123!",
+        ///         "firstName": "John",
+        ///         "lastName": "Doe"
+        ///     }
+        ///
+        /// Requirements:
+        /// - All fields are required
+        /// - Email must be unique
+        /// - Password must be at least 6 characters long
+        /// 
+        /// Password is automatically hashed using BCrypt before storage.
+        /// Email addresses are converted to lowercase and trimmed.
+        /// New accounts are created with email confirmation pending.
+        /// </remarks>
         [HttpPost("register")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateUser([FromBody] RegisterDTO request)
         {
             int passwordMinLength = 6;
@@ -104,7 +174,24 @@ namespace back_end.controllers
             return Ok(new { message = "User created successfully" });
         }
 
-    private string GenerateJwtToken(domain.Entities.User user)
+        /// <summary>
+        /// Generates a JWT access token for an authenticated user.
+        /// </summary>
+        /// <param name="user">The authenticated user for whom to generate the token</param>
+        /// <returns>A JWT token string containing user claims and authentication information</returns>
+        /// <remarks>
+        /// The generated token includes the following claims:
+        /// - NameIdentifier: User's unique ID
+        /// - Name: User's email
+        /// - Email: User's email address
+        /// - Role: User's role (Customer, Staff, or Admin)
+        /// - Sub: Subject identifier (email)
+        /// - Jti: Unique token identifier
+        /// 
+        /// Token expiration is configurable via Jwt:ExpiresInMinutes setting (default: 60 minutes).
+        /// The token is signed using HMAC-SHA256 algorithm.
+        /// </remarks>
+        private string GenerateJwtToken(domain.Entities.User user)
         {
 
             var keyStr = _config["Jwt:Key"];

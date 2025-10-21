@@ -26,7 +26,47 @@ namespace back_end.controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Creates a new bill for a dining session.
+        /// </summary>
+        /// <param name="_session_id">The unique identifier of the dining session</param>
+        /// <param name="bill_data">The bill creation data including guest counts and bill name</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the created <see cref="BillResponse"/> object.
+        /// Returns HTTP 200 (OK) with the created bill details on success.
+        /// Returns HTTP 400 (Bad Request) if validation fails.
+        /// Returns HTTP 404 (Not Found) if the session doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+        /// </returns>
+        /// <response code="200">Returns the newly created bill</response>
+        /// <response code="400">If the session has ended, has no tables, or guest counts are invalid</response>
+        /// <response code="404">If the session is not found</response>
+        /// <response code="500">If an internal error occurs while creating the bill</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/bill/create_Bill/123
+        ///     {
+        ///         "bill_Name": "Table 5 Bill",
+        ///         "adult_Count": 2,
+        ///         "senior_Count": 1,
+        ///         "child_Count": 0,
+        ///         "tot_Count": 3
+        ///     }
+        ///
+        /// Creates a new bill for the specified session.
+        /// Requirements:
+        /// - Session must be active (not ended)
+        /// - Session must have at least one table assigned
+        /// - At least one guest (adult, senior, or child) must be specified
+        /// 
+        /// The bill is automatically created with 'Open' status.
+        /// </remarks>
         [HttpPost("create_Bill/{_session_id}")]
+        [ProducesResponseType(typeof(BillResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
 
         public async Task<IActionResult> Create_Bill(int _session_id, CreateBill bill_data)
         {
@@ -86,7 +126,38 @@ namespace back_end.controllers
 
         }
 
+        /// <summary>
+        /// Retrieves all bills for a specific dining session, optionally filtered by table.
+        /// </summary>
+        /// <param name="_session_id">The unique identifier of the dining session</param>
+        /// <param name="_table_id">Optional table ID to filter bills by a specific table</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a collection of <see cref="BillResponse"/> objects.
+        /// Returns HTTP 200 (OK) with the list of bills on success.
+        /// Returns HTTP 400 (Bad Request) if the specified table is not associated with the session.
+        /// Returns HTTP 404 (Not Found) if the session doesn't exist or no bills are found.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of bills for the session</response>
+        /// <response code="400">If the specified table is not associated with the session</response>
+        /// <response code="404">If the session is not found or no bills exist</response>
+        /// <response code="500">If an internal error occurs while retrieving bills</response>
+        /// <remarks>
+        /// Sample requests:
+        ///
+        ///     GET /api/bill/get_bills/123
+        ///     (Returns all bills for session 123)
+        ///     
+        ///     GET /api/bill/get_bills/123?_table_id=456
+        ///     (Returns bills for session 123, filtered by table 456)
+        ///
+        /// Bills are ordered by creation date (newest first).
+        /// </remarks>
         [HttpGet("get_bills/{_session_id}")]
+        [ProducesResponseType(typeof(List<BillResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get_Bills(int _session_id, int? _table_id = null)
         {
             try
@@ -134,7 +205,31 @@ namespace back_end.controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves detailed information about a specific bill.
+        /// </summary>
+        /// <param name="_session_id">The unique identifier of the dining session</param>
+        /// <param name="_bill_id">The unique identifier of the bill</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the <see cref="BillResponse"/> object.
+        /// Returns HTTP 200 (OK) with the bill details on success.
+        /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the bill details</response>
+        /// <response code="404">If the bill or session is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving the bill</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/bill/get_bill/123?_session_id=456
+        ///
+        /// Returns complete bill information including guest counts, status, and timestamps.
+        /// </remarks>
         [HttpGet("get_bill/{_bill_id}")]
+        [ProducesResponseType(typeof(BillResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get_Bill(int _session_id, int _bill_id)
         {
             try
@@ -166,7 +261,38 @@ namespace back_end.controllers
             }
         }
 
+        /// <summary>
+        /// Closes an open bill after verifying all orders are completed.
+        /// </summary>
+        /// <param name="_session_id">The unique identifier of the dining session</param>
+        /// <param name="_bill_id">The unique identifier of the bill to close</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the closed <see cref="BillResponse"/> object.
+        /// Returns HTTP 200 (OK) with the closed bill details on success.
+        /// Returns HTTP 400 (Bad Request) if the bill is already closed or has pending orders.
+        /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during closure.
+        /// </returns>
+        /// <response code="200">Returns the closed bill details</response>
+        /// <response code="400">If the bill is already closed or has pending orders</response>
+        /// <response code="404">If the bill or session is not found</response>
+        /// <response code="500">If an internal error occurs while closing the bill</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     PUT /api/bill/close_bill/123?_session_id=456
+        ///
+        /// Closes the specified bill and sets the closed_at timestamp.
+        /// Requirements:
+        /// - Bill must not already be closed
+        /// - All orders associated with the bill must be completed (no pending orders)
+        /// </remarks>
         [HttpPut("close_bill/{_bill_id}")]
+        [ProducesResponseType(typeof(BillResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
         public async Task<IActionResult> Close_Bill(int _session_id, int _bill_id)
         {
             try
@@ -216,7 +342,36 @@ namespace back_end.controllers
         }
 
 
-         [HttpPost("cancel_bill/{_bill_id}")]
+        /// <summary>
+        /// Cancels an open bill and all associated pending orders.
+        /// </summary>
+        /// <param name="_session_id">The unique identifier of the dining session</param>
+        /// <param name="_bill_id">The unique identifier of the bill to cancel</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the cancelled <see cref="BillResponse"/> object.
+        /// Returns HTTP 200 (OK) with the cancelled bill details on success.
+        /// Returns HTTP 400 (Bad Request) if the bill is not in Open status.
+        /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during cancellation.
+        /// </returns>
+        /// <response code="200">Returns the cancelled bill details</response>
+        /// <response code="400">If the bill cannot be cancelled (not in Open status)</response>
+        /// <response code="404">If the bill or session is not found</response>
+        /// <response code="500">If an internal error occurs while cancelling the bill</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/bill/cancel_bill/123?_session_id=456
+        ///
+        /// Cancels the specified bill and automatically cancels all pending orders associated with it.
+        /// Only bills with 'Open' status can be cancelled.
+        /// The bill's closed_at timestamp is set to the current UTC time.
+        /// </remarks>
+        [HttpPost("cancel_bill/{_bill_id}")]
+        [ProducesResponseType(typeof(BillResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Cancel_Bill(int _session_id, int _bill_id)
         {
             try
@@ -267,7 +422,33 @@ namespace back_end.controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves all bills associated with the current user's active dining session.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="ActionResult"/> containing a collection of <see cref="BillResponse"/> objects.
+        /// Returns HTTP 200 (OK) with the list of bills on success.
+        /// Returns HTTP 404 (Not Found) if no bills exist for the user's active session.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of bills for the user's active session</response>
+        /// <response code="404">If no bills are found for the user's active session</response>
+        /// <response code="500">If an internal error occurs while retrieving bills</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/bill/active/bills
+        ///
+        /// This endpoint requires authentication.
+        /// Returns all bills associated with the authenticated user's current active session.
+        /// Only returns bills where:
+        /// - The user is an active participant (hasn't left the session)
+        /// - The dining session is still active (hasn't ended)
+        /// </remarks>
         [HttpGet("active/bills")]
+        [ProducesResponseType(typeof(List<BillResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<List<BillResponse>>> GetActiveBills()
         {
             try
