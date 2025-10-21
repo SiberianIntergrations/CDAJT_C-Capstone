@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace back_end.Controllers
 {
@@ -19,9 +20,19 @@ namespace back_end.Controllers
             _logger = logger;
         }
 
-        //GET api/session
-        //Get all sessions
+        // GET: api/session
+        /// <summary>Retrieves all dining sessions.</summary>
+        /// <response code="200">A list of all sessions was returned.</response>
+        /// <response code="500">An error occurred while retrieving sessions.</response>
         [HttpGet]
+        [Produces("application/json")]
+        [SwaggerOperation(
+            OperationId = "GetAllSessions",
+            Summary = "List all sessions",
+            Description = "Returns every dining session (active and ended)."
+        )]
+        [ProducesResponseType(typeof(IEnumerable<DiningSession>), StatusCodes.Status200OK)]
+
         public async Task<ActionResult<IEnumerable<DiningSession>>> GetAllSessions()
         {
             try
@@ -32,13 +43,25 @@ namespace back_end.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Cannot get Dining Sessions");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500, "Error retrieving sessions");
             }
         }
 
-        //GET: api/session/
-        //Get a dining session's users, menu, orders and table assignments
-        [HttpGet("{id}")]
+ 
+        // GET: api/session/{id}
+        /// <summary>Gets a dining session with users, menu, orders, and table assignments.</summary>
+        /// <param name="id">Session identifier.</param>
+        /// <response code="200">Session details returned.</response>
+        /// <response code="404">Session not found.</response>
+        /// <response code="500">An error occurred while retrieving the session.</response>
+        [HttpGet("{id:int}")]
+        [Produces("application/json")]
+        [SwaggerOperation(
+            OperationId = "GetSessionById",
+            Summary = "Get session details by ID",
+            Description = "Returns users, menu, orders, and table assignments for a session."
+        )]
+
         public async Task<ActionResult<object>> GetSessionById(int id)
         {
             try
@@ -111,9 +134,18 @@ namespace back_end.Controllers
             }
         }
 
-        //GET: api/session/active
-        //Get all active dining sessions
+        // GET: api/session/active
+        /// <summary>Gets all active dining sessions.</summary>
+        /// <response code="200">Active session summaries returned.</response>
+        /// <response code="500">An error occurred while retrieving active sessions.</response>
         [HttpGet("active")]
+        [Produces("application/json")]
+        [SwaggerOperation(
+            OperationId = "GetActiveSessions",
+            Summary = "List active sessions",
+            Description = "Returns summaries for sessions where Ended_At is null."
+        )]
+
         public async Task<ActionResult<IEnumerable<object>>> GetActiveSessions()
         {
             try
@@ -150,13 +182,24 @@ namespace back_end.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Can't get current active Dining Sessions");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500, "Error retrieving active sessions");
             }
         }
 
-        //GET: api/session/table
-        //Get the session for a specific active table
-        [HttpGet("table/{table}")]
+        // GET: api/session/table/{table}
+        /// <summary>Gets the active session (if any) for a specific table.</summary>
+        /// <param name="table">Table ID.</param>
+        /// <response code="200">Active/empty result returned for the table.</response>
+        /// <response code="404">Table not found.</response>
+        /// <response code="500">An error occurred while retrieving the session by table.</response>
+        [HttpGet("table/{table:int}")]
+        [Produces("application/json")]
+        [SwaggerOperation(
+            OperationId = "GetSessionByTable",
+            Summary = "Get active session by table",
+            Description = "Finds the active session assigned to a given table, if one exists."
+        )]
+
         public async Task<ActionResult<object>> GetSessionByTable(int table)
         {
             try
@@ -218,13 +261,23 @@ namespace back_end.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Can't get session for table ID: {table}");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500, "Error retrieving session by table");
             }
         }
 
-        //GET: api/session/user/id/current
-        //Get the active session for a user
-        [HttpGet("user/{userId}/current")]
+        // GET: api/session/user/{userId}/current
+        /// <summary>Gets the current active session for a specific user.</summary>
+        /// <param name="userId">User identifier.</param>
+        /// <response code="200">Active/empty result returned for the user.</response>
+        /// <response code="404">User not found.</response>
+        /// <response code="500">An error occurred while retrieving the user's current session.</response>
+        [HttpGet("user/{userId:int}/current")]
+        [Produces("application/json")]
+        [SwaggerOperation(
+            OperationId = "GetCurrentSessionByUser",
+            Summary = "Get active session by user",
+            Description = "Finds the active session the user is currently participating in."
+        )]
         public async Task<ActionResult<object>> GetCurrentSessionByUser(int userId)
         {
             try
@@ -285,7 +338,7 @@ namespace back_end.Controllers
             catch(Exception ex)
             {
                 _logger.LogError(ex, $"Cant get session for user ID: {userId}");
-                return StatusCode(500, "Internal Server Error");
+                return StatusCode(500, "Error retrieving user's current session");
             }
         }
     }

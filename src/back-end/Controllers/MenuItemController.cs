@@ -30,9 +30,40 @@ namespace back_end.Controllers
             _logger = logger;
             _env = env;
         }
-
+        /// <summary>
+        /// Creates a new menu item with optional tags.
+        /// </summary>
+        /// <param name="item_data">The menu item data including name, description, category, image URL, and tag IDs</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the created <see cref="MenuItemResponseDTO"/> object.
+        /// Returns HTTP 200 (OK) with the created menu item on success.
+        /// Returns HTTP 409 (Conflict) if a menu item with the same name already exists.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+        /// </returns>
+        /// <response code="200">Returns the newly created menu item</response>
+        /// <response code="409">If a menu item with the same name already exists</response>
+        /// <response code="500">If an internal error occurs while creating the menu item</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/menuitem
+        ///     {
+        ///         "name": "Grilled Salmon",
+        ///         "description": "Fresh Atlantic salmon with lemon butter sauce",
+        ///         "category_Id": 2,
+        ///         "item_Image_Url": "https://example.com/images/salmon.jpg",
+        ///         "tag_Ids": [1, 3, 5]
+        ///     }
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// The menu item is automatically created with 'Available' status.
+        /// Tags are optional and will be associated with the item if provided.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
         [HttpPost]
+        [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Create_Menu_Item(
             MenuItemCreateDTO item_data
         )
@@ -83,12 +114,39 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving active session");
-                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+                
+
+                _logger.LogError(ex, "Error creating menu item {MenuItemName}", item_data.Name);
+                return StatusCode(500, new { message = "An error occurred while creating the menu item", error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Retrieves a specific menu item by its ID.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the <see cref="Menu_Item"/> object.
+        /// Returns HTTP 200 (OK) with the menu item details on success.
+        /// Returns HTTP 404 (Not Found) if the menu item doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the menu item with associated tags</response>
+        /// <response code="404">If the menu item is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving the menu item</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menuitem/123
+        ///
+        /// This endpoint requires authentication.
+        /// Returns the menu item with all associated tags.
+        /// </remarks>
         [Authorize]
-        [HttpGet("/item_id")]
+        [HttpGet("{item_id}")]
+        [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get_Menu_Item(
             int item_id
         )
@@ -98,7 +156,7 @@ namespace back_end.Controllers
                 var item = _context.MenuItems.Include(mi => mi.MenuItemTags).FirstOrDefaultAsync(mi => mi.item_id == item_id);
                 if (item == null)
                 {
-                    return NotFound(" There was not menu Item with the information provided");
+                    return NotFound(new { message = "Menu item was not found" });
                 }
                 return Ok(item);
             }
@@ -108,8 +166,31 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
+        
+
+
+        /// <summary>
+        /// Retrieves all menu items from the database.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a collection of <see cref="Menu_Item"/> objects.
+        /// Returns HTTP 200 (OK) with the list of all menu items on success.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of all menu items with associated tags</response>
+        /// <response code="500">If an internal error occurs while retrieving menu items</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menuitem
+        ///
+        /// This endpoint requires authentication.
+        /// Returns all menu items in the system with their associated tags.
+        /// </remarks>
         [Authorize]
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<Menu_Item>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> List_Menu_Items(
 
         )
@@ -128,8 +209,42 @@ namespace back_end.Controllers
             }
         }
 
+       /// <summary>
+        /// Updates an existing menu item.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item to update</param>
+        /// <param name="menuItemUpdate">The updated menu item data</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the updated <see cref="MenuItemResponseDTO"/> object.
+        /// Returns HTTP 200 (OK) with the updated menu item on success.
+        /// Returns HTTP 404 (Not Found) if the menu item doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the update.
+        /// </returns>
+        /// <response code="200">Returns the updated menu item</response>
+        /// <response code="404">If the menu item is not found</response>
+        /// <response code="500">If an internal error occurs while updating the menu item</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     PUT /api/menuitem/123
+        ///     {
+        ///         "name": "Updated Grilled Salmon",
+        ///         "description": "Premium Atlantic salmon with garlic butter",
+        ///         "category_Id": 2,
+        ///         "item_Image_Url": "https://example.com/images/salmon-new.jpg",
+        ///         "status": "Available",
+        ///         "tag_Ids": [1, 3, 5, 7]
+        ///     }
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// All fields in the request body are optional - only provided fields will be updated.
+        /// Tag IDs will be added to existing tags (not replaced).
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpPut("/{item_id}")]
+        [HttpPut("{item_id}")]
+        [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Update_Menu_Item(
             int item_id,
             MenuItemUpdateDTO menuItemUpdate
@@ -201,10 +316,49 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
+
+
+   /// <summary>
+        /// Uploads an image for a specific menu item.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item</param>
+        /// <param name="file">The image file to upload (JPEG, PNG, or WebP format)</param>
+        /// <param name="ct">Cancellation token for async operation</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the item ID and public image URL.
+        /// Returns HTTP 200 (OK) with the image URL on success.
+        /// Returns HTTP 400 (Bad Request) if no file is uploaded or the file type is unsupported.
+        /// Returns HTTP 404 (Not Found) if the menu item doesn't exist.
+        /// Returns HTTP 413 (Payload Too Large) if the file exceeds 5 MB.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during upload.
+        /// </returns>
+        /// <response code="200">Returns the item ID and public image URL</response>
+        /// <response code="400">If no file is uploaded or the file type is unsupported</response>
+        /// <response code="404">If the menu item is not found</response>
+        /// <response code="413">If the file size exceeds 5 MB</response>
+        /// <response code="500">If an internal error occurs while uploading the image</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/menuitem/123/image
+        ///     Content-Type: multipart/form-data
+        ///     
+        ///     file: [image file]
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// Maximum file size: 5 MB
+        /// Supported formats: JPEG, PNG, WebP
+        /// The image will be saved to the front-end public directory and the URL will be stored in the database.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpPost("{item_id:int}/image")]                    // route param matches method param
-        [RequestSizeLimit(5 * 1024 * 1024)]                  // 5 MB (1024, not 1025)
+        [HttpPost("{item_id:int}/image")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Upload_Item_Image(
             int item_id,
             IFormFile file,
@@ -271,8 +425,36 @@ namespace back_end.Controllers
         }
 
 
+         /// <summary>
+        /// Deletes a menu item and its associated image file.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item to delete</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the operation.
+        /// Returns HTTP 200 (OK) with a success message when the item is deleted.
+        /// Returns HTTP 400 (Bad Request) if the item has active menu assignments.
+        /// Returns HTTP 404 (Not Found) if the menu item doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during deletion.
+        /// </returns>
+        /// <response code="200">Returns a success message when the item and image are deleted</response>
+        /// <response code="400">If the item has active menu assignments and cannot be deleted</response>
+        /// <response code="404">If the menu item is not found</response>
+        /// <response code="500">If an internal error occurs while deleting the menu item</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     DELETE /api/menuitem/123
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// The menu item can only be deleted if it has no active menu assignments.
+        /// Both the database record and the associated image file will be deleted.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
         [HttpDelete("{item_id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Delete_Menu_item(
             int item_id
         )
@@ -314,8 +496,39 @@ namespace back_end.Controllers
             }
 
         }
+
+
+
+        /// <summary>
+        /// Updates the status of a menu item.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item</param>
+        /// <param name="menu_status">The new status to assign to the menu item</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the updated <see cref="Menu_Item"/> object.
+        /// Returns HTTP 200 (OK) with the updated menu item on success.
+        /// Returns HTTP 404 (Not Found) if the menu item doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the update.
+        /// </returns>
+        /// <response code="200">Returns the updated menu item</response>
+        /// <response code="404">If the menu item is not found</response>
+        /// <response code="500">If an internal error occurs while updating the menu item status</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     PUT /api/menuitem/123
+        ///     {
+        ///         "menu_status": "Unavailable"
+        ///     }
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// Valid status values: Available, Unavailable, Discontinued
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpPut("{item_id}")]
+        [HttpPut("{item_id}/status")]
+        [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Update_Item_Status(
             int item_id,
             MenuItemStatus menu_status
@@ -342,8 +555,32 @@ namespace back_end.Controllers
 
 
 
+        /// <summary>
+        /// Retrieves all tags associated with a specific menu item.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a collection of <see cref="TagResponseDTO"/> objects.
+        /// Returns HTTP 200 (OK) with the list of tags sorted alphabetically on success.
+        /// Returns HTTP 404 (Not Found) if the menu item doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of tags associated with the menu item</response>
+        /// <response code="404">If the menu item is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving tags</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menuitem/123/tags
+        ///
+        /// This endpoint requires authentication.
+        /// Returns all tags for the specified menu item, sorted alphabetically by tag name.
+        /// </remarks>
         [Authorize]
         [HttpGet("{item_id}/tags")]
+        [ProducesResponseType(typeof(IEnumerable<TagResponseDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Get_Item_Tags(
             int item_id,
             MenuItemStatus menu_status
@@ -405,8 +642,32 @@ namespace back_end.Controllers
             }
         }           
         
-        [Authorize(Roles = "Admin,Staff")]
-        [HttpPost("{item_id}/tags/{tag_id}")]
+        /// <summary>
+        /// Retrieves all tags with their color codes associated with a specific menu item.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a collection of <see cref="FullTagResponseDTO"/> objects.
+        /// Returns HTTP 200 (OK) with the list of tags including color codes sorted alphabetically on success.
+        /// Returns HTTP 404 (Not Found) if the menu item doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of tags with color codes associated with the menu item</response>
+        /// <response code="404">If the menu item is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving tags</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menuitem/123/tags-with-colors
+        ///
+        /// This endpoint requires authentication.
+        /// Returns all tags for the specified menu item with their color codes, sorted alphabetically by tag name.
+        /// </remarks>
+        [Authorize]
+        [HttpGet("{item_id}/tags-with-colors")]
+        [ProducesResponseType(typeof(IEnumerable<FullTagResponseDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Add_Tag_To_Menu (
             int item_id,
             int tag_id
@@ -445,8 +706,36 @@ namespace back_end.Controllers
             }
         }          
        
+        /// <summary>
+        /// Removes a tag from a menu item.
+        /// </summary>
+        /// <param name="item_id">The unique identifier of the menu item</param>
+        /// <param name="tag_id">The unique identifier of the tag to remove</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the updated <see cref="Menu_Item"/> object.
+        /// Returns HTTP 200 (OK) with the updated menu item on success.
+        /// Returns HTTP 404 (Not Found) if the menu item or tag doesn't exist.
+        /// Returns HTTP 409 (Conflict) if the tag is not associated with the menu item.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during removal.
+        /// </returns>
+        /// <response code="200">Returns the updated menu item after tag removal</response>
+        /// <response code="404">If the menu item or tag is not found</response>
+        /// <response code="409">If the tag is not associated with the menu item</response>
+        /// <response code="500">If an internal error occurs while removing the tag</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     DELETE /api/menuitem/123/tags/456
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// Removes the association between the specified tag and menu item.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
         [HttpDelete("{item_id}/tags/{tag_id}")]
+        [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Remove_Tag_To_Menu (
             int item_id,
             int tag_id
