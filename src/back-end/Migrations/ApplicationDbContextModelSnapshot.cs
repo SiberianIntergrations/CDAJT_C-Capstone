@@ -133,11 +133,24 @@ namespace back_end.Migrations
                     b.Property<DateTime>("Started_At")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int?>("TableGroup_Id")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Table_Id")
+                        .HasColumnType("int");
+
                     b.HasKey("Session_Id");
 
                     b.HasIndex("Menu_Id");
 
-                    b.ToTable("dining_sessions");
+                    b.HasIndex("TableGroup_Id");
+
+                    b.HasIndex("Table_Id");
+
+                    b.ToTable("dining_sessions", t =>
+                        {
+                            t.HasCheckConstraint("CK_DiningSession_TableAssignment", "(Table_Id IS NOT NULL AND TableGroup_Id IS NULL) OR (Table_Id IS NULL AND TableGroup_Id IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Locations", b =>
@@ -488,21 +501,6 @@ namespace back_end.Migrations
                     b.ToTable("session_participant");
                 });
 
-            modelBuilder.Entity("back_end.domain.Entities.Sessions", b =>
-                {
-                    b.Property<int>("Session_Id")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Table_Id")
-                        .HasColumnType("int");
-
-                    b.HasKey("Session_Id", "Table_Id");
-
-                    b.HasIndex("Table_Id");
-
-                    b.ToTable("sessions");
-                });
-
             modelBuilder.Entity("back_end.domain.Entities.TableEntity", b =>
                 {
                     b.Property<int>("Table_Id")
@@ -511,13 +509,13 @@ namespace back_end.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Table_Id"));
 
-                    b.Property<int?>("DiningSessionSession_Id")
-                        .HasColumnType("int");
-
                     b.Property<string>("QR_Code")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
+
+                    b.Property<int?>("TableGroup_Id")
+                        .HasColumnType("int");
 
                     b.Property<bool>("is_active")
                         .HasColumnType("tinyint(1)");
@@ -530,9 +528,33 @@ namespace back_end.Migrations
 
                     b.HasKey("Table_Id");
 
-                    b.HasIndex("DiningSessionSession_Id");
+                    b.HasIndex("TableGroup_Id");
 
                     b.ToTable("table_entity");
+                });
+
+            modelBuilder.Entity("back_end.domain.Entities.TableGroup", b =>
+                {
+                    b.Property<int>("TableGroup_Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TableGroup_Id"));
+
+                    b.Property<DateTime>("Created_At")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Group_Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<bool>("Is_Active")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("TableGroup_Id");
+
+                    b.ToTable("table_groups");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Tag", b =>
@@ -630,7 +652,21 @@ namespace back_end.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("back_end.domain.Entities.TableGroup", "TableGroup")
+                        .WithMany("DiningSessions")
+                        .HasForeignKey("TableGroup_Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("back_end.domain.Entities.TableEntity", "Table")
+                        .WithMany("DiningSessions")
+                        .HasForeignKey("Table_Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Menu");
+
+                    b.Navigation("Table");
+
+                    b.Navigation("TableGroup");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.MenuItemAssignment", b =>
@@ -808,30 +844,14 @@ namespace back_end.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("back_end.domain.Entities.Sessions", b =>
-                {
-                    b.HasOne("back_end.domain.Entities.DiningSession", "DiningSession")
-                        .WithMany("Sessions")
-                        .HasForeignKey("Session_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("back_end.domain.Entities.TableEntity", "Table")
-                        .WithMany("Sessions")
-                        .HasForeignKey("Table_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DiningSession");
-
-                    b.Navigation("Table");
-                });
-
             modelBuilder.Entity("back_end.domain.Entities.TableEntity", b =>
                 {
-                    b.HasOne("back_end.domain.Entities.DiningSession", null)
+                    b.HasOne("back_end.domain.Entities.TableGroup", "TableGroup")
                         .WithMany("Tables")
-                        .HasForeignKey("DiningSessionSession_Id");
+                        .HasForeignKey("TableGroup_Id")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("TableGroup");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Billing", b =>
@@ -853,10 +873,6 @@ namespace back_end.Migrations
                     b.Navigation("Participants");
 
                     b.Navigation("ServiceRequests");
-
-                    b.Navigation("Sessions");
-
-                    b.Navigation("Tables");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Locations", b =>
@@ -891,9 +907,16 @@ namespace back_end.Migrations
 
             modelBuilder.Entity("back_end.domain.Entities.TableEntity", b =>
                 {
-                    b.Navigation("ServiceRequests");
+                    b.Navigation("DiningSessions");
 
-                    b.Navigation("Sessions");
+                    b.Navigation("ServiceRequests");
+                });
+
+            modelBuilder.Entity("back_end.domain.Entities.TableGroup", b =>
+                {
+                    b.Navigation("DiningSessions");
+
+                    b.Navigation("Tables");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Tag", b =>
