@@ -53,10 +53,10 @@ const SessionsPage = () => {
       try {
         const role = getUserRole(token);
         console.log("TOKEN: ", role);
-        // if (role !== "admin" || role !== "staff") {
-        //   router.push("/unauthorized");
-        //   return false;
-        // }
+        if (role !== "admin" && role !== "staff") {
+          router.push("/unauthorized");
+          return false;
+        }
         return true;
       } catch (error) {
         console.error("Error verifying token:", error);
