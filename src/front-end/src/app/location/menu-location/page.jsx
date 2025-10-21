@@ -31,10 +31,6 @@ const LocationPage = () => {
 
   return (
     <>
-      <Head>
-        <title>Location Management | Sushi Toshi</title>
-        <meta name="description" content="Manage restaurant locations" />
-      </Head>
       <Box sx={{ flexGrow: 1, p: 0 }}>
         <LocationManagement msalInstance={msalInstance} />
         <MenuManagement />

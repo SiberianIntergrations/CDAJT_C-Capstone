@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import NewBillDialog from "./staff/SessionDashboard/components/dialogs/NewBillDialog";
 import { SessionProvider } from "./staff/SessionDashboard/context/SessionContext";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const SessionContextWrapper = ({ children }) => {
   const [localSessionId, setLocalSessionId] = useState(null);
@@ -14,8 +14,8 @@ const SessionContextWrapper = ({ children }) => {
       billData
     );
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/sessions/${sessionId}/bills`),
+      const response = await api.post(
+        `/sessions/${sessionId}/bills`,
         {
           bill_name: billData.billName,
           adult_count: billData.adultCount,
@@ -64,8 +64,8 @@ const BillDialog = ({ onBillCreated }) => {
   useEffect(() => {
     const fetchActiveSession = async () => {
       try {
-        const response = await axiosInstance.get(
-          createApiUrl("/dining-sessions/participants/active-session-id")
+        const response = await api.get(
+          "/dining-sessions/participants/active-session-id"
         );
 
         if (response.data && response.data.session_id) {

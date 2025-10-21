@@ -1,5 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using back_end.domain.enums;
+
 namespace back_end.domain.Entities
 {
     [Table("menu_item_assignment")]
@@ -21,6 +23,7 @@ namespace back_end.domain.Entities
         public int Total_Units_Ordered { get; set; }
 
         public DateTime LastOrdered { get; set; }
+        public DateTime LastViewedAt { get; set; }
 
         public int Total_Views { get; set; }
 
@@ -36,7 +39,7 @@ namespace back_end.domain.Entities
 
         public int Senior_limit { get; set; }
 
-        public int Total_Limit { get; set; }
+        public int Tot_Limit { get; set; }
 
         public Menu Menu { get; set; } = null!;
 

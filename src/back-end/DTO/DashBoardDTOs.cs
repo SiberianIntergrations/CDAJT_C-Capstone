@@ -1,4 +1,5 @@
 using back_end.domain;
+using back_end.domain.enums;
 
 namespace back_end.DTO.DashBoardDTOs
 {

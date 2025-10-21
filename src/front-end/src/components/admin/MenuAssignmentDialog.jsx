@@ -1,4 +1,4 @@
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -50,13 +50,12 @@ const MenuAssignmentDialog = ({
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [error, setError] = useState(null);
 
+  // TODO: Update API endpoints for menu item assignments
   useEffect(() => {
     const fetchAssignments = async () => {
       if (!selectedItem) return;
       try {
-        const response = await axiosInstance.get(
-          createApiUrl(`/menu-item-assignments/by-item/${selectedItem.item_id}`)
-        );
+        const response = await api.get(`/menu-item-assignments/by-item/${selectedItem.item_id}`);
         setAssignments(response.data);
       } catch (err) {
         setError("Failed to fetch assignments");
@@ -82,9 +81,7 @@ const MenuAssignmentDialog = ({
 
   const handleDeleteAssignment = async (menuId, itemId) => {
     try {
-      await axiosInstance.delete(
-        createApiUrl(`/menu-item-assignments/${menuId}/${itemId}`)
-      );
+      await api.delete(`/menu-item-assignments/${menuId}/${itemId}`);
       setAssignments((prev) => prev.filter((a) => a.menu_id !== menuId));
       resetForm();
     } catch (err) {
@@ -111,12 +108,10 @@ const MenuAssignmentDialog = ({
     setSubmitting(true);
     try {
       const url = editingAssignment
-        ? createApiUrl(
-            `/menu-item-assignments/${editingAssignment.menu_id}/${selectedItem.item_id}`
-          )
-        : createApiUrl("/menu-item-assignments");
+      ? `/menu-item-assignments/${editingAssignment.menu_id}/${selectedItem.item_id}`
+      : "/menu-item-assignments";
 
-      const response = await axiosInstance({
+      const response = await api({
         method: editingAssignment ? "PUT" : "POST",
         url,
         data: {

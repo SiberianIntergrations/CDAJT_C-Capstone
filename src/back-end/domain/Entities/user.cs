@@ -1,16 +1,17 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using back_end.domain.enums;
+
 namespace back_end.domain.Entities
 {
-    [Table("User")]
+    [Table("users")]
 
     public class User
     {
         [Key]
         public int User_id { get; set; }
 
-        [Required]
-        [MaxLength(255)]
+        [Required, MaxLength(255), EmailAddress]
         public string Email { get; set; } = string.Empty;
 
         [Required]
@@ -30,7 +31,6 @@ namespace back_end.domain.Entities
         public string Last_name { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(100)]
         public UserRoles Role { get; set; } = UserRoles.Customer;
 
         public UserStatus Status { get; set; } = UserStatus.Active;
@@ -38,7 +38,7 @@ namespace back_end.domain.Entities
         public DateTime Created_at { get; set; } = DateTime.Now;
 
         public DateTime? Last_Interaction_at { get; set; }
-        
+
         public bool Is_email_confirmed { get; set; } = false;
 
 

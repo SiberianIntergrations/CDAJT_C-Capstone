@@ -1,36 +1,26 @@
 import { useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import TagChip from "./tags/TagChip";
-import axios from "axios";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const Tags = ({ item_id, size = "l" }) => {
   const [tags, setTags] = useState([]);
   const [error, setError] = useState(null);
 
-  const getToken = () => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("access_token");
-    }
-    return null;
-  };
+  // May be deleted later
+  // const getToken = () => {
+  //   if (typeof window !== "undefined") {
+  //     return localStorage.getItem("access_token");
+  //   }
+  //   return null;
+  // };
 
+  // TODO: Update endpoint
   useEffect(() => {
     const fetchTags = async () => {
       try {
-        const token = getToken();
-        if (!token) {
-          setError("No authentication token found");
-          return;
-        }
-
-        const response = await axiosInstance.get(
-          `/menu-items/${item_id}/tags-with-colors`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await api.get(
+          `/menu-items/${item_id}/tags-with-colors`
         );
 
         if (response.data) {

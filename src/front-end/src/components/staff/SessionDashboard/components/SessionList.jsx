@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Button } from "@mui/material";
 import { useSession } from "../context/SessionContext";
 import SessionCard from "./SessionCard";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const SessionList = () => {
   const { sessions, openDialog } = useSession();
@@ -14,10 +14,9 @@ const SessionList = () => {
 
   const fetchSessionRequests = useCallback(async (sessionId) => {
     try {
-      const response = await axiosInstance.get(
-        createApiUrl(`/service-requests/by-session/${sessionId}`)
-      );
-      if (response.statusText !== "OK") return 0;
+      // TODO: ServiceRequest endpoint by session ID
+      const response = await api.get(`/ServiceRequest/by-session/${sessionId}`);
+      if (response.status !== 200) return 0;
       const data = response.data;
       return data.length;
     } catch (error) {
@@ -49,6 +48,7 @@ const SessionList = () => {
     }, 100);
   }, []);
 
+  // TODO: Consider debouncing with useRef to avoid excessive calls. Look over dependencies
   const updateSessionOrder = useCallback(async () => {
     const requests = {};
     await Promise.all(

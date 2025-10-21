@@ -17,6 +17,7 @@ import {
   Input,
   TextField,
 } from "@mui/material";
+// TODO: Fix depcrecated DataGrid import
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
 import {
   Plus,
@@ -31,8 +32,7 @@ import MenuAssignmentDialog from "@/components/admin/MenuAssignmentDialog";
 import TagChip from "@/components/tags/TagChip";
 import TagsDialog from "@/components/admin/TagsDialog";
 import CategoryManagementDialog from "@/components/admin/CategoryManagementDialog";
-import { axiosInstance, createApiUrl } from "@/config/api";
-import axios from "axios";
+import api from "@/config/api";
 
 const AddButton = styled(IconButton)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
@@ -67,8 +67,7 @@ const MenuItemManagement = () => {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
-  const getToken = () => localStorage.getItem("access_token");
-
+  // TODO: Update APIs for menu items, categories, menu, and tags
   const fetchData = async () => {
     try {
       console.log("Fetching data...");
@@ -78,12 +77,11 @@ const MenuItemManagement = () => {
         { data: menusData },
         { data: tagsData },
       ] = await Promise.all([
-        axiosInstance.get(createApiUrl("/menu-items")),
-        axiosInstance.get(createApiUrl("/categories")),
-        axiosInstance.get(createApiUrl("/menus")),
-        axiosInstance.get(createApiUrl("/tag/colors")),
+        api.get("/menu-items"),
+        api.get("/Category"),
+        api.get("/Menu"),
+        api.get("/tag/colors"), // TODO: Need Tag Controllers
       ]);
-
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setMenus(Array.isArray(menusData) ? menusData : []);
@@ -115,13 +113,9 @@ const MenuItemManagement = () => {
     try {
       console.log(`Performing tag ${action} action...`);
       if (action === "add") {
-        await axiosInstance.post(
-          createApiUrl(`/menu-items/${itemId}/tags/${tagId}`)
-        );
+        await api.post(`/menu-items/${itemId}/tags/${tagId}`)
       } else {
-        await axiosInstance.delete(
-          createApiUrl(`/menu-items/${itemId}/tags/${tagId}`)
-        );
+        await api.delete(`/menu-items/${itemId}/tags/${tagId}`)
       }
       await fetchData();
     } catch (err) {
@@ -145,8 +139,8 @@ const MenuItemManagement = () => {
 
   const handleDelete = async (item) => {
     try {
-      const response = await axiosInstance.get(
-        createApiUrl(`/menu-item-assignments/by-item/${item.item_id}`)
+      const response = await api.get(
+        `/menu-item-assignments/by-item/${item.item_id}`
       );
       console.log("Checking item assignments (api)...");
       const assignments = response.data;
@@ -169,9 +163,7 @@ const MenuItemManagement = () => {
   const handleDeleteConfirm = async () => {
     try {
       console.log("Deleting item...", itemToDelete);
-      const response = axiosInstance.delete(
-        createApiUrl(`/menu-items/${itemToDelete.item_id}`)
-      );
+      await api.delete(`/menu-items/${itemToDelete.item_id}`)
       await fetchData();
       setDeleteDialogOpen(false);
       setItemToDelete(null);

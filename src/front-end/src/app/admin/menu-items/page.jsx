@@ -44,16 +44,8 @@ const MenuItemsPage = () => {
   }
 
   return (
-    <>
-      <Head>
-        <title>Menu Item Management | Sushi Toshi</title>
-        <meta name="description" content="Manage menu items" />
-      </Head>
-      <Box sx={{ width: "100%", minHeight: "100vh" }}>
-        <MenuItemManagement />
-      </Box>
-    </>
+    <Box sx={{ width: "100%", minHeight: "100vh" }}>
+      <MenuItemManagement />
+    </Box>
   );
-};
-
-export default MenuItemsPage;
+}

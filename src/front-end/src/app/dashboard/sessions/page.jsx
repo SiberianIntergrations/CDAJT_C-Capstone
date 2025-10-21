@@ -1,12 +1,18 @@
 "use client";
 import { useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Head from "next/head";
 import { Box, CircularProgress } from "@mui/material";
 import { ErrorBoundary } from "react-error-boundary";
 import SessionDashboard from "@/components/staff/SessionDashboard";
 import styled from "@emotion/styled";
 import { AuthContext } from "@/app/layout";
+
+// export const metadata = {
+//   title: "Session Management | Sushi Toshi",
+//   description: "Manage dining sessions and tables",
+//   name: "viewport",
+//   content: "width=device-width, initial-scale=1",
+// };
 
 const ErrorMessage = styled.div`
   padding: 16px;
@@ -61,18 +67,11 @@ const SessionsPage = () => {
   }
 
   return (
-    <>
-      <Head>
-        <title>Session Management | Sushi Toshi</title>
-        <meta name="description" content="Manage dining sessions and tables" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
-      <FullPageContainer>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <SessionDashboard />
-        </ErrorBoundary>
-      </FullPageContainer>
-    </>
+    <FullPageContainer>
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <SessionDashboard />
+      </ErrorBoundary>
+    </FullPageContainer>
   );
 };
 

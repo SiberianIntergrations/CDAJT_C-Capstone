@@ -17,6 +17,7 @@ import { styled } from "@mui/material/styles";
 import LocationForm from "@/components/location/LocationForm";
 import MenuAssignmentForm from "@/components/location/MenuAssignmentForm";
 import { axiosInstance, createApiUrl, msalAxiosClient } from "@/config/api";
+import api from "@/config/api";
 
 const LocationManagement = ({ msalInstance }) => {
   const [locations, setLocations] = useState([]);
@@ -34,7 +35,28 @@ const LocationManagement = ({ msalInstance }) => {
       setLoading(true);
       const msalAxios = msalAxiosClient(msalInstance);
       const response = await msalAxios.get(createApiUrl("/locations"));
-      setLocations(response.data);
+
+      const data = Array.isArray(response.data) ? response.data : [];
+
+      const normalized = data.map((r) => {
+        const locationId = r.location_id ?? r.location_Id ?? r.locationId ?? r.id ?? r.ID ?? null;
+
+        return {
+          ...r,
+          location_id: locationId,
+          id: locationId, // DataGrid default id field
+          name: r.name ?? r.Name,
+          address_one: r.address_one ?? r.address_Primary ?? r.addressPrimary ?? r.address1,
+          address_two: r.address_two ?? r.address_Secondary ?? r.addressSecondary ?? r.address2,
+          city: r.city ?? r.City,
+          province: r.province ?? r.Province,
+          postal_code: r.postal_code ?? r.postalCode ?? r.postal_Code ?? r.PostalCode,
+          phone_Number: r.phone_Number ?? r.phoneNumber,
+          created_At: r.created_At ?? r.createdAt ?? r.CreatedAt,
+        };
+      });
+      
+      setLocations(normalized);
     } catch (err) {
       setError("Failed to fetch locations");
       console.error(err);
@@ -66,9 +88,7 @@ const LocationManagement = ({ msalInstance }) => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await axiosInstance.delete(
-        createApiUrl(`/locations/${locationToDelete.location_id}`)
-      );
+      await api.delete(`/Location/${locationToDelete.location_id}`);
       await fetchLocations();
       setDeleteDialogOpen(false);
       setLocationToDelete(null);
@@ -81,10 +101,10 @@ const LocationManagement = ({ msalInstance }) => {
   const handleSubmit = async (formData) => {
     try {
       if (formMode === "create") {
-        await axiosInstance.post(createApiUrl("/locations"), formData);
+        await api.post("/Location", formData);
       } else {
-        await axiosInstance.put(
-          createApiUrl(`/locations/${selectedLocation.location_id}`),
+        // TODO: Need endpoint to /Location/{id} on the backend
+        await api.put(`/Location/${selectedLocation.location_id}`,
           formData
         );
       }
@@ -167,7 +187,6 @@ const LocationManagement = ({ msalInstance }) => {
         columns={columns}
         loading={loading}
         getRowId={(row) => row.location_id}
-        autoHeight
         disableSelectionOnClick
         sx={{
           bgcolor: "background.paper",
@@ -204,7 +223,7 @@ const LocationManagement = ({ msalInstance }) => {
         <MenuAssignmentForm
           location={selectedLocation}
           onClose={() => setIsMenuFormOpen(false)}
-          axiosInstance={axiosInstance}
+          api={api}
         />
       </Dialog>
 

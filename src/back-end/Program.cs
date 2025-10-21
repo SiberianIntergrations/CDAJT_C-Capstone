@@ -19,6 +19,9 @@ builder.Services.AddControllers()
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
+// Removed invalid field declaration. If you need the directory name, use the following line directly:
+
+Console.WriteLine(Path.GetPathRoot(Directory.GetCurrentDirectory()));
 
 // Add Swagger/OpenAPI services
 builder.Services.AddEndpointsApiExplorer();

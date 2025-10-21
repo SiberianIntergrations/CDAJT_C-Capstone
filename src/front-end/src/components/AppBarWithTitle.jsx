@@ -16,6 +16,7 @@ import {
   Box,
   useTheme,
   useMediaQuery,
+  CircularProgress,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -141,6 +142,8 @@ const AppBarWithTitle = ({ title }) => {
     </List>
   );
 
+  if (loading) return <CircularProgress />;
+
   return (
     <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
       <Toolbar
@@ -158,7 +161,7 @@ const AppBarWithTitle = ({ title }) => {
             flex: "1 1 0",
           }}
         >
-          {isLoggedIn && (
+          {isAuthenticated && (
             <IconButton
               color="inherit"
               aria-label="menu"
