@@ -1,4 +1,19 @@
-public class TableGroupAssignmentDTO
+namespace back_end.DTO.TableGroupDTOs
 {
-  public int TableGroup_Id { get; set; }
+  public class TableGroupAssignmentDTO
+  {
+    public int TableGroup_Id { get; set; }
+  }
+
+  public class TableGroupCreateDTO
+  {
+    public string Group_Name { get; set; } = string.Empty;
+    public bool? Is_Active { get; set; }
+  }
+
+  public class TableGroupUpdateDTO
+  {
+    public string? Group_Name { get; set; }
+    public bool? Is_Active { get; set; }
+  }
 }
