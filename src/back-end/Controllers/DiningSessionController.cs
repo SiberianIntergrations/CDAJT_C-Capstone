@@ -7,6 +7,7 @@ using back_end.domain.Entities;
 using back_end.domain;
 using back_end.domain.enums;
 using back_end.DTO.DashBoardDTOs;
+using back_end.DTO.TableGroupDTOs;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
