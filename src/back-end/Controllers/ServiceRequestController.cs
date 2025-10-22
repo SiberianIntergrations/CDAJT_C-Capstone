@@ -160,18 +160,13 @@ namespace back_end.Controllers
 
         if (session is null)
         {
-          return NotFound("The session was not found");
+          return NotFound(new { message = "The session was not found" });
         }
 
         var sessionRequestList = await _context.ServiceRequests
             .Include(sr => sr.Table)
             .Where(sr => sr.Session_Id == session_id && sr.Status == ServiceRequestStatus.Pending)
             .ToListAsync();
-
-        if (sessionRequestList == null || !sessionRequestList.Any())
-        {
-          return NotFound("No pending requests have been found");
-        }
 
         var response = sessionRequestList.Select(sr => new ServiceRequestResponseDTO
         {
