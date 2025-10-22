@@ -1,28 +1,28 @@
-import { useSession } from "../../context/SessionContext";
-import NewSessionDialog from "./NewSessionDialog";
-import AddTableDialog from "./AddTableDialog";
-import NewBillDialog from "./NewBillDialog";
+import { useTable } from "../../context/TableContext";
+import NewTableDialog from "./NewTableDialog";
+import EditTableDialog from "./EditTableDialog";
+import NewTableGroupDialog from "./NewTableGroupDialog";
+import EditTableGroupDialog from "./EditTableGroupDialog";
+import AddTableToGroupDialog from "./AddTableToGroupDialog";
 
 const DialogContainer = () => {
-  const { dialogState, closeDialog } = useSession();
+  const { dialogState } = useTable();
 
   return (
     <>
-      <NewSessionDialog
-        open={dialogState?.newSession || false}
-        onClose={() => closeDialog("newSession")}
+      <NewTableDialog open={dialogState.type === "newTable"} />
+      <EditTableDialog
+        open={dialogState.type === "editTable"}
+        table={dialogState.data}
       />
-
-      <AddTableDialog
-        open={dialogState?.addTable || false}
-        sessionId={dialogState?.currentSessionId}
-        onClose={() => closeDialog("addTable")}
+      <NewTableGroupDialog open={dialogState.type === "newTableGroup"} />
+      <EditTableGroupDialog
+        open={dialogState.type === "editTableGroup"}
+        group={dialogState.data}
       />
-
-      <NewBillDialog
-        open={dialogState?.newBill || false}
-        sessionId={dialogState?.currentSessionId}
-        onClose={() => closeDialog("newBill")}
+      <AddTableToGroupDialog
+        open={dialogState.type === "addTableToGroup"}
+        group={dialogState.data}
       />
     </>
   );

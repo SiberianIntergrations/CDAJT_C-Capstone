@@ -7,13 +7,6 @@ import TableDashboard from "@/components/staff/TableDashboard";
 import styled from "@emotion/styled";
 import { getUserRole } from "@/utils/token";
 
-// export const metadata = {
-//   title: "Session Management | Sushi Toshi",
-//   description: "Manage dining sessions and tables",
-//   name: "viewport",
-//   content: "width=device-width, initial-scale=1",
-// };
-
 const ErrorMessage = styled.div`
   padding: 16px;
   color: red;
@@ -38,7 +31,7 @@ function ErrorFallback({ error }) {
   );
 }
 
-const SessionsPage = () => {
+const TablesPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,7 +45,6 @@ const SessionsPage = () => {
 
       try {
         const role = getUserRole(token);
-        console.log("TOKEN: ", role);
         if (role !== "admin" && role !== "staff") {
           router.push("/unauthorized");
           return false;
@@ -92,4 +84,4 @@ const SessionsPage = () => {
   );
 };
 
-export default SessionsPage;
+export default TablesPage;
