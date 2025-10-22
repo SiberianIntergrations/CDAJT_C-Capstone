@@ -30,8 +30,11 @@ const StaffManagementForm = ({
     status: initialData?.status || "active",
   });
 
+  
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+      console.log(initialData);
     setFormData((prev) => ({
       ...prev,
       [name]: value,

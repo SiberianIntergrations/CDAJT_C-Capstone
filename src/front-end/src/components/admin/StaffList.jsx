@@ -20,6 +20,7 @@ const StaffList = ({
   onStatusChange,
   onChangePassword,
 }) => {
+  console.log("status",onStatusChange)
   const getStatusColor = (status) => {
     switch (status) {
       case "active":
@@ -68,7 +69,7 @@ const StaffList = ({
     },
     {
       field: "email",
-      headerName: "Email",
+      headerName: "Ema6il",
       flex: 1,
       renderCell: (params) => (
         <Typography

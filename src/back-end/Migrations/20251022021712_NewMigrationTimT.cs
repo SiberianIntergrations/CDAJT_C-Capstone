@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace back_end.Migrations
 {
     /// <inheritdoc />
-    public partial class intitalMigration : Migration
+    public partial class NewMigrationTimT : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -108,7 +108,7 @@ namespace back_end.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "User",
+                name: "users",
                 columns: table => new
                 {
                     User_id = table.Column<int>(type: "int", nullable: false)
@@ -123,7 +123,7 @@ namespace back_end.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Last_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Role = table.Column<int>(type: "int", maxLength: 100, nullable: false),
+                    Role = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
                     Created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Last_Interaction_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
@@ -131,7 +131,7 @@ namespace back_end.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_User", x => x.User_id);
+                    table.PrimaryKey("PK_users", x => x.User_id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -305,26 +305,27 @@ namespace back_end.Migrations
                 name: "session_participant",
                 columns: table => new
                 {
+                    Participant_Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Session_Id = table.Column<int>(type: "int", nullable: false),
                     User_Id = table.Column<int>(type: "int", nullable: false),
-                    Participant_Id = table.Column<int>(type: "int", nullable: false),
                     Joined_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     Left_At = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_session_participant", x => new { x.Session_Id, x.User_Id });
-                    table.ForeignKey(
-                        name: "FK_session_participant_User_User_Id",
-                        column: x => x.User_Id,
-                        principalTable: "User",
-                        principalColumn: "User_id",
-                        onDelete: ReferentialAction.Cascade);
+                    table.PrimaryKey("PK_session_participant", x => x.Participant_Id);
                     table.ForeignKey(
                         name: "FK_session_participant_dining_sessions_Session_Id",
                         column: x => x.Session_Id,
                         principalTable: "dining_sessions",
                         principalColumn: "Session_Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_session_participant_users_User_Id",
+                        column: x => x.User_Id,
+                        principalTable: "users",
+                        principalColumn: "User_id",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -370,12 +371,6 @@ namespace back_end.Migrations
                 {
                     table.PrimaryKey("PK_session_order", x => x.Order_Id);
                     table.ForeignKey(
-                        name: "FK_session_order_User_User_Id",
-                        column: x => x.User_Id,
-                        principalTable: "User",
-                        principalColumn: "User_id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_session_order_bills_Bill_Id",
                         column: x => x.Bill_Id,
                         principalTable: "bills",
@@ -386,6 +381,12 @@ namespace back_end.Migrations
                         column: x => x.session_id,
                         principalTable: "dining_sessions",
                         principalColumn: "Session_Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_session_order_users_User_Id",
+                        column: x => x.User_Id,
+                        principalTable: "users",
+                        principalColumn: "User_id",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -411,18 +412,6 @@ namespace back_end.Migrations
                 {
                     table.PrimaryKey("PK_service_request", x => x.request_id);
                     table.ForeignKey(
-                        name: "FK_service_request_User_Claimed_By",
-                        column: x => x.Claimed_By,
-                        principalTable: "User",
-                        principalColumn: "User_id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_service_request_User_Request_By",
-                        column: x => x.Request_By,
-                        principalTable: "User",
-                        principalColumn: "User_id",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_service_request_dining_sessions_Session_Id",
                         column: x => x.Session_Id,
                         principalTable: "dining_sessions",
@@ -434,6 +423,18 @@ namespace back_end.Migrations
                         principalTable: "table_entity",
                         principalColumn: "Table_Id",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_service_request_users_Claimed_By",
+                        column: x => x.Claimed_By,
+                        principalTable: "users",
+                        principalColumn: "User_id",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_service_request_users_Request_By",
+                        column: x => x.Request_By,
+                        principalTable: "users",
+                        principalColumn: "User_id",
+                        onDelete: ReferentialAction.Restrict);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -581,6 +582,11 @@ namespace back_end.Migrations
                 column: "User_Id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_session_participant_Session_Id",
+                table: "session_participant",
+                column: "Session_Id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_session_participant_User_Id",
                 table: "session_participant",
                 column: "User_Id");
@@ -639,10 +645,10 @@ namespace back_end.Migrations
                 name: "Categories");
 
             migrationBuilder.DropTable(
-                name: "User");
+                name: "bills");
 
             migrationBuilder.DropTable(
-                name: "bills");
+                name: "users");
 
             migrationBuilder.DropTable(
                 name: "dining_sessions");

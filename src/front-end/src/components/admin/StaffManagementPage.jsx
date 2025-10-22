@@ -72,6 +72,7 @@ const StaffManagementPage = () => {
 
   useEffect(() => {
     fetchStaff();
+    console.log(staff);
   }, []);
 
   const handleStatusChange = async (staffMember, newStatus) => {
@@ -106,10 +107,10 @@ const StaffManagementPage = () => {
 
       let role = formData.role;
       formData.status = "active";
-      delete formData.role;
+      // delete formData.role;
 
-      await api.post(`/staff/?role=${role}`, formData);
-
+      // await api.post(`/staff/?role=${role}`, formData);
+      await api.post(`/staff/`, formData);
       await fetchStaff();
       setFormOpen(false);
       setSnackbar({
@@ -128,6 +129,7 @@ const StaffManagementPage = () => {
   const handleUpdateStaff = async (formData) => {
     try {
       setSubmitting(true);
+      console.log(formData);
 
       const response = await api.put(`/staff/${selectedStaff.user_id}`,
         formData
@@ -155,6 +157,7 @@ const StaffManagementPage = () => {
   const handleChangePassword = async (passwordData) => {
     try {
       setSubmitting(true);
+      console.log(passwordData)
 
       const response = await api.post(`/staff/${selectedStaff.user_id}/reset-password`,
         { new_password: passwordData.new_password }

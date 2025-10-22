@@ -11,6 +11,7 @@ using back_end.DTO.UserDTOs;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
+using back_end.DTO.StaffDTOs;
 
 namespace back_end.Controllers
 {
@@ -32,10 +33,11 @@ namespace back_end.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> CreateStaff(
-            [FromBody] UserCreateDTO user_data,
-            [FromQuery] UserRoles role
+            [FromBody] CreateStaffDTO user_data
+            // [FromQuery] UserRoles role
         )
         {
+            var role = user_data.Role;
             if (role != UserRoles.Staff && role != UserRoles.Admin)
                 return BadRequest("Role must be either staff or admin");
 
@@ -53,7 +55,7 @@ namespace back_end.Controllers
                 Password_hash = BCrypt.Net.BCrypt.HashPassword(user_data.Password, workFactor: 12),
                 First_name = user_data.First_name.Trim(),
                 Last_name = user_data.Last_name.Trim(),
-                Role = role,
+                Role = (UserRoles)role,
                 Status = user_data.Status,
                 Is_email_confirmed = true,
                 Created_at = now,
@@ -96,8 +98,20 @@ namespace back_end.Controllers
                 .OrderByDescending(u => u.Created_at)
                 .Skip(skip)
                 .Take(limit)
-                .Select(u => ToResponse(u))
+                .Select(u => new StaffResponseDTO
+                {
+                    Created_At = u.Created_at,
+                    Email = u.Email,
+                    IsEmailConfirmed = u.Is_email_confirmed,
+                    LastTransactionAt = u.Last_Interaction_at ?? u.Created_at,
+                    LastName = u.Last_name,
+                    FirstName = u.First_name,
+                    Role = u.Role,
+                    Status = u.Status,
+                    User_Id = u.User_id
+                })
                 .ToListAsync();
+            
 
             return Ok(users);
         }
@@ -122,7 +136,7 @@ namespace back_end.Controllers
         [HttpPut("{user_id:int}")]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> UpdateStaff(int user_id, [FromBody] StaffUserUpdateDTO user_data)
-        {
+        { 
             var user = await _context.Users
                 .Where(x => x.User_id == user_id &&
                             (x.Role == UserRoles.Staff || x.Role == UserRoles.Admin))
@@ -152,14 +166,14 @@ namespace back_end.Controllers
             }
 
             await _context.SaveChangesAsync();
-            return Ok(ToResponse(user));
+             return Ok(ToResponse(user));
         }
 
         // POST: /api/staff/5/change-password
         // Change a staff user's password by Admin only.
         [HttpPost("{user_id:int}/change-password")]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<UserResponseDTO>> ChangeStaffPassword(int user_id, [FromBody] PasswordChangeDTO password_data)
+        // [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<UserResponseDTO>> ChangeStaffPassword(int user_id, [FromBody] StaffMemberChangePasswordDTO password_data)
         {
             var user = await _context.Users
                 .Where(x => x.User_id == user_id &&

@@ -12,8 +12,8 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251015042923_intitalMigration")]
-    partial class intitalMigration
+    [Migration("20251022021712_NewMigrationTimT")]
+    partial class NewMigrationTimT
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -464,11 +464,11 @@ namespace back_end.Migrations
 
             modelBuilder.Entity("back_end.domain.Entities.SessionParticipant", b =>
                 {
-                    b.Property<int>("Session_Id")
+                    b.Property<int>("Participant_Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    b.Property<int>("User_Id")
-                        .HasColumnType("int");
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Participant_Id"));
 
                     b.Property<DateTime>("Joined_At")
                         .HasColumnType("datetime(6)");
@@ -476,10 +476,15 @@ namespace back_end.Migrations
                     b.Property<DateTime?>("Left_At")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int>("Participant_Id")
+                    b.Property<int>("Session_Id")
                         .HasColumnType("int");
 
-                    b.HasKey("Session_Id", "User_Id");
+                    b.Property<int>("User_Id")
+                        .HasColumnType("int");
+
+                    b.HasKey("Participant_Id");
+
+                    b.HasIndex("Session_Id");
 
                     b.HasIndex("User_Id");
 
@@ -599,7 +604,6 @@ namespace back_end.Migrations
                         .HasColumnType("varchar(255)");
 
                     b.Property<int>("Role")
-                        .HasMaxLength(100)
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
@@ -607,7 +611,7 @@ namespace back_end.Migrations
 
                     b.HasKey("User_id");
 
-                    b.ToTable("User");
+                    b.ToTable("users");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Billing", b =>
