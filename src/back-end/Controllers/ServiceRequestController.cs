@@ -210,5 +210,43 @@ namespace back_end.Controllers
         return StatusCode(500, "Internal Server Error");
       }
     }
+
+    //GET api/servicerequest/pending
+    //Get all pending service requests
+    [Authorize(Roles = "Admin,Staff")]
+    [HttpGet("pending")]
+    public async Task<ActionResult<IEnumerable<ServiceRequestResponseDTO>>> GetAllPendingServiceRequests()
+    {
+      try
+      {
+        var pendingRequests = await _context.ServiceRequests
+            .Include(sr => sr.Table)
+            .Include(sr => sr.RequestedByUser)
+            .Include(sr => sr.DiningSession)
+            .Where(sr => sr.Status == ServiceRequestStatus.Pending)
+            .OrderBy(sr => sr.Created_At)
+            .ToListAsync();
+
+        var response = pendingRequests.Select(sr => new ServiceRequestResponseDTO
+        {
+          Request_Id = sr.request_id,
+          Session_Id = sr.Session_Id,
+          Table_Id = sr.Table_Id,
+          Status = sr.Status,
+          Requested_By = sr.Request_By,
+          Claimed_By = sr.Claimed_By,
+          Notes = sr.Notes,
+          Created_At = sr.Created_At,
+          Table_Number = sr.Table?.table_number ?? 0
+        }).ToList();
+
+        return Ok(response);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error getting pending service requests");
+        return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+      }
+    }
   }
 }

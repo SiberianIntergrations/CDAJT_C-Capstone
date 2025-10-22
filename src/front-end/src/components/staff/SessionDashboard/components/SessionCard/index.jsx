@@ -145,6 +145,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
       if (response.status !== 200) throw new Error("Failed to fetch requests");
       const data = response.data;
+      console.log("data: ", data);
       setRequests(data);
       setIsBlinking(data.length > 0);
       onRequestUpdate(session.session_Id, data);
