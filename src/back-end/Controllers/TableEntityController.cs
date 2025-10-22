@@ -13,6 +13,7 @@ using System.Security.Claims;
 using back_end.DTO.SessionParticipantDTOs;
 using back_end.DTO.TableEntityDTOs;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace back_end.Controllers
 {
@@ -29,6 +30,21 @@ namespace back_end.Controllers
       _logger = logger;
     }
 
+
+    /// <summary>
+    /// Creates a new table.
+    /// </summary>
+    /// <param name="table_data">The table payload including table number, seat count, active flag, and optional QR code URL.</param>
+    /// <remarks>
+    /// Returns <c>201 Created</c> with the created table and a <c>Location</c> header pointing to <see cref="GetTable(int)"/>.
+    /// Table numbers must be unique.
+    /// </remarks>
+    /// <response code="201">The table was created successfully.</response>
+    /// <response code="400">The request body is invalid or missing required fields.</response>
+    /// <response code="401">The user is not authenticated.</response>
+    /// <response code="403">The user is not authorized to create tables.</response>
+    /// <response code="409">A table with the specified number already exists.</response>
+    /// <response code="500">An unexpected error occurred while creating the table.</response>
     [Authorize(Roles = "Admin,Staff")]
     [HttpPost()]
     public async Task<IActionResult> CreateTable(TableEntityCreateDTO table_data)
@@ -62,6 +78,15 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Retrieves all tables from the system.
+    /// </summary>
+    /// <remarks>
+    /// Returns a list of all tables, regardless of whether they are active or in use.  
+    /// Requires authentication.
+    /// </remarks>
+    /// <response code="200">A list of all tables was returned successfully.</response>
+    /// <response code="500">An internal server error occurred while retrieving tables.</response>
     [Authorize]
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TableEntity>>> GetAllTables()
@@ -80,6 +105,15 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Lists all active tables that are not currently in an ongoing dining session.
+    /// </summary>
+    /// <remarks>
+    /// A table is considered <em>empty</em> if it is marked as active and it is not part of any dining session
+    /// where <c>Ended_At == null</c>.
+    /// </remarks>
+    /// <response code="200">A list of empty (available) tables was returned successfully.</response>
+    /// <response code="500">An unexpected error occurred while retrieving the tables.</response>
     [Authorize]
     [HttpGet("empty")]
     public async Task<ActionResult<IEnumerable<TableEntity>>> ListEmptyTables()
@@ -105,6 +139,17 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Retrieves a table by its unique identifier.
+    /// </summary>
+    /// <param name="table_id">The unique identifier of the table to retrieve.</param>
+    /// <remarks>
+    /// Returns the table’s complete record, including its number, seat count, active state, and QR code information.
+    /// Requires authorization.
+    /// </remarks>
+    /// <response code="200">The table was found and returned successfully.</response>
+    /// <response code="404">No table exists with the specified <paramref name="table_id"/>.</response>
+    /// <response code="500">An unexpected error occurred while retrieving the table.</response>
     [Authorize]
     [HttpGet("{table_id}")]
     public async Task<IActionResult> GetTable(int table_id)
@@ -129,6 +174,23 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Updates a table by its identifier.
+    /// </summary>
+    /// <param name="table_id">The unique identifier of the table to update.</param>
+    /// <param name="table_data">Fields to update for the table (partial updates supported).</param>
+    /// <remarks>
+    /// This endpoint performs a <em>partial</em> update using <c>PUT</c> for convenience:
+    /// only the non-null properties in <c>TableEntityUpdateDTO</c> are applied.
+    /// <br/><br/>
+    /// - If <c>Table_Number</c> is provided and differs from the current value, it must be unique.
+    /// - Returns the updated table in the response body.
+    /// </remarks>
+    /// <response code="200">The table was updated successfully.</response>
+    /// <response code="400">Invalid request body or no updatable fields provided.</response>
+    /// <response code="404">No table exists with the specified <paramref name="table_id"/>.</response>
+    /// <response code="409">A different table already uses the requested table number.</response>
+    /// <response code="500">An unexpected error occurred while updating the table.</response>
     [Authorize]
     [HttpPut("{table_id}")]
     public async Task<IActionResult> UpdateTable(int table_id, TableEntityUpdateDTO table_data)
@@ -182,6 +244,18 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Deletes a table by its identifier.
+    /// </summary>
+    /// <param name="table_id">The unique identifier of the table to delete.</param>
+    /// <remarks>
+    /// Returns <c>204 No Content</c> on successful deletion.  
+    /// If the table is associated with an active dining session (<c>Ended_At == null</c>), deletion is blocked and a <c>409 Conflict</c> is returned.
+    /// </remarks>
+    /// <response code="204">The table was deleted successfully.</response>
+    /// <response code="404">No table exists with the specified <paramref name="table_id"/>.</response>
+    /// <response code="409">The table cannot be deleted because it is currently in use.</response>
+    /// <response code="500">An unexpected error occurred while deleting the table.</response>
     [Authorize]
     [HttpDelete("{table_id}")]
     public async Task<IActionResult> DeleteTable(int table_id)
@@ -229,6 +303,20 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Toggles a table's active status.
+    /// </summary>
+    /// <param name="table_id">The unique identifier of the table.</param>
+    /// <remarks>
+    /// - If the table is <c>inactive</c>, this endpoint **activates** it.  
+    /// - If the table is <c>active</c>, this endpoint attempts to **deactivate** it.  
+    /// - Deactivation is **blocked** when the table is part of an active dining session (<c>Ended_At == null</c>).  
+    /// Returns the new status in the response body.
+    /// </remarks>
+    /// <response code="200">The table status was toggled; response includes the current status.</response>
+    /// <response code="404">No table exists with the specified <paramref name="table_id"/>.</response>
+    /// <response code="409">The table cannot be deactivated because it is currently in use.</response>
+    /// <response code="500">An unexpected error occurred while toggling the table status.</response>
     [Authorize(Roles = "Admin,Staff")]
     [HttpPost("{table_id}/toggle-status")]
     public async Task<IActionResult> ToggleTableStatus(int table_id)
@@ -279,6 +367,17 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Checks whether a table currently has an active dining session.
+    /// </summary>
+    /// <param name="table_id">The unique identifier of the table.</param>
+    /// <remarks>
+    /// Returns <c>success=true</c> if the table has **no** active session (available), otherwise <c>success=false</c>.
+    /// An active session is defined as a <c>DiningSession</c> where <c>Ended_At == null</c> and the session includes the given table.
+    /// </remarks>
+    /// <response code="200">Request succeeded; response indicates availability via the <c>success</c> flag.</response>
+    /// <response code="403">The user is not authorized to perform this action.</response>
+    /// <response code="500">An unexpected error occurred while checking availability.</response>
     [Authorize]
     [HttpPost("{table_id}/active-session")]
     public async Task<IActionResult> CheckTableActiveSession(int table_id)

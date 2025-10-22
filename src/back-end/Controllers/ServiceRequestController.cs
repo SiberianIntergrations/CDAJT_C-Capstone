@@ -25,6 +25,36 @@ namespace back_end.Controllers
       _logger = logger;
     }
 
+    /// <summary>
+    /// Creates a new service request for an active dining session.
+    /// </summary>
+    /// <param name="session_id">The unique identifier of the dining session</param>
+    /// <param name="request_data">The service request data containing notes and other details</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the created <see cref="ServiceRequestResponseDTO"/> object.
+    /// Returns HTTP 200 (OK) with the created service request on success.
+    /// Returns HTTP 400 (Bad Request) if the user is not authorized or not a participant in the session.
+    /// Returns HTTP 404 (Not Found) if the session doesn't exist or has ended.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+    /// </returns>
+    /// <response code="200">Returns the newly created service request</response>
+    /// <response code="400">If the user is not authorized or not a valid session participant</response>
+    /// <response code="404">If the session is not found or has already ended</response>
+    /// <response code="500">If an internal error occurs while creating the service request</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/servicerequest/123
+    ///     {
+    ///         "notes": "Need water refill"
+    ///     }
+    ///
+    /// This endpoint requires authentication.
+    /// The authenticated user must be an active participant in the specified dining session.
+    /// Only active (not ended) sessions can receive new service requests.
+    /// The service request is automatically created with 'Pending' status.
+    /// </remarks>
+
     [Authorize]
     [HttpPost("{session_id}")]
     public async Task<IActionResult> CreateServiceRequest(
@@ -114,6 +144,28 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Marks a service request as completed and assigns it to the current user.
+    /// </summary>
+    /// <param name="request_id">The unique identifier of the service request to complete</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the updated <see cref="ServiceRequest"/> object.
+    /// Returns HTTP 200 (OK) with the completed service request on success.
+    /// Returns HTTP 404 (Not Found) if the service request doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
+    /// </returns>
+    /// <response code="200">Returns the completed service request</response>
+    /// <response code="404">If the service request is not found</response>
+    /// <response code="500">If an internal error occurs while completing the service request</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/servicerequest/123/complete
+    ///
+    /// This endpoint requires Admin or Staff role authorization.
+    /// The service request status will be updated to 'Completed' and the completion timestamp will be set.
+    /// The current authenticated user will be assigned as the user who completed the request.
+    /// </remarks>
     [Authorize(Roles = "Admin,Staff")]
     [HttpPost("{request_id}/complete")]
     public async Task<IActionResult> CompleteServiceRequest(int request_id)
@@ -149,6 +201,27 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Retrieves all pending service requests for a specific session.
+    /// </summary>
+    /// <param name="session_id">The unique identifier of the session</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing a collection of <see cref="ServiceRequestResponseDTO"/> objects.
+    /// Returns HTTP 200 (OK) with the list of pending service requests on success.
+    /// Returns HTTP 404 (Not Found) if the session doesn't exist or no pending requests are found.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the list of pending service requests for the session</response>
+    /// <response code="404">If the session is not found or no pending requests exist</response>
+    /// <response code="500">If an internal error occurs while retrieving service requests</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/servicerequest/by-session/123
+    ///
+    /// This endpoint requires Admin or Staff role authorization.
+    /// Only returns service requests with 'Pending' status.
+    /// </remarks>
     [Authorize(Roles = "Admin,Staff")]
     [HttpGet("by-session/{session_id}")]
     public async Task<IActionResult> GetSessionServiceRequest(int session_id)
@@ -190,6 +263,16 @@ namespace back_end.Controllers
       }
     }
 
+    /// <summary>
+    /// Retrieves all service requests from the database.
+    /// </summary>
+    /// <returns>
+    /// An <see cref="ActionResult"/> containing a collection of <see cref="ServiceRequest"/> objects.
+    /// Returns HTTP 200 (OK) with the list of service requests on success.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the list of all service requests</response>
+    /// <response code="500">If an internal error occurs while retrieving service requests</response>
     //GET api/servicerequest
     //Get all current service requests
     [HttpGet]

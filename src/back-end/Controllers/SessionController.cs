@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace back_end.Controllers
 {
@@ -45,8 +46,10 @@ namespace back_end.Controllers
       return new List<object>();
     }
 
-    //GET api/session
-    //Get all sessions
+    // GET: api/session
+    /// <summary>Retrieves all dining sessions.</summary>
+    /// <response code="200">A list of all sessions was returned.</response>
+    /// <response code="500">An error occurred while retrieving sessions.</response>
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DiningSession>>> GetAllSessions()
     {
@@ -62,8 +65,12 @@ namespace back_end.Controllers
       }
     }
 
-    //GET: api/session/
-    //Get a dining session's users, menu, orders and table assignments
+    // GET: api/session/{id}
+    /// <summary>Gets a dining session with users, menu, orders, and table assignments.</summary>
+    /// <param name="id">Session identifier.</param>
+    /// <response code="200">Session details returned.</response>
+    /// <response code="404">Session not found.</response>
+    /// <response code="500">An error occurred while retrieving the session.</response>
     [HttpGet("{id}")]
     public async Task<ActionResult<object>> GetSessionById(int id)
     {
@@ -132,8 +139,10 @@ namespace back_end.Controllers
       }
     }
 
-    //GET: api/session/active
-    //Get all active dining sessions
+    // GET: api/session/active
+    /// <summary>Gets all active dining sessions.</summary>
+    /// <response code="200">Active session summaries returned.</response>
+    /// <response code="500">An error occurred while retrieving active sessions.</response>
     [HttpGet("active")]
     public async Task<ActionResult<IEnumerable<object>>> GetActiveSessions()
     {
@@ -173,8 +182,12 @@ namespace back_end.Controllers
       }
     }
 
-    //GET: api/session/table
-    //Get the session for a specific active table
+    // GET: api/session/table/{table}
+    /// <summary>Gets the active session (if any) for a specific table.</summary>
+    /// <param name="table">Table ID.</param>
+    /// <response code="200">Active/empty result returned for the table.</response>
+    /// <response code="404">Table not found.</response>
+    /// <response code="500">An error occurred while retrieving the session by table.</response>
     [HttpGet("table/{table}")]
     public async Task<ActionResult<object>> GetSessionByTable(int table)
     {
@@ -242,8 +255,12 @@ namespace back_end.Controllers
       }
     }
 
-    //GET: api/session/user/id/current
-    //Get the active session for a user
+    // GET: api/session/user/{userId}/current
+    /// <summary>Gets the current active session for a specific user.</summary>
+    /// <param name="userId">User identifier.</param>
+    /// <response code="200">Active/empty result returned for the user.</response>
+    /// <response code="404">User not found.</response>
+    /// <response code="500">An error occurred while retrieving the user's current session.</response>
     [HttpGet("user/{userId}/current")]
     public async Task<ActionResult<object>> GetCurrentSessionByUser(int userId)
     {

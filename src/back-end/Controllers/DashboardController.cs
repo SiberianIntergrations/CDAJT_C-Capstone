@@ -55,6 +55,32 @@ namespace back_end.controllers
       return 0;
     }
 
+    /// <summary>
+    /// Retrieves detailed information about all active dining sessions for dashboard display.
+    /// </summary>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing a collection of <see cref="DashBoardSessionsDTO"/> objects.
+    /// Returns HTTP 200 (OK) with the list of active sessions on success.
+    /// Returns HTTP 404 (Not Found) if no active sessions exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the list of active dining sessions with detailed information</response>
+    /// <response code="404">If no active dining sessions are found</response>
+    /// <response code="500">If an internal error occurs while retrieving sessions</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/diningsession/sessions
+    ///
+    /// Returns comprehensive information about each active session including:
+    /// - Session metadata (ID, menu, timestamps)
+    /// - Table numbers
+    /// - Active participant count
+    /// - Associated bills with details
+    /// - Whether the session can be closed (no open bills)
+    /// 
+    /// Sessions are ordered by start time (newest first).
+    /// </remarks>
     [HttpGet("sessions")]
     public async Task<IActionResult> GetDashBoardSessions()
     {
@@ -114,6 +140,28 @@ namespace back_end.controllers
       }
     }
 
+
+    /// <summary>
+    /// Retrieves dashboard summary statistics for active dining sessions.
+    /// </summary>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing a <see cref="DashBoardSummaryDTO"/> object with summary statistics.
+    /// Returns HTTP 200 (OK) with the dashboard summary on success.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns dashboard summary statistics</response>
+    /// <response code="500">If an internal error occurs while retrieving the summary</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/diningsession/summary
+    ///
+    /// Returns real-time statistics including:
+    /// - Total number of active (not ended) sessions
+    /// - Total number of tables currently in use
+    /// - Total number of open bills in active sessions
+    /// - Total number of active participants (who haven't left)
+    /// </remarks>
     [HttpGet("summary")]
     public async Task<IActionResult> GetDashBoardSummary()
     {

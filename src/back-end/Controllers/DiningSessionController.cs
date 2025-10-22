@@ -43,7 +43,35 @@ namespace back_end.controllers
       }
     }
 
+    /// <summary>
+    /// Creates a new dining session with a specified menu.
+    /// </summary>
+    /// <param name="sessionData">The session creation data containing the menu ID</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the created <see cref="DiningSessionResponseDTO"/> object.
+    /// Returns HTTP 200 (OK) with the created session details on success.
+    /// Returns HTTP 404 (Not Found) if the menu doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+    /// </returns>
+    /// <response code="200">Returns the newly created dining session</response>
+    /// <response code="404">If the menu is not found</response>
+    /// <response code="500">If an internal error occurs while creating the session</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/diningsession/Create_Dinning_Session
+    ///     {
+    ///         "menu_Id": 123
+    ///     }
+    ///
+    /// Creates a new dining session with the specified menu.
+    /// The session is automatically marked as started with the current UTC timestamp.
+    /// Tables and participants can be added after session creation.
+    /// </remarks>
     [HttpPost("Create_Dinning_Session")]
+    [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> create_dining_session([FromBody] CreateSessionRequestDTO sessionData)
     {
       try
@@ -81,7 +109,32 @@ namespace back_end.controllers
       }
     }
 
+    /// <summary>
+    /// Retrieves a list of dining sessions filtered by their active status.
+    /// </summary>
+    /// <param name="act">Query parameters to filter sessions by active status</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing a collection of <see cref="DiningSessionResponseDTO"/> objects.
+    /// Returns HTTP 200 (OK) with the list of filtered sessions sorted by start time (newest first).
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the list of dining sessions filtered by active status</response>
+    /// <response code="500">If an internal error occurs while retrieving sessions</response>
+    /// <remarks>
+    /// Sample requests:
+    ///
+    ///     GET /api/diningsession/get_list_dining_sessions?ActiveOnly=true
+    ///     (Returns only active/ongoing sessions)
+    ///     
+    ///     GET /api/diningsession/get_list_dining_sessions?ActiveOnly=false
+    ///     (Returns only ended sessions)
+    ///
+    /// Sessions are ordered by start time in descending order (newest first).
+    /// Each session includes table numbers and participant count.
+    /// </remarks>
     [HttpGet("get_list_dining_sessions")]
+    [ProducesResponseType(typeof(IEnumerable<DiningSessionResponseDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> list_dining_sessions([FromQuery] ListDiningSessionsRequestDTO act)
     {
       try
@@ -137,6 +190,30 @@ namespace back_end.controllers
       return new List<int>();
     }
 
+    /// <summary>
+    /// Retrieves detailed information about a specific dining session.
+    /// </summary>
+    /// <param name="session_id">The unique identifier of the dining session</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing a <see cref="DiningSessionDetailDTO"/> object with session details.
+    /// Returns HTTP 200 (OK) with the session details on success.
+    /// Returns HTTP 404 (Not Found) if the session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns detailed information about the dining session</response>
+    /// <response code="404">If the session is not found</response>
+    /// <response code="500">If an internal error occurs while retrieving the session</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/diningsession/get_location/123
+    ///
+    /// Returns comprehensive session details including:
+    /// - Session metadata (ID, menu, timestamps)
+    /// - Table numbers
+    /// - Participant counts
+    /// - Order and bill statistics
+    /// </remarks>
     [HttpGet("get_location/{session_id}")]
     public async Task<IActionResult> get_dining_session(int session_id)
     {
@@ -185,7 +262,42 @@ namespace back_end.controllers
       }
     }
 
+    /// <summary>
+    /// Adds a table to an existing dining session.
+    /// </summary>
+    /// <param name="session_id">The unique identifier of the dining session</param>
+    /// <param name="tableData">The table assignment data containing the table ID</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the updated <see cref="DiningSessionResponseDTO"/> object.
+    /// Returns HTTP 200 (OK) with the updated session details on success.
+    /// Returns HTTP 400 (Bad Request) if the session has ended, has bills, or the table is unavailable.
+    /// Returns HTTP 404 (Not Found) if the session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
+    /// </returns>
+    /// <response code="200">Returns the updated dining session with the added table</response>
+    /// <response code="400">If the session has ended, has bills, or the table is inactive/assigned to another session</response>
+    /// <response code="404">If the session is not found</response>
+    /// <response code="500">If an internal error occurs while adding the table to the session</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/diningsession/123/tables
+    ///     {
+    ///         "table_Id": 456
+    ///     }
+    ///
+    /// Adds a table to an active dining session.
+    /// Requirements:
+    /// - Session must not have ended
+    /// - Session must not have any bills created yet
+    /// - Table must be active
+    /// - Table must not be assigned to another active session
+    /// </remarks>
     [HttpPost("{session_id}/tables")]
+    [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> add_table_to_dining_session(int session_id, [FromBody] TableAssignmentDTO tableData)
     {
       try
@@ -360,6 +472,30 @@ namespace back_end.controllers
       }
     }
 
+    /// <summary>
+    /// Removes a table from a dining session.
+    /// </summary>
+    /// <param name="session_id">The unique identifier of the dining session</param>
+    /// <param name="table_id">The unique identifier of the table to remove</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> indicating the result of the operation.
+    /// Returns HTTP 200 (OK) with a success message when the table is removed.
+    /// Returns HTTP 400 (Bad Request) if the session has open bills.
+    /// Returns HTTP 404 (Not Found) if the session, table, or table-session association doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during removal.
+    /// </returns>
+    /// <response code="200">Returns a success message when the table is removed from the session</response>
+    /// <response code="400">If the session has open bills preventing table removal</response>
+    /// <response code="404">If the session, table, or table-session association is not found</response>
+    /// <response code="500">If an internal error occurs while removing the table from the session</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     DELETE /api/diningsession/123/Tables/456
+    ///
+    /// Removes the association between a table and a dining session.
+    /// Tables cannot be removed from sessions that have open bills.
+    /// </remarks>
     [HttpDelete("{session_id}/Tables/{table_id}")]
     public async Task<IActionResult> remove_table_from_session(int session_id, int table_id)
     {
@@ -448,8 +584,35 @@ namespace back_end.controllers
       }
     }
 
+    /// <summary>
+    /// Retrieves the active dining session ID for the current authenticated user.
+    /// </summary>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the active session ID.
+    /// Returns HTTP 200 (OK) with the session ID on success.
+    /// Returns HTTP 401 (Unauthorized) if the user is not authenticated.
+    /// Returns HTTP 404 (Not Found) if no active session exists for the user.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the active session ID for the authenticated user</response>
+    /// <response code="401">If the user is not authenticated</response>
+    /// <response code="404">If no active session is found for the user</response>
+    /// <response code="500">If an internal error occurs while retrieving the active session</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/diningsession/participants/active-session-id
+    ///
+    /// This endpoint requires authentication.
+    /// Returns the session ID of the user's current active (not ended) dining session.
+    /// A user can only have one active session at a time.
+    /// </remarks>
     [Authorize]
     [HttpGet("participants/active-session-id")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetActiveSessionId()
     {
       try
@@ -489,7 +652,30 @@ namespace back_end.controllers
       }
     }
 
+    /// <summary>
+    /// Retrieves the menu ID associated with a specific dining session.
+    /// </summary>
+    /// <param name="session_id">The unique identifier of the dining session</param>
+    /// <returns>
+    /// An <see cref="ActionResult"/> containing a <see cref="SessionMenuResponseDTO"/> object with the menu ID.
+    /// Returns HTTP 200 (OK) with the menu ID on success.
+    /// Returns HTTP 404 (Not Found) if the dining session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the menu ID for the specified session</response>
+    /// <response code="404">If the dining session is not found</response>
+    /// <response code="500">If an internal error occurs while retrieving the session menu</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/diningsession/session-menu/123
+    ///
+    /// Returns the menu ID associated with the specified dining session.
+    /// </remarks>
     [HttpGet("session-menu/{session_id}")]
+    [ProducesResponseType(typeof(SessionMenuResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<SessionMenuResponseDTO>> get_session_menu_id(int session_id)
     {
       try
