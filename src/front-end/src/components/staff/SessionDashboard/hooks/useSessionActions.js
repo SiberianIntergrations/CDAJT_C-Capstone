@@ -14,8 +14,8 @@ export const useSessionActions = (onSuccess) => {
     try {
       setActionError(null);
       // TODO: Update endpoint (api from old project: /dining-sessions POST)
-      const response = await api.post("/DiningSession/Create_Dining_Session", {
-          menu_id: parseInt(menuId),
+      const response = await api.post("/DiningSession/Create_Dinning_Session", {
+        menu_id: parseInt(menuId),
       });
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(response.data?.detail || "Failed to create session");
@@ -59,15 +59,13 @@ export const useSessionActions = (onSuccess) => {
       setActionError(null);
 
       // api from old project: /bills/${sessionId} POST
-      const response = await api.post(`/Bill/create_Bill/${session_id}`,
-        {
-          bill_name: billData.billName,
-          adult_count: parseInt(billData.adultCount),
-          child_count: parseInt(billData.childCount),
-          senior_count: parseInt(billData.seniorCount),
-          tot_count: parseInt(billData.totCount),
-        }
-      );
+      const response = await api.post(`/Bill/create_Bill/${session_id}`, {
+        bill_name: billData.billName,
+        adult_count: parseInt(billData.adultCount),
+        child_count: parseInt(billData.childCount),
+        senior_count: parseInt(billData.seniorCount),
+        tot_count: parseInt(billData.totCount),
+      });
 
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(response.data?.detail || "Failed to create bill");
@@ -128,7 +126,9 @@ export const useSessionActions = (onSuccess) => {
       setActionError(null);
 
       // api from old project: /dining-sessions/{sessionId}/tables/{tableId} DELETE
-      const response = await api.delete(`/DiningSession/${session_id}/Tables/${table_id}`);
+      const response = await api.delete(
+        `/DiningSession/${session_id}/Tables/${table_id}`
+      );
       if (response.status !== 200 && response.status !== 204) {
         throw new Error(response.data?.detail || "Failed to remove table");
       }

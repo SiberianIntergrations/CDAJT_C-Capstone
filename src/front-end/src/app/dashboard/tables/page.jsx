@@ -3,16 +3,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, CircularProgress } from "@mui/material";
 import { ErrorBoundary } from "react-error-boundary";
-import SessionDashboard from "@/components/staff/SessionDashboard";
+import TableDashboard from "@/components/staff/TableDashboard";
 import styled from "@emotion/styled";
 import { getUserRole } from "@/utils/token";
-
-// export const metadata = {
-//   title: "Session Management | Sushi Toshi",
-//   description: "Manage dining sessions and tables",
-//   name: "viewport",
-//   content: "width=device-width, initial-scale=1",
-// };
 
 const ErrorMessage = styled.div`
   padding: 16px;
@@ -38,7 +31,7 @@ function ErrorFallback({ error }) {
   );
 }
 
-const SessionsPage = () => {
+const TablesPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,7 +45,6 @@ const SessionsPage = () => {
 
       try {
         const role = getUserRole(token);
-        console.log("TOKEN: ", role);
         if (role !== "admin" && role !== "staff") {
           router.push("/unauthorized");
           return false;
@@ -86,10 +78,10 @@ const SessionsPage = () => {
   return (
     <FullPageContainer>
       <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <SessionDashboard />
+        <TableDashboard />
       </ErrorBoundary>
     </FullPageContainer>
   );
 };
 
-export default SessionsPage;
+export default TablesPage;

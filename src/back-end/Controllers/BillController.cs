@@ -11,508 +11,562 @@ using Microsoft.EntityFrameworkCore;
 
 namespace back_end.controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
+  [ApiController]
+  [Route("api/[controller]")]
+  public class BillController : ControllerBase
+  {
+    private readonly ApplicationDbContext _context;
+    private readonly IConfiguration _config;
+    private readonly ILogger<BillController> _logger;
 
-    public class BillController : ControllerBase
+    public BillController(ApplicationDbContext context, IConfiguration config, ILogger<BillController> logger)
     {
-        private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _config;
-        private readonly ILogger<BillController> _logger;
-
-        public BillController(ApplicationDbContext context, IConfiguration config, ILogger<BillController> logger)
-        {
-            _context = context;
-            _config = config;
-            _logger = logger;
-        }
-
-        /// <summary>
-        /// Creates a new bill for a dining session.
-        /// </summary>
-        /// <param name="_session_id">The unique identifier of the dining session</param>
-        /// <param name="bill_data">The bill creation data including guest counts and bill name</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> containing the created <see cref="BillResponse"/> object.
-        /// Returns HTTP 200 (OK) with the created bill details on success.
-        /// Returns HTTP 400 (Bad Request) if validation fails.
-        /// Returns HTTP 404 (Not Found) if the session doesn't exist.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
-        /// </returns>
-        /// <response code="200">Returns the newly created bill</response>
-        /// <response code="400">If the session has ended, has no tables, or guest counts are invalid</response>
-        /// <response code="404">If the session is not found</response>
-        /// <response code="500">If an internal error occurs while creating the bill</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     POST /api/bill/create_Bill/123
-        ///     {
-        ///         "bill_Name": "Table 5 Bill",
-        ///         "adult_Count": 2,
-        ///         "senior_Count": 1,
-        ///         "child_Count": 0,
-        ///         "tot_Count": 3
-        ///     }
-        ///
-        /// Creates a new bill for the specified session.
-        /// Requirements:
-        /// - Session must be active (not ended)
-        /// - Session must have at least one table assigned
-        /// - At least one guest (adult, senior, or child) must be specified
-        /// 
-        /// The bill is automatically created with 'Open' status.
-        /// </remarks>
-        [HttpPost("create_Bill/{_session_id}")]
-        public async Task<IActionResult> Create_Bill(int _session_id, CreateBill bill_data)
-    {
-        try
-        {
-            var session = await _context.DiningSessions.FirstOrDefaultAsync(ds => ds.Session_Id == _session_id);
-            if (session == null)
-            {
-                return NotFound(new { message = "Bill or session was not found" });
-            }
-            if (session.Ended_At == null)
-            {
-                return BadRequest(new { message = $"Cannot create bill for session that ended {session.Ended_At}" });
-            }
-            if (session.Tables == null)
-            {
-                return BadRequest(new { message = $"Cannot create a bill that has no table" });
-            }
-            if (bill_data.Adult_Count <= 0 && bill_data.Senior_Count <= 0 && bill_data.Child_Count <= 0)
-            {
-                return BadRequest(new { message = "Bill must have at least one guest in the session" });
-            }
-
-            // Validate Bill_Name is required
-            if (string.IsNullOrWhiteSpace(bill_data.Bill_Name))
-            {
-                return BadRequest(new { message = "Bill_Name is required." });
-            }
-
-            var NewBill = new Billing
-            {
-                Session_Id   = _session_id,
-                Bill_Name    = bill_data.Bill_Name!, // safe after validation
-                Senior_Count = bill_data.Senior_Count,
-                Adult_Count  = bill_data.Adult_Count,
-                Child_Count  = bill_data.Child_Count,
-                Total_Count  = bill_data.Tot_Count,
-                Status       = BillStatus.Open
-            };
-
-            _context.Bills.Add(NewBill);
-            await _context.SaveChangesAsync();
-            await _context.Entry(NewBill).ReloadAsync();
-
-            return Ok(new BillResponse
-            {
-                Bill_Id       = NewBill.Bill_Id,
-                Session_Id    = NewBill.Session_Id,
-                Bill_Name     = NewBill.Bill_Name,
-                Senior_Count  = NewBill.Senior_Count,
-                Adult_Count   = NewBill.Adult_Count,
-                Child_Count   = NewBill.Child_Count,
-                Total_Count   = NewBill.Total_Count,
-                Status        = NewBill.Status.ToString(),
-                Created_At    = NewBill.Created_At,
-                Closed_At     = NewBill.Closed_At.ToString(),
-                Table_Numbers = new List<int>()
-            });
-        }
-        catch (DbUpdateException ex)
-        {
-            Console.WriteLine($"Error in Create Bill {ex}");
-            return StatusCode(500, "There was a Problem in the Create Bill Method");
-        }
+      _context = context;
+      _config = config;
+      _logger = logger;
     }
 
-        /// <summary>
-        /// Retrieves all bills for a specific dining session, optionally filtered by table.
-        /// </summary>
-        /// <param name="_session_id">The unique identifier of the dining session</param>
-        /// <param name="_table_id">Optional table ID to filter bills by a specific table</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> containing a collection of <see cref="BillResponse"/> objects.
-        /// Returns HTTP 200 (OK) with the list of bills on success.
-        /// Returns HTTP 400 (Bad Request) if the specified table is not associated with the session.
-        /// Returns HTTP 404 (Not Found) if the session doesn't exist or no bills are found.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
-        /// </returns>
-        /// <response code="200">Returns the list of bills for the session</response>
-        /// <response code="400">If the specified table is not associated with the session</response>
-        /// <response code="404">If the session is not found or no bills exist</response>
-        /// <response code="500">If an internal error occurs while retrieving bills</response>
-        /// <remarks>
-        /// Sample requests:
-        ///
-        ///     GET /api/bill/get_bills/123
-        ///     (Returns all bills for session 123)
-        ///     
-        ///     GET /api/bill/get_bills/123?_table_id=456
-        ///     (Returns bills for session 123, filtered by table 456)
-        ///
-        /// Bills are ordered by creation date (newest first).
-        /// </remarks>
-        [HttpGet("get_bills/{_session_id}")]
-        [ProducesResponseType(typeof(List<BillResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Get_Bills(int _session_id, int? _table_id = null)
-        {
-            try
-            {
-                var session = await _context.DiningSessions.FirstOrDefaultAsync(ds => ds.Session_Id == _session_id);
-                if (session == null)
-                {
-                    return NotFound(new { message = "Session was not found" });
-                }
-                var billQuery = _context.Bills.Where(b => b.Session_Id == _session_id);
-                if (_table_id.HasValue)
-                {
-                    if (!session.Tables.Any(t => t.Table_Id == _table_id.Value))
-                    {
-                        return BadRequest(new { message = $"Table with ID {_table_id.Value} is not associated with session {_session_id}" });
-                    }
-
-                }
-                var bills = billQuery.OrderByDescending(b => b.Created_At).ToList();
-                if (bills.Count == 0)
-                {
-                    return NotFound(new { message = "No bills found for the specified session" });
-                }
-
-                var billResponses = bills.Select(bill => new BillResponse
-                {
-                    Bill_Id = bill.Bill_Id,
-                    Session_Id = bill.Session_Id,
-                    Bill_Name = bill.Bill_Name ?? string.Empty,
-                    Senior_Count = bill.Senior_Count,
-                    Adult_Count = bill.Adult_Count,
-                    Child_Count = bill.Child_Count,
-                    Total_Count = bill.Total_Count,
-                    Status = bill.Status.ToString(),
-                    Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At.ToString(),
-                    Table_Numbers = new List<int>()
-                }).ToList();
-                return Ok(billResponses);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in Get Bill: {ex}");
-                return StatusCode(500, "There was a Problem in the Get Bill Method");
-            }
-        }
-
-        /// <summary>
-        /// Retrieves detailed information about a specific bill.
-        /// </summary>
-        /// <param name="_session_id">The unique identifier of the dining session</param>
-        /// <param name="_bill_id">The unique identifier of the bill</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> containing the <see cref="BillResponse"/> object.
-        /// Returns HTTP 200 (OK) with the bill details on success.
-        /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
-        /// </returns>
-        /// <response code="200">Returns the bill details</response>
-        /// <response code="404">If the bill or session is not found</response>
-        /// <response code="500">If an internal error occurs while retrieving the bill</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     GET /api/bill/get_bill/123?_session_id=456
-        ///
-        /// Returns complete bill information including guest counts, status, and timestamps.
-        /// </remarks>
-        [HttpGet("get_bill/{_bill_id}")]
-        [ProducesResponseType(typeof(BillResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Get_Bill(int _session_id, int _bill_id)
-        {
-            try
-            {
-                var session = await _context.Bills.FirstOrDefaultAsync(ds => ds.Bill_Id == _bill_id && ds.Session_Id == _session_id);
-                if (session == null)
-                {
-                    return NotFound(new { message = "Bill or session was not found" });
-                }
-                return Ok(new BillResponse
-                {
-                    Bill_Id = session.Bill_Id,
-                    Session_Id = session.Session_Id,
-                    Bill_Name = session.Bill_Name ?? string.Empty,
-                    Senior_Count = session.Senior_Count,
-                    Adult_Count = session.Adult_Count,
-                    Child_Count = session.Child_Count,
-                    Total_Count = session.Total_Count,
-                    Status = session.Status.ToString(),
-                    Created_At = session.Created_At,
-                    Closed_At = session.Closed_At.ToString(),
-                    Table_Numbers = new List<int>()
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in Get Bill: {ex}");
-                return StatusCode(500, "There was a Problem in the Get Bill Method");
-            }
-        }
-
-        /// <summary>
-        /// Closes an open bill after verifying all orders are completed.
-        /// </summary>
-        /// <param name="_session_id">The unique identifier of the dining session</param>
-        /// <param name="_bill_id">The unique identifier of the bill to close</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> containing the closed <see cref="BillResponse"/> object.
-        /// Returns HTTP 200 (OK) with the closed bill details on success.
-        /// Returns HTTP 400 (Bad Request) if the bill is already closed or has pending orders.
-        /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during closure.
-        /// </returns>
-        /// <response code="200">Returns the closed bill details</response>
-        /// <response code="400">If the bill is already closed or has pending orders</response>
-        /// <response code="404">If the bill or session is not found</response>
-        /// <response code="500">If an internal error occurs while closing the bill</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     PUT /api/bill/close_bill/123?_session_id=456
-        ///
-        /// Closes the specified bill and sets the closed_at timestamp.
-        /// Requirements:
-        /// - Bill must not already be closed
-        /// - All orders associated with the bill must be completed (no pending orders)
-        /// </remarks>
-        [HttpPut("close_bill/{_bill_id}")]
-        [ProducesResponseType(typeof(BillResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-        public async Task<IActionResult> Close_Bill(int _session_id, int _bill_id)
-        {
-            try
-            {
-                var bill = await _context.Bills.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
-                if (bill == null)
-                {
-                    return NotFound(new { message = "Bill or session was not found" });
-                }
-                if (bill.Status == BillStatus.Closed)
-                {
-                    return BadRequest(new { message = "Bill is already closed" });
-                }
-                var pendingOrders = await _context.SessionOrders
-                    .Where(o => o.Bill_Id == _bill_id && o.Status == OrderStatus.Pending)
-                    .ToListAsync();
-
-                if (pendingOrders.Any())
-                {
-                    return BadRequest(new { message = "Cannot close bill with pending orders" });
-                }
-                bill.Status = BillStatus.Closed;
-                bill.Closed_At = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-                await _context.Entry(bill).ReloadAsync();
-                return Ok(new BillResponse
-                {
-                    Bill_Id = bill.Bill_Id,
-                    Session_Id = bill.Session_Id,
-                    Bill_Name = bill.Bill_Name ?? string.Empty,
-                    Senior_Count = bill.Senior_Count,
-                    Adult_Count = bill.Adult_Count,
-                    Child_Count = bill.Child_Count,
-                    Total_Count = bill.Total_Count,
-                    Status = bill.Status.ToString(),
-                    Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At.ToString(),
-                    Table_Numbers = new List<int>()
-                });
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in Close Bill: {ex}");
-                return StatusCode(500, "There was a Problem in the Close Bill Method");
-            }
-        }
-
-
-        /// <summary>
-        /// Cancels an open bill and all associated pending orders.
-        /// </summary>
-        /// <param name="_session_id">The unique identifier of the dining session</param>
-        /// <param name="_bill_id">The unique identifier of the bill to cancel</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> containing the cancelled <see cref="BillResponse"/> object.
-        /// Returns HTTP 200 (OK) with the cancelled bill details on success.
-        /// Returns HTTP 400 (Bad Request) if the bill is not in Open status.
-        /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during cancellation.
-        /// </returns>
-        /// <response code="200">Returns the cancelled bill details</response>
-        /// <response code="400">If the bill cannot be cancelled (not in Open status)</response>
-        /// <response code="404">If the bill or session is not found</response>
-        /// <response code="500">If an internal error occurs while cancelling the bill</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     POST /api/bill/cancel_bill/123?_session_id=456
-        ///
-        /// Cancels the specified bill and automatically cancels all pending orders associated with it.
-        /// Only bills with 'Open' status can be cancelled.
-        /// The bill's closed_at timestamp is set to the current UTC time.
-        /// </remarks>
-        [HttpPost("cancel_bill/{_bill_id}")]
-        [ProducesResponseType(typeof(BillResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Cancel_Bill(int _session_id, int _bill_id)
-        {
-            try
-            {
-                var bill = await _context.Bills.FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
-                if (bill == null)
-                {
-                    return NotFound(new { message = "Bill or session was not found" });
-                }
-                if (bill.Status != BillStatus.Open)
-                {
-                    return BadRequest(new { message = $"Cannot cancel bill with status {bill.Status}" });
-                }
-                var pendingOrders = await _context.SessionOrders
-                    .Where(o => o.Bill_Id == _bill_id && (o.Status == OrderStatus.Pending))
-                    .ToListAsync();
-                if (pendingOrders.Any())
-                {
-                    for (int i = 0; i < pendingOrders.Count; i++)
-                    {
-                        var order = pendingOrders[i];
-                        order.Status = OrderStatus.Cancelled;
-                    }
-                }
-                bill.Status = BillStatus.Cancelled;
-                bill.Closed_At = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-                await _context.Entry(bill).ReloadAsync();
-                return Ok(new BillResponse
-                {
-                    Bill_Id = bill.Bill_Id,
-                    Session_Id = bill.Session_Id,
-                    Bill_Name = bill.Bill_Name ?? string.Empty,
-                    Senior_Count = bill.Senior_Count,
-                    Adult_Count = bill.Adult_Count,
-                    Child_Count = bill.Child_Count,
-                    Total_Count = bill.Total_Count,
-                    Status = bill.Status.ToString(),
-                    Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At.ToString(),
-                    Table_Numbers = new List<int>()
-                });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in Cancel Bill: {ex}");
-                return StatusCode(500, "There was a Problem in the Cancel Bill Method");
-            }
-        }
-
-        /// <summary>
-        /// Retrieves all bills associated with the current user's active dining session.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="ActionResult"/> containing a collection of <see cref="BillResponse"/> objects.
-        /// Returns HTTP 200 (OK) with the list of bills on success.
-        /// Returns HTTP 404 (Not Found) if no bills exist for the user's active session.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
-        /// </returns>
-        /// <response code="200">Returns the list of bills for the user's active session</response>
-        /// <response code="404">If no bills are found for the user's active session</response>
-        /// <response code="500">If an internal error occurs while retrieving bills</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     GET /api/bill/active/bills
-        ///
-        /// This endpoint requires authentication.
-        /// Returns all bills associated with the authenticated user's current active session.
-        /// Only returns bills where:
-        /// - The user is an active participant (hasn't left the session)
-        /// - The dining session is still active (hasn't ended)
-        /// </remarks>
-        [HttpGet("active/bills")]
-        [ProducesResponseType(typeof(List<BillResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<List<BillResponse>>> GetActiveBills()
-        {
-            try
-            {
-                // Retrieve current user ID from claims (assuming JWT authentication)
-                var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "User_Id");
-                var userId = userIdClaim?.Value ?? "Unknown";
-
-                // Get all bills for user's active session using joins
-                var bills = await _context.Bills
-                    .Join(
-                        _context.DiningSessions,
-                        bill => bill.Session_Id,
-                        session => session.Session_Id,
-                        (bill, session) => new { bill, session }
-                    )
-                    .Join(
-                        _context.SessionParticipants,
-                        combined => combined.session.Session_Id,
-                        participant => participant.Session_Id,
-                        (combined, participant) => new { combined.bill, combined.session, participant }
-                    )
-                    .Where(x => 
-                        x.participant.User_Id.ToString() == userId &&
-                        x.participant.Left_At == null &&  // User hasn't left
-                        x.session.Ended_At == null        // Session is active
-                    )
-                    .Select(x => x.bill)
-                    .ToListAsync();
-
-                if (!bills.Any())
-                {
-                    return NotFound(new { detail = "No bills found for active session" });
-                }
-
-                // Convert bills to response model
-                _logger.LogInformation($"Found {bills.Count} bills for user {userId}'s active session");
-
-                var billResponses = bills.Select(bill => new BillResponse
-                {
-                    Bill_Id = bill.Bill_Id,
-                    Session_Id = bill.Session_Id,
-                    Bill_Name = bill.Bill_Name ?? string.Empty,
-                    Senior_Count = bill.Senior_Count,
-                    Adult_Count = bill.Adult_Count,
-                    Child_Count = bill.Child_Count,
-                    Total_Count = bill.Total_Count,
-                    Status = bill.Status.ToString(),
-                    Created_At = bill.Created_At,
-                    Closed_At = bill.Closed_At.ToString(),
-                    Table_Numbers = new List<int>()
-                }).ToList();
-
-                return Ok(billResponses);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Database error retrieving bills: {ex.Message}");
-                return StatusCode(500, new { detail = "Error retrieving bills" });
-            }
-        }
-        }
-
+    // Helper method to get table numbers from session
+    private List<int> GetTableNumbers(DiningSession session)
+    {
+      if (session.Table != null)
+      {
+        return new List<int> { session.Table.table_number };
+      }
+      else if (session.TableGroup != null && session.TableGroup.Tables != null)
+      {
+        return session.TableGroup.Tables.Select(t => t.table_number).ToList();
+      }
+      return new List<int>();
     }
+
+    /// <summary>
+    /// Creates a new bill for a dining session.
+    /// </summary>
+    /// <param name="_session_id">The unique identifier of the dining session</param>
+    /// <param name="bill_data">The bill creation data including guest counts and bill name</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the created <see cref="BillResponse"/> object.
+    /// Returns HTTP 200 (OK) with the created bill details on success.
+    /// Returns HTTP 400 (Bad Request) if validation fails.
+    /// Returns HTTP 404 (Not Found) if the session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+    /// </returns>
+    /// <response code="200">Returns the newly created bill</response>
+    /// <response code="400">If the session has ended, has no tables, or guest counts are invalid</response>
+    /// <response code="404">If the session is not found</response>
+    /// <response code="500">If an internal error occurs while creating the bill</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/bill/create_Bill/123
+    ///     {
+    ///         "bill_Name": "Table 5 Bill",
+    ///         "adult_Count": 2,
+    ///         "senior_Count": 1,
+    ///         "child_Count": 0,
+    ///         "tot_Count": 3
+    ///     }
+    ///
+    /// Creates a new bill for the specified session.
+    /// Requirements:
+    /// - Session must be active (not ended)
+    /// - Session must have at least one table assigned
+    /// - At least one guest (adult, senior, or child) must be specified
+    /// 
+    /// The bill is automatically created with 'Open' status.
+    /// </remarks>
+    [HttpPost("create_Bill/{_session_id}")]
+    public async Task<IActionResult> Create_Bill(int _session_id, CreateBill bill_data)
+    {
+      try
+      {
+        var session = await _context.DiningSessions
+            .Include(ds => ds.Table)
+            .Include(ds => ds.TableGroup)
+                .ThenInclude(tg => tg.Tables)
+            .FirstOrDefaultAsync(ds => ds.Session_Id == _session_id);
+
+        if (session == null)
+        {
+          return NotFound(new { message = "Bill or session was not found" });
+        }
+
+        if (session.Ended_At == null)
+        {
+          return BadRequest(new { message = $"Cannot create bill for session that ended {session.Ended_At}" });
+        }
+
+        // Check if session has either a table or table group assigned
+        if (!session.Table_Id.HasValue && !session.TableGroup_Id.HasValue)
+        {
+          return BadRequest(new { message = "Cannot create a bill for a session that has no table or table group assigned" });
+        }
+
+        if (bill_data.Adult_Count <= 0 && bill_data.Senior_Count <= 0 && bill_data.Child_Count <= 0)
+        {
+          return BadRequest(new { message = "Bill must have at least one guest in the session" });
+        }
+
+        // Validate Bill_Name is required
+        if (string.IsNullOrWhiteSpace(bill_data.Bill_Name))
+        {
+          return BadRequest(new { message = "Bill_Name is required." });
+        }
+
+        var NewBill = new Billing
+        {
+          Session_Id = _session_id,
+          Bill_Name = bill_data.Bill_Name!, // safe after validation
+          Senior_Count = bill_data.Senior_Count,
+          Adult_Count = bill_data.Adult_Count,
+          Child_Count = bill_data.Child_Count,
+          Total_Count = bill_data.Tot_Count,
+          Status = BillStatus.Open
+        };
+
+        _context.Bills.Add(NewBill);
+        await _context.SaveChangesAsync();
+        await _context.Entry(NewBill).ReloadAsync();
+
+        return Ok(new BillResponse
+        {
+          Bill_Id = NewBill.Bill_Id,
+          Session_Id = NewBill.Session_Id,
+          Bill_Name = NewBill.Bill_Name,
+          Senior_Count = NewBill.Senior_Count,
+          Adult_Count = NewBill.Adult_Count,
+          Child_Count = NewBill.Child_Count,
+          Total_Count = NewBill.Total_Count,
+          Status = NewBill.Status.ToString(),
+          Created_At = NewBill.Created_At,
+          Closed_At = NewBill.Closed_At.ToString(),
+          Table_Numbers = GetTableNumbers(session)
+        });
+      }
+      catch (DbUpdateException ex)
+      {
+        Console.WriteLine($"Error in Create Bill {ex}");
+        return StatusCode(500, "There was a Problem in the Create Bill Method");
+      }
+    }
+
+    /// <summary>
+    /// Retrieves all bills for a specific dining session, optionally filtered by table.
+    /// </summary>
+    /// <param name="_session_id">The unique identifier of the dining session</param>
+    /// <param name="_table_id">Optional table ID to filter bills by a specific table</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing a collection of <see cref="BillResponse"/> objects.
+    /// Returns HTTP 200 (OK) with the list of bills on success.
+    /// Returns HTTP 400 (Bad Request) if the specified table is not associated with the session.
+    /// Returns HTTP 404 (Not Found) if the session doesn't exist or no bills are found.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the list of bills for the session</response>
+    /// <response code="400">If the specified table is not associated with the session</response>
+    /// <response code="404">If the session is not found or no bills exist</response>
+    /// <response code="500">If an internal error occurs while retrieving bills</response>
+    /// <remarks>
+    /// Sample requests:
+    ///
+    ///     GET /api/bill/get_bills/123
+    ///     (Returns all bills for session 123)
+    ///     
+    ///     GET /api/bill/get_bills/123?_table_id=456
+    ///     (Returns bills for session 123, filtered by table 456)
+    ///
+    /// Bills are ordered by creation date (newest first).
+    /// </remarks>
+    [HttpGet("get_bills/{_session_id}")]
+    public async Task<IActionResult> Get_Bills(int _session_id, int? _table_id = null)
+    {
+      try
+      {
+        var session = await _context.DiningSessions
+            .Include(ds => ds.Table)
+            .Include(ds => ds.TableGroup)
+                .ThenInclude(tg => tg.Tables)
+            .FirstOrDefaultAsync(ds => ds.Session_Id == _session_id);
+
+        if (session == null)
+        {
+          return NotFound(new { message = "Session was not found" });
+        }
+
+        var billQuery = _context.Bills.Where(b => b.Session_Id == _session_id);
+
+        // If table_id is specified, validate it belongs to the session
+        if (_table_id.HasValue)
+        {
+          bool tableInSession = false;
+
+          // Check if it's the directly assigned table
+          if (session.Table_Id == _table_id.Value)
+          {
+            tableInSession = true;
+          }
+          // Check if it's in the table group
+          else if (session.TableGroup_Id.HasValue &&
+                   session.TableGroup.Tables.Any(t => t.Table_Id == _table_id.Value))
+          {
+            tableInSession = true;
+          }
+
+          if (!tableInSession)
+          {
+            return BadRequest(new { message = $"Table with ID {_table_id.Value} is not associated with session {_session_id}" });
+          }
+        }
+
+        var bills = billQuery.OrderByDescending(b => b.Created_At).ToList();
+
+        if (bills.Count == 0)
+        {
+          return NotFound(new { message = "No bills found for the specified session" });
+        }
+
+        var billResponses = bills.Select(bill => new BillResponse
+        {
+          Bill_Id = bill.Bill_Id,
+          Session_Id = bill.Session_Id,
+          Bill_Name = bill.Bill_Name ?? string.Empty,
+          Senior_Count = bill.Senior_Count,
+          Adult_Count = bill.Adult_Count,
+          Child_Count = bill.Child_Count,
+          Total_Count = bill.Total_Count,
+          Status = bill.Status.ToString(),
+          Created_At = bill.Created_At,
+          Closed_At = bill.Closed_At.ToString(),
+          Table_Numbers = GetTableNumbers(session)
+        }).ToList();
+
+        return Ok(billResponses);
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error in Get Bill: {ex}");
+        return StatusCode(500, "There was a Problem in the Get Bill Method");
+      }
+    }
+
+    /// <summary>
+    /// Retrieves detailed information about a specific bill.
+    /// </summary>
+    /// <param name="_session_id">The unique identifier of the dining session</param>
+    /// <param name="_bill_id">The unique identifier of the bill</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the <see cref="BillResponse"/> object.
+    /// Returns HTTP 200 (OK) with the bill details on success.
+    /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the bill details</response>
+    /// <response code="404">If the bill or session is not found</response>
+    /// <response code="500">If an internal error occurs while retrieving the bill</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/bill/get_bill/123?_session_id=456
+    ///
+    /// Returns complete bill information including guest counts, status, and timestamps.
+    /// </remarks>
+    [HttpGet("get_bill/{_bill_id}")]
+    public async Task<IActionResult> Get_Bill(int _session_id, int _bill_id)
+    {
+      try
+      {
+        var bill = await _context.Bills
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.Table)
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.TableGroup)
+                    .ThenInclude(tg => tg.Tables)
+            .FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+
+        if (bill == null)
+        {
+          return NotFound(new { message = "Bill or session was not found" });
+        }
+
+        return Ok(new BillResponse
+        {
+          Bill_Id = bill.Bill_Id,
+          Session_Id = bill.Session_Id,
+          Bill_Name = bill.Bill_Name ?? string.Empty,
+          Senior_Count = bill.Senior_Count,
+          Adult_Count = bill.Adult_Count,
+          Child_Count = bill.Child_Count,
+          Total_Count = bill.Total_Count,
+          Status = bill.Status.ToString(),
+          Created_At = bill.Created_At,
+          Closed_At = bill.Closed_At.ToString(),
+          Table_Numbers = GetTableNumbers(bill.DiningSession)
+        });
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error in Get Bill: {ex}");
+        return StatusCode(500, "There was a Problem in the Get Bill Method");
+      }
+    }
+
+    /// <summary>
+    /// Closes an open bill after verifying all orders are completed.
+    /// </summary>
+    /// <param name="_session_id">The unique identifier of the dining session</param>
+    /// <param name="_bill_id">The unique identifier of the bill to close</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the closed <see cref="BillResponse"/> object.
+    /// Returns HTTP 200 (OK) with the closed bill details on success.
+    /// Returns HTTP 400 (Bad Request) if the bill is already closed or has pending orders.
+    /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during closure.
+    /// </returns>
+    /// <response code="200">Returns the closed bill details</response>
+    /// <response code="400">If the bill is already closed or has pending orders</response>
+    /// <response code="404">If the bill or session is not found</response>
+    /// <response code="500">If an internal error occurs while closing the bill</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     PUT /api/bill/close_bill/123?_session_id=456
+    ///
+    /// Closes the specified bill and sets the closed_at timestamp.
+    /// Requirements:
+    /// - Bill must not already be closed
+    /// - All orders associated with the bill must be completed (no pending orders)
+    /// </remarks>
+    [HttpPut("close_bill/{_bill_id}")]
+    public async Task<IActionResult> Close_Bill(int _session_id, int _bill_id)
+    {
+      try
+      {
+        var bill = await _context.Bills
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.Table)
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.TableGroup)
+                    .ThenInclude(tg => tg.Tables)
+            .FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+
+        if (bill == null)
+        {
+          return NotFound(new { message = "Bill or session was not found" });
+        }
+
+        if (bill.Status == BillStatus.Closed)
+        {
+          return BadRequest(new { message = "Bill is already closed" });
+        }
+
+        var pendingOrders = await _context.SessionOrders
+            .Where(o => o.Bill_Id == _bill_id && o.Status == OrderStatus.Pending)
+            .ToListAsync();
+
+        if (pendingOrders.Any())
+        {
+          return BadRequest(new { message = "Cannot close bill with pending orders" });
+        }
+
+        bill.Status = BillStatus.Closed;
+        bill.Closed_At = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        await _context.Entry(bill).ReloadAsync();
+
+        return Ok(new BillResponse
+        {
+          Bill_Id = bill.Bill_Id,
+          Session_Id = bill.Session_Id,
+          Bill_Name = bill.Bill_Name ?? string.Empty,
+          Senior_Count = bill.Senior_Count,
+          Adult_Count = bill.Adult_Count,
+          Child_Count = bill.Child_Count,
+          Total_Count = bill.Total_Count,
+          Status = bill.Status.ToString(),
+          Created_At = bill.Created_At,
+          Closed_At = bill.Closed_At.ToString(),
+          Table_Numbers = GetTableNumbers(bill.DiningSession)
+        });
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error in Close Bill: {ex}");
+        return StatusCode(500, "There was a Problem in the Close Bill Method");
+      }
+    }
+
+    /// <summary>
+    /// Cancels an open bill and all associated pending orders.
+    /// </summary>
+    /// <param name="_session_id">The unique identifier of the dining session</param>
+    /// <param name="_bill_id">The unique identifier of the bill to cancel</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the cancelled <see cref="BillResponse"/> object.
+    /// Returns HTTP 200 (OK) with the cancelled bill details on success.
+    /// Returns HTTP 400 (Bad Request) if the bill is not in Open status.
+    /// Returns HTTP 404 (Not Found) if the bill or session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during cancellation.
+    /// </returns>
+    /// <response code="200">Returns the cancelled bill details</response>
+    /// <response code="400">If the bill cannot be cancelled (not in Open status)</response>
+    /// <response code="404">If the bill or session is not found</response>
+    /// <response code="500">If an internal error occurs while cancelling the bill</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/bill/cancel_bill/123?_session_id=456
+    ///
+    /// Cancels the specified bill and automatically cancels all pending orders associated with it.
+    /// Only bills with 'Open' status can be cancelled.
+    /// The bill's closed_at timestamp is set to the current UTC time.
+    /// </remarks>
+    [HttpPost("cancel_bill/{_bill_id}")]
+    public async Task<IActionResult> Cancel_Bill(int _session_id, int _bill_id)
+    {
+      try
+      {
+        var bill = await _context.Bills
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.Table)
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.TableGroup)
+                    .ThenInclude(tg => tg.Tables)
+            .FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+
+        if (bill == null)
+        {
+          return NotFound(new { message = "Bill or session was not found" });
+        }
+
+        if (bill.Status != BillStatus.Open)
+        {
+          return BadRequest(new { message = $"Cannot cancel bill with status {bill.Status}" });
+        }
+
+        var pendingOrders = await _context.SessionOrders
+            .Where(o => o.Bill_Id == _bill_id && (o.Status == OrderStatus.Pending))
+            .ToListAsync();
+
+        if (pendingOrders.Any())
+        {
+          for (int i = 0; i < pendingOrders.Count; i++)
+          {
+            var order = pendingOrders[i];
+            order.Status = OrderStatus.Cancelled;
+          }
+        }
+
+        bill.Status = BillStatus.Cancelled;
+        bill.Closed_At = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        await _context.Entry(bill).ReloadAsync();
+
+        return Ok(new BillResponse
+        {
+          Bill_Id = bill.Bill_Id,
+          Session_Id = bill.Session_Id,
+          Bill_Name = bill.Bill_Name ?? string.Empty,
+          Senior_Count = bill.Senior_Count,
+          Adult_Count = bill.Adult_Count,
+          Child_Count = bill.Child_Count,
+          Total_Count = bill.Total_Count,
+          Status = bill.Status.ToString(),
+          Created_At = bill.Created_At,
+          Closed_At = bill.Closed_At.ToString(),
+          Table_Numbers = GetTableNumbers(bill.DiningSession)
+        });
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Error in Cancel Bill: {ex}");
+        return StatusCode(500, "There was a Problem in the Cancel Bill Method");
+      }
+    }
+
+    /// <summary>
+    /// Retrieves all bills associated with the current user's active dining session.
+    /// </summary>
+    /// <returns>
+    /// An <see cref="ActionResult"/> containing a collection of <see cref="BillResponse"/> objects.
+    /// Returns HTTP 200 (OK) with the list of bills on success.
+    /// Returns HTTP 404 (Not Found) if no bills exist for the user's active session.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+    /// </returns>
+    /// <response code="200">Returns the list of bills for the user's active session</response>
+    /// <response code="404">If no bills are found for the user's active session</response>
+    /// <response code="500">If an internal error occurs while retrieving bills</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     GET /api/bill/active/bills
+    ///
+    /// This endpoint requires authentication.
+    /// Returns all bills associated with the authenticated user's current active session.
+    /// Only returns bills where:
+    /// - The user is an active participant (hasn't left the session)
+    /// - The dining session is still active (hasn't ended)
+    /// </remarks>
+    [HttpGet("active/bills")]
+    public async Task<ActionResult<List<BillResponse>>> GetActiveBills()
+    {
+      try
+      {
+        // Retrieve current user ID from claims (assuming JWT authentication)
+        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "User_Id");
+        var userId = userIdClaim?.Value ?? "Unknown";
+
+        // Get all bills for user's active session using joins
+        var bills = await _context.Bills
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.Table)
+            .Include(b => b.DiningSession)
+                .ThenInclude(ds => ds.TableGroup)
+                    .ThenInclude(tg => tg.Tables)
+            .Join(
+                _context.SessionParticipants,
+                bill => bill.Session_Id,
+                participant => participant.Session_Id,
+                (bill, participant) => new { bill, participant }
+            )
+            .Where(x =>
+                x.participant.User_Id.ToString() == userId &&
+                x.participant.Left_At == null &&  // User hasn't left
+                x.bill.DiningSession.Ended_At == null        // Session is active
+            )
+            .Select(x => x.bill)
+            .ToListAsync();
+
+        if (!bills.Any())
+        {
+          return NotFound(new { detail = "No bills found for active session" });
+        }
+
+        // Convert bills to response model
+        _logger.LogInformation($"Found {bills.Count} bills for user {userId}'s active session");
+
+        var billResponses = bills.Select(bill => new BillResponse
+        {
+          Bill_Id = bill.Bill_Id,
+          Session_Id = bill.Session_Id,
+          Bill_Name = bill.Bill_Name ?? string.Empty,
+          Senior_Count = bill.Senior_Count,
+          Adult_Count = bill.Adult_Count,
+          Child_Count = bill.Child_Count,
+          Total_Count = bill.Total_Count,
+          Status = bill.Status.ToString(),
+          Created_At = bill.Created_At,
+          Closed_At = bill.Closed_At.ToString(),
+          Table_Numbers = GetTableNumbers(bill.DiningSession)
+        }).ToList();
+
+        return Ok(billResponses);
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError($"Database error retrieving bills: {ex.Message}");
+        return StatusCode(500, new { detail = "Error retrieving bills" });
+      }
+    }
+  }
+}

@@ -70,7 +70,9 @@ const TableSection = ({ session }) => {
     }
   };
 
-  const displayedTables = session.table_numbers.filter(
+  console.log("session ", session);
+
+  const displayedTables = session.table_Numbers.filter(
     (tableNum) => !removedTableIds.has(tableNum)
   );
 
