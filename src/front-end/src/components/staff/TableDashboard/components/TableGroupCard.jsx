@@ -12,7 +12,14 @@ import {
   ListItem,
   ListItemText,
 } from "@mui/material";
-import { Edit, Trash2, ChevronDown, ChevronUp, Users } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Plus,
+} from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";
 import api from "@/config/api";
