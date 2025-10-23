@@ -182,7 +182,7 @@ namespace back_end.Controllers
         //GET: api/menu/{menu}/items
         //Get items from a Menu
         //Display: price, category and diet tags
-        [HttpGet("{menu}/item")]
+        [HttpGet("{menu}/items")]
         public async Task<ActionResult<IEnumerable<object>>> GetItemsByMenu(int menu)
         {
             try
@@ -215,6 +215,15 @@ namespace back_end.Controllers
                         description = m.MenuItem.Description,
                         category = m.MenuItem.Category.Category_name,
                         price = m.Price,
+                        categoryID = m.MenuItem.Category_id,
+                        categoryLimits = new
+                        {
+                            adult = m.MenuItem.Category.adult_limit,
+                            senior = m.MenuItem.Category.senior_limit,
+                            child = m.MenuItem.Category.child_limit,
+                            total = m.MenuItem.Category.total_limit,
+                        },
+                        isAddOn = m.Is_Add_On,
                         imageURL = m.MenuItem.image_url,
                         tags = m.MenuItem.MenuItemTags.
                             Select(me => new
@@ -353,7 +362,7 @@ namespace back_end.Controllers
             }
         }
 
-           
+        
 
     }
 }
