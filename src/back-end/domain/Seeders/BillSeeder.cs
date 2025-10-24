@@ -42,7 +42,7 @@ namespace back_end.domain.Seeders
       foreach (var s in sessions)
       {
         var participantIds = _context.SessionParticipants
-            .Where(p => p.Session_Id == s.Session_Id && customers.Select(c => c.User_id).Contains(p.User_Id))
+            .Where(p => p.Session_Id == s.Session_Id && customers.Any(c => c.User_id == p.User_Id))
             .Select(p => p.User_Id)
             .ToList();
 
