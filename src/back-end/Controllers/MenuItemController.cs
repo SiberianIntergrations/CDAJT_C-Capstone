@@ -611,36 +611,7 @@ namespace back_end.Controllers
         }
         
         
-        [Authorize]
-        [HttpGet("{item_id}/tags-with-colors")]
-        public async Task<IActionResult> Get_Item_Tags_with_Colors (
-            int item_id
-        )
-        {
-            try
-            {
-                var menu_item = _context.MenuItems.FirstOrDefault(mi => mi.item_id == item_id);
-                if (menu_item is null)
-                {
-                    return NotFound("Menu Item was not found");
-                }
-                var tags = await _context.Tags.Where(t => t.MenuItemTags.Any(mt => mt.Menu_item_id == item_id)).OrderBy(t => t.tag_name).ToListAsync();
-                var response = tags.Select(t => new FullTagResponseDTO
-                {
-                    Name = t.tag_name,
-                    Tag_Id = t.tag_id,
-                    Color_Code =t.tag_color
-                }).ToList();
-                
-                return Ok(response);
 
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
-                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
-            }
-        }           
         
         /// <summary>
         /// Retrieves all tags with their color codes associated with a specific menu item.

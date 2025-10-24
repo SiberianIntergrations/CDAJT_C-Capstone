@@ -20,8 +20,9 @@ const StaffList = ({
   onStatusChange,
   onChangePassword,
 }) => {
-  console.log("status",onStatusChange)
+
   const getStatusColor = (status) => {
+
     switch (status) {
       case "active":
         return "success";
@@ -69,7 +70,7 @@ const StaffList = ({
     },
     {
       field: "email",
-      headerName: "Ema6il",
+      headerName: "Email",
       flex: 1,
       renderCell: (params) => (
         <Typography
@@ -79,6 +80,17 @@ const StaffList = ({
           {params.row.email}
         </Typography>
       ),
+    },
+    {
+      field: "Location",
+      headerName: "Location",
+      flex:1,
+      renderCell: (params) =>(
+        <Chip
+          label={params.row.location}
+          size="small"
+        />
+      )
     },
     {
       field: "role",
@@ -134,7 +146,7 @@ const StaffList = ({
         >
           <GridActionsCellItem
             icon={
-              params.row.status === "active" ? (
+              params.row.status.toLowerCase === "active" ? (
                 <UserMinus size={20} />
               ) : (
                 <UserCheck size={20} />
@@ -144,7 +156,8 @@ const StaffList = ({
             onClick={() =>
               onStatusChange(
                 params.row,
-                params.row.status === "active" ? "inactive" : "active"
+                params.row.status.toLowerCase() === "active" ? "inactive" : "active",
+
               )
             }
             disabled={params.row.email === currentUser}

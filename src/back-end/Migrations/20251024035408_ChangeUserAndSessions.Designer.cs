@@ -12,8 +12,8 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251022021712_NewMigrationTimT")]
-    partial class NewMigrationTimT
+    [Migration("20251024035408_ChangeUserAndSessions")]
+    partial class ChangeUserAndSessions
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -185,7 +185,12 @@ namespace back_end.Migrations
                     b.Property<DateTime>("Updated_At")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<int?>("User_id")
+                        .HasColumnType("int");
+
                     b.HasKey("Location_Id");
+
+                    b.HasIndex("User_id");
 
                     b.ToTable("locations");
                 });
@@ -445,7 +450,7 @@ namespace back_end.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int>("User_Id")
+                    b.Property<int?>("User_Id")
                         .HasColumnType("int");
 
                     b.Property<int>("session_id")
@@ -479,7 +484,7 @@ namespace back_end.Migrations
                     b.Property<int>("Session_Id")
                         .HasColumnType("int");
 
-                    b.Property<int>("User_Id")
+                    b.Property<int?>("User_Id")
                         .HasColumnType("int");
 
                     b.HasKey("Participant_Id");
@@ -593,6 +598,9 @@ namespace back_end.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("varchar(100)");
 
+                    b.Property<int?>("Location_id")
+                        .HasColumnType("int");
+
                     b.Property<string>("Normalized_email")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -610,6 +618,8 @@ namespace back_end.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("User_id");
+
+                    b.HasIndex("Location_id");
 
                     b.ToTable("users");
                 });
@@ -634,6 +644,13 @@ namespace back_end.Migrations
                         .IsRequired();
 
                     b.Navigation("Menu");
+                });
+
+            modelBuilder.Entity("back_end.domain.Entities.Locations", b =>
+                {
+                    b.HasOne("back_end.domain.Entities.User", null)
+                        .WithMany("Locations")
+                        .HasForeignKey("User_id");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.MenuItemAssignment", b =>
@@ -775,9 +792,7 @@ namespace back_end.Migrations
 
                     b.HasOne("back_end.domain.Entities.User", "User")
                         .WithMany("Orders")
-                        .HasForeignKey("User_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("User_Id");
 
                     b.HasOne("back_end.domain.Entities.DiningSession", "DiningSession")
                         .WithMany("Orders")
@@ -802,9 +817,7 @@ namespace back_end.Migrations
 
                     b.HasOne("back_end.domain.Entities.User", "User")
                         .WithMany("SessionParticipants")
-                        .HasForeignKey("User_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("User_Id");
 
                     b.Navigation("DiningSession");
 
@@ -835,6 +848,15 @@ namespace back_end.Migrations
                     b.HasOne("back_end.domain.Entities.DiningSession", null)
                         .WithMany("Tables")
                         .HasForeignKey("DiningSessionSession_Id");
+                });
+
+            modelBuilder.Entity("back_end.domain.Entities.User", b =>
+                {
+                    b.HasOne("back_end.domain.Entities.Locations", "PrimaryLocation")
+                        .WithMany()
+                        .HasForeignKey("Location_id");
+
+                    b.Navigation("PrimaryLocation");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Billing", b =>
@@ -907,6 +929,8 @@ namespace back_end.Migrations
             modelBuilder.Entity("back_end.domain.Entities.User", b =>
                 {
                     b.Navigation("ClaimedServices");
+
+                    b.Navigation("Locations");
 
                     b.Navigation("Orders");
 

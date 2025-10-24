@@ -34,11 +34,12 @@ namespace back_end.domain.Seeders
             ILogger<DatabaseSeeder> logger,
             CategorySeeder categorySeeder,
             TagSeeder tagSeeder,
+            LocationSeeder locationSeeder,
             MenuSeeder menuSeeder,
             UserSeeder userSeeder,
             MenuItemSeeder menuItemSeeder,
             TableSeeder tableSeeder,
-            LocationSeeder locationSeeder,
+
             DiningSessionSeeder diningSessionSeeder,
             SessionTableSeeder sessionTableSeeder,
             SessionParticipantSeeder sessionParticipantSeeder,
@@ -76,6 +77,8 @@ namespace back_end.domain.Seeders
                 {
                     ClearExistingData();
                 }
+                await _context.SaveChangesAsync();
+                _locationSeeder.Seed();            _logger.LogInformation("Locations seeded successfully");
 
                 // Base data in dependency order
                 _userSeeder.Seed();                _logger.LogInformation("Users seeded successfully");
@@ -89,8 +92,6 @@ namespace back_end.domain.Seeders
                 _menuItemSeeder.Seed();            _logger.LogInformation("Menu items and assignments seeded successfully");
                 await _context.SaveChangesAsync();
                 _tableSeeder.Seed();               _logger.LogInformation("Tables seeded successfully");
-                await _context.SaveChangesAsync();
-                _locationSeeder.Seed();            _logger.LogInformation("Locations seeded successfully");
 
                 await _context.SaveChangesAsync();
 

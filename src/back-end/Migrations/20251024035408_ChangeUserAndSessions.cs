@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace back_end.Migrations
 {
     /// <inheritdoc />
-    public partial class NewMigrationTimT : Migration
+    public partial class ChangeUserAndSessions : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -38,35 +38,6 @@ namespace back_end.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Categories", x => x.Category_id);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "locations",
-                columns: table => new
-                {
-                    Location_Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Name = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Address_Primary = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Address_Secondary = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    City = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Province = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Postal_Code = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Phone_Number = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Created_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Updated_At = table.Column<DateTime>(type: "datetime(6)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_locations", x => x.Location_Id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -104,34 +75,6 @@ namespace back_end.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_tag", x => x.tag_id);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "users",
-                columns: table => new
-                {
-                    User_id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Email = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Normalized_email = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Password_hash = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    First_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Last_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Role = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    Created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Last_Interaction_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    Is_email_confirmed = table.Column<bool>(type: "tinyint(1)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_users", x => x.User_id);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -178,31 +121,6 @@ namespace back_end.Migrations
                     table.PrimaryKey("PK_dining_sessions", x => x.Session_Id);
                     table.ForeignKey(
                         name: "FK_dining_sessions_menu_Menu_Id",
-                        column: x => x.Menu_Id,
-                        principalTable: "menu",
-                        principalColumn: "Menu_id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "menu_location",
-                columns: table => new
-                {
-                    Menu_Id = table.Column<int>(type: "int", nullable: false),
-                    Location_Id = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_menu_location", x => new { x.Menu_Id, x.Location_Id });
-                    table.ForeignKey(
-                        name: "FK_menu_location_locations_Location_Id",
-                        column: x => x.Location_Id,
-                        principalTable: "locations",
-                        principalColumn: "Location_Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_menu_location_menu_Menu_Id",
                         column: x => x.Menu_Id,
                         principalTable: "menu",
                         principalColumn: "Menu_id",
@@ -302,35 +220,6 @@ namespace back_end.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "session_participant",
-                columns: table => new
-                {
-                    Participant_Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Session_Id = table.Column<int>(type: "int", nullable: false),
-                    User_Id = table.Column<int>(type: "int", nullable: false),
-                    Joined_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Left_At = table.Column<DateTime>(type: "datetime(6)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_session_participant", x => x.Participant_Id);
-                    table.ForeignKey(
-                        name: "FK_session_participant_dining_sessions_Session_Id",
-                        column: x => x.Session_Id,
-                        principalTable: "dining_sessions",
-                        principalColumn: "Session_Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_session_participant_users_User_Id",
-                        column: x => x.User_Id,
-                        principalTable: "users",
-                        principalColumn: "User_id",
-                        onDelete: ReferentialAction.Cascade);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "table_entity",
                 columns: table => new
                 {
@@ -355,39 +244,116 @@ namespace back_end.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "session_order",
+                name: "sessions",
                 columns: table => new
                 {
-                    Order_Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    session_id = table.Column<int>(type: "int", nullable: false),
-                    Bill_Id = table.Column<int>(type: "int", nullable: false),
-                    User_Id = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
-                    Created_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Completed_At = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                    Session_Id = table.Column<int>(type: "int", nullable: false),
+                    Table_Id = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_session_order", x => x.Order_Id);
+                    table.PrimaryKey("PK_sessions", x => new { x.Session_Id, x.Table_Id });
                     table.ForeignKey(
-                        name: "FK_session_order_bills_Bill_Id",
-                        column: x => x.Bill_Id,
-                        principalTable: "bills",
-                        principalColumn: "Bill_Id",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_session_order_dining_sessions_session_id",
-                        column: x => x.session_id,
+                        name: "FK_sessions_dining_sessions_Session_Id",
+                        column: x => x.Session_Id,
                         principalTable: "dining_sessions",
                         principalColumn: "Session_Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_session_order_users_User_Id",
-                        column: x => x.User_Id,
-                        principalTable: "users",
-                        principalColumn: "User_id",
+                        name: "FK_sessions_table_entity_Table_Id",
+                        column: x => x.Table_Id,
+                        principalTable: "table_entity",
+                        principalColumn: "Table_Id",
                         onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "locations",
+                columns: table => new
+                {
+                    Location_Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Address_Primary = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Address_Secondary = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    City = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Province = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Postal_Code = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Phone_Number = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Created_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Updated_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    User_id = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_locations", x => x.Location_Id);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "menu_location",
+                columns: table => new
+                {
+                    Menu_Id = table.Column<int>(type: "int", nullable: false),
+                    Location_Id = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_menu_location", x => new { x.Menu_Id, x.Location_Id });
+                    table.ForeignKey(
+                        name: "FK_menu_location_locations_Location_Id",
+                        column: x => x.Location_Id,
+                        principalTable: "locations",
+                        principalColumn: "Location_Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_menu_location_menu_Menu_Id",
+                        column: x => x.Menu_Id,
+                        principalTable: "menu",
+                        principalColumn: "Menu_id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "users",
+                columns: table => new
+                {
+                    User_id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Email = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Normalized_email = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Location_id = table.Column<int>(type: "int", nullable: true),
+                    Password_hash = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    First_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Last_name = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Role = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    Created_at = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Last_Interaction_at = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    Is_email_confirmed = table.Column<bool>(type: "tinyint(1)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_users", x => x.User_id);
+                    table.ForeignKey(
+                        name: "FK_users_locations_Location_id",
+                        column: x => x.Location_id,
+                        principalTable: "locations",
+                        principalColumn: "Location_Id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -439,27 +405,66 @@ namespace back_end.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "sessions",
+                name: "session_order",
                 columns: table => new
                 {
-                    Session_Id = table.Column<int>(type: "int", nullable: false),
-                    Table_Id = table.Column<int>(type: "int", nullable: false)
+                    Order_Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    session_id = table.Column<int>(type: "int", nullable: false),
+                    Bill_Id = table.Column<int>(type: "int", nullable: false),
+                    User_Id = table.Column<int>(type: "int", nullable: true),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    Created_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Completed_At = table.Column<DateTime>(type: "datetime(6)", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_sessions", x => new { x.Session_Id, x.Table_Id });
+                    table.PrimaryKey("PK_session_order", x => x.Order_Id);
                     table.ForeignKey(
-                        name: "FK_sessions_dining_sessions_Session_Id",
+                        name: "FK_session_order_bills_Bill_Id",
+                        column: x => x.Bill_Id,
+                        principalTable: "bills",
+                        principalColumn: "Bill_Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_session_order_dining_sessions_session_id",
+                        column: x => x.session_id,
+                        principalTable: "dining_sessions",
+                        principalColumn: "Session_Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_session_order_users_User_Id",
+                        column: x => x.User_Id,
+                        principalTable: "users",
+                        principalColumn: "User_id");
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "session_participant",
+                columns: table => new
+                {
+                    Participant_Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Session_Id = table.Column<int>(type: "int", nullable: false),
+                    User_Id = table.Column<int>(type: "int", nullable: true),
+                    Joined_At = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Left_At = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_session_participant", x => x.Participant_Id);
+                    table.ForeignKey(
+                        name: "FK_session_participant_dining_sessions_Session_Id",
                         column: x => x.Session_Id,
                         principalTable: "dining_sessions",
                         principalColumn: "Session_Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_sessions_table_entity_Table_Id",
-                        column: x => x.Table_Id,
-                        principalTable: "table_entity",
-                        principalColumn: "Table_Id",
-                        onDelete: ReferentialAction.Cascade);
+                        name: "FK_session_participant_users_User_Id",
+                        column: x => x.User_Id,
+                        principalTable: "users",
+                        principalColumn: "User_id");
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -510,6 +515,11 @@ namespace back_end.Migrations
                 name: "IX_dining_sessions_Menu_Id",
                 table: "dining_sessions",
                 column: "Menu_Id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_locations_User_id",
+                table: "locations",
+                column: "User_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_menu_item_Category_id",
@@ -600,11 +610,27 @@ namespace back_end.Migrations
                 name: "IX_table_entity_DiningSessionSession_Id",
                 table: "table_entity",
                 column: "DiningSessionSession_Id");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_users_Location_id",
+                table: "users",
+                column: "Location_id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_locations_users_User_id",
+                table: "locations",
+                column: "User_id",
+                principalTable: "users",
+                principalColumn: "User_id");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_locations_users_User_id",
+                table: "locations");
+
             migrationBuilder.DropTable(
                 name: "menu_item_assignment");
 
@@ -630,9 +656,6 @@ namespace back_end.Migrations
                 name: "tag");
 
             migrationBuilder.DropTable(
-                name: "locations");
-
-            migrationBuilder.DropTable(
                 name: "menu_item");
 
             migrationBuilder.DropTable(
@@ -648,13 +671,16 @@ namespace back_end.Migrations
                 name: "bills");
 
             migrationBuilder.DropTable(
-                name: "users");
-
-            migrationBuilder.DropTable(
                 name: "dining_sessions");
 
             migrationBuilder.DropTable(
                 name: "menu");
+
+            migrationBuilder.DropTable(
+                name: "users");
+
+            migrationBuilder.DropTable(
+                name: "locations");
         }
     }
 }

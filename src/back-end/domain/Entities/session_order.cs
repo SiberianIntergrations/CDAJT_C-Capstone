@@ -17,7 +17,7 @@ namespace back_end.domain.Entities
         public int Bill_Id { get; set; }
 
         [ForeignKey(nameof(User))]
-        public int User_Id { get; set; }
+        public int? User_Id { get; set; }
 
         public OrderStatus Status { get; set; }
 
@@ -28,7 +28,7 @@ namespace back_end.domain.Entities
 
         public DiningSession DiningSession { get; set; } = null!;
         public Billing Bill { get; set; } = null!;
-        public User User { get; set; } = null!;
+        public User? User { get; set; } = null!;
         public ICollection<OrderItems> OrderItems { get; set; } = new List<OrderItems>();
 
     }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   TextField,
@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { UserPlus, Save } from "lucide-react";
+import api from "@/config/api";
 
 const StaffManagementForm = ({
   initialData = {},
@@ -21,6 +22,7 @@ const StaffManagementForm = ({
   error = null,
   mode = "create",
 }) => {
+  const [locations, setLocations] = useState([]);
   const [formData, setFormData] = useState({
     email: initialData?.email || "",
     password: "",
@@ -28,13 +30,27 @@ const StaffManagementForm = ({
     last_name: initialData?.last_name || "",
     role: initialData?.role || "staff",
     status: initialData?.status || "active",
+    location_id: initialData?.location_id || "",
   });
 
-  
+  // Fetch locations when component mounts
+  useEffect(() => {
+    fetchLocations();
+  }, []);
+
+  const fetchLocations = async () => {
+    try {
+      const response = await api.get("/location");
+      console.log(response.data);
+      setLocations(response.data);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-      console.log(initialData);
+    console.log(initialData);
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -43,6 +59,7 @@ const StaffManagementForm = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+      console.log("Form data being submitted:", formData);
     await onSubmit(formData);
   };
 
@@ -128,6 +145,25 @@ const StaffManagementForm = ({
             >
               <MenuItem value="staff">Staff</MenuItem>
               <MenuItem value="admin">Admin</MenuItem>
+            </Select>
+          </FormControl>
+          
+          <FormControl fullWidth>
+            <InputLabel>Location</InputLabel>
+            <Select
+              name="location_id"
+              value={formData.location_id}
+              onChange={handleChange}
+              label="Location"
+            >
+              <MenuItem value="">
+                <em>None</em>
+              </MenuItem>
+              {locations.map((location) => (
+                <MenuItem key={location.location_Id} value={location.location_Id}>
+                  {location.name}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 

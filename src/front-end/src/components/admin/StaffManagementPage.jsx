@@ -20,6 +20,7 @@ import api from "@/config/api";
 
 const StaffManagementPage = () => {
   const [staff, setStaff] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -75,31 +76,32 @@ const StaffManagementPage = () => {
     console.log(staff);
   }, []);
 
-  const handleStatusChange = async (staffMember, newStatus) => {
-    try {
-      setSubmitting(true);
-
-      await api.put(`/staff/${staffMember.user_id}`, {
-        status: newStatus,
-      });
-
-      await fetchStaff();
-      setSnackbar({
-        open: true,
-        message: `Staff member ${
-          newStatus === "active" ? "activated" : "deactivated"
-        } successfully`,
-        severity: "success",
-      });
-    } catch (err) {
-      console.error("Error updating staff status:", err);
-      setError(
-        err.response?.data?.detail || "Failed to update staff member status"
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const handleStatusChange = async (staffMember, newStatus) => {
+  try {
+    setSubmitting(true);
+    
+    const response = await api.put(`/staff/${staffMember.user_id}`, {
+      status: newStatus,
+    });
+    
+    await fetchStaff();
+    
+    setSnackbar({
+      open: true,
+      message: `Staff member ${
+        newStatus === "active" ? "activated" : "deactivated"
+      } successfully`,
+      severity: "success",
+    });
+  } catch (err) {
+    console.error("Error updating staff status:", err);
+    setError(
+      err.response?.data?.detail || "Failed to update staff member status"
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleCreateStaff = async (formData) => {
     try {
@@ -217,6 +219,7 @@ const StaffManagementPage = () => {
         onChangePassword={(staff) => {
           setSelectedStaff(staff);
           setPasswordDialogOpen(true);
+          
         }}
       />
 

@@ -37,6 +37,7 @@ namespace back_end.Controllers
             // [FromQuery] UserRoles role
         )
         {
+            var location = new Locations();
             var role = user_data.Role;
             if (role != UserRoles.Staff && role != UserRoles.Admin)
                 return BadRequest("Role must be either staff or admin");
@@ -59,7 +60,8 @@ namespace back_end.Controllers
                 Status = user_data.Status,
                 Is_email_confirmed = true,
                 Created_at = now,
-                Last_Interaction_at = now
+                Last_Interaction_at = now,
+                Location_id = user_data.Location_Id
             };
 
             _context.Users.Add(entity);
@@ -108,7 +110,8 @@ namespace back_end.Controllers
                     FirstName = u.First_name,
                     Role = u.Role,
                     Status = u.Status,
-                    User_Id = u.User_id
+                    User_Id = u.User_id,
+                    Location = u.PrimaryLocation != null ? u.PrimaryLocation.Name : "Not Assigned"
                 })
                 .ToListAsync();
             
@@ -135,7 +138,7 @@ namespace back_end.Controllers
         // Update a staff/admin user's details.
         [HttpPut("{user_id:int}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<UserResponseDTO>> UpdateStaff(int user_id, [FromBody] StaffUserUpdateDTO user_data)
+        public async Task<ActionResult<UserResponseDTO>> UpdateStaff(int user_id, [FromBody] StaffMemberUpdateDTO user_data)
         { 
             var user = await _context.Users
                 .Where(x => x.User_id == user_id &&
@@ -155,15 +158,17 @@ namespace back_end.Controllers
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(user_data.First_name)) user.First_name = user_data.First_name.Trim();
-            if (!string.IsNullOrWhiteSpace(user_data.Last_name)) user.Last_name = user_data.Last_name.Trim();
+            if (!string.IsNullOrWhiteSpace(user_data.FirstName)) user.First_name = user_data.FirstName.Trim();
+            if (!string.IsNullOrWhiteSpace(user_data.LastName)) user.Last_name = user_data.LastName.Trim();
 
-            if (user_data.Role.HasValue)
+
+            if (user_data.Role != UserRoles.Staff && user_data.Role != UserRoles.Admin)
             {
-                if (user_data.Role != UserRoles.Staff && user_data.Role != UserRoles.Admin)
-                    return BadRequest("Role must be either staff or admin");
-                user.Role = user_data.Role.Value;
+                return BadRequest("Role must be either staff or admin");
             }
+
+            user.Role = user_data.Role;
+            user.Status = user_data.Status;
 
             await _context.SaveChangesAsync();
              return Ok(ToResponse(user));
