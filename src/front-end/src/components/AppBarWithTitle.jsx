@@ -27,6 +27,7 @@ import {
   Tag,
   Phone,
   MapPin,
+  Table,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -62,10 +63,12 @@ const AppBarWithTitle = ({ title }) => {
     staff: [
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
+      { icon: Table, label: "Tables", path: "/dashboard/tables" },
     ],
     admin: [
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
+      { icon: Table, label: "Tables", path: "/dashboard/tables" },
       {
         icon: MapPin,
         label: "Manage Locations",
@@ -188,7 +191,9 @@ const AppBarWithTitle = ({ title }) => {
           <Button
             color="inherit"
             onClick={
-              isAuthenticated ? handleLogout : () => handleNavigation("/auth/login")
+              isAuthenticated
+                ? handleLogout
+                : () => handleNavigation("/auth/login")
             }
             startIcon={isAuthenticated ? <LogOut /> : <LogIn />}
             sx={{

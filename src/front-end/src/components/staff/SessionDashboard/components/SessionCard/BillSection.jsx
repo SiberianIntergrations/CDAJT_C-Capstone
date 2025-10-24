@@ -69,7 +69,7 @@ const BillSection = ({ session }) => {
           size="small"
           variant="contained"
           onClick={() => openDialog("newBill", session.session_id)}
-          disabled={session.table_numbers.length === 0 || loading}
+          disabled={session.table_Numbers.length === 0 || loading}
           sx={{
             minWidth: 100,
             backgroundColor: "primary.main",

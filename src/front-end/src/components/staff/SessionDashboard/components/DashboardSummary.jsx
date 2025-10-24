@@ -73,7 +73,7 @@ const DashboardSummary = () => {
 
   const checkServiceRequests = async () => {
     try {
-      const response = await api.get("/ServiceRequest"); // service-requests/for-all-sessions
+      const response = await api.get("/ServiceRequest/pending");
 
       if (response.status === 200) {
         const data = response.data;
