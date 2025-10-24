@@ -210,54 +210,76 @@ useEffect(() => {
     getActiveSession();
   }, []);
 
-    useEffect(() => {
-    if (!sessionId || sessionId < 1) {
-      console.log("Invalid sessionId. Skipping menu fetch.");
-      return;
-    }
-    const fetchMenu = async () => {
-      try {
-        setError(null);
-        // api from old project: /dining-sessions/session-menu/{sessionId} GET
-        const response = await api.get(
-          `/DiningSession/session-menu/${sessionId}`
-        );
-        if (response?.status >= 200 && response.status < 300 && response.data) {
-          setMenuId(response.data.menu_id ?? response.data);
-        } else {
-          console.warn("No menu found", response?.data);
-          setError("No menu found for this session");
+
+useEffect(() => {
+  //Session ID can only be 1 or above
+  if (!sessionId || sessionId < 1) {
+    console.log("Invalid sessionId. Skipping menu fetch.");
+    return;
+  }
+
+  const fetchMenu = async () => {
+    try {
+      setError(null);
+
+      const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
+
+      if (response?.status >= 200 && response.status < 300 && response.data) {
+        const raw = response.data;
+        console.log("session-menu raw =", raw);
+
+
+        const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
+        const getMenuID =
+          typeof id === "number" ? id : parseInt(String(id), 10);
+
+        if (Number.isNaN(getMenuID) || getMenuID < 1) {
+          console.warn("Menu ID is invalid:", raw);
+          setError("No menu for this session");
+          return;
         }
-      } catch (err) {
-        console.error("Error fetching menu:", err);
-        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching menu";
-        setError(message);
+
+        setMenuId(getMenuID);
+        
+        console.log("parsed menuId =", getMenuID);
+      } else {
+        console.warn("No menu found", response?.data);
+        setError("No menu found for this session");
       }
-    };
-    fetchMenu();
-  }, [sessionId]);
-
-  useEffect(() => {
-    if (menuId && categories.length > 0) {
-      categories.forEach((category) => {
-        fetchMenuItems(category.category_id, menuId);
-      });
+    } catch (err) {
+      console.error("Error fetching menu:", err);
+      const message =
+        err?.response?.data?.detail ??
+        err?.response?.data?.message ??
+        err?.message ??
+        "Error fetching menu";
+      setError(message);
     }
-  }, [menuId, categories]);
+  };
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setError(null);
-        const response = await api.get("/Category");
-        const data = response.data;
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else {
-          console.error("Categories data is not an array");
-        }
-      } catch (err) {
-        console.error("Error fetching categories:", er);
+  fetchMenu();
+}, [sessionId]);
+
+//When you have the menuID call to get current menu
+useEffect(() => {
+  if (!menuId) return;
+  fetchMenuItems(null, menuId);
+}, [menuId]);
+
+useEffect(() => {
+  const fetchCategories = async () => {
+    try {
+      setError(null);
+      const response = await api.get("/Category");
+      const data = Array.isArray(response.data) ? response.data : [];
+      setCategories(
+        data.map(c => ({
+          category_id: c.category_id ?? c.Category_id,
+          name: c.name ?? c.Category_name,
+        }))
+      );
+    }catch (err) {
+        console.error("Error fetching categories:", err);
         const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
         setError(message);
       }
@@ -265,29 +287,41 @@ useEffect(() => {
     fetchCategories();
   }, []);
 
-  // TODO: Update api endpoints
-  const fetchMenuItems = async (categoryId, menu_id) => {
-    if (!menu_id || menuItems[categoryId]) return;
-    try {
-      const response = await api.get(
-        `/menus/${menu_id}/items?category_id=${categoryId}`
-      );
-      if (response.status === 200) {
-        for (const item of response.data) {
-          const itemTagsResponse = await api.get(
-            `/menu-items/${item.item_id}/tags-with-colors`
-          );
-          item.tags = itemTagsResponse.data;
-        }
-      setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
-      }
-    } catch (err) {
-      console.error(
-        `Error fetching menu items for category ${categoryId}:`,
-        err
-      );
-    }
-  };
+// TODO: Update api endpoints
+const fetchMenuItems = async (categoryId, menu_id) => {
+
+  //Make sure the menu ID is valid or if we already loaded the menu items
+  if (!menu_id || menuItems[categoryId]) return;
+
+  try {
+    //Call GetItemsByMenu and check if it's in an array
+    const response = await api.get(`/Menu/${menu_id}/items`);
+    const items = Array.isArray(response.data) ? response.data : [];
+
+    //Clean up the field names so it's the same everywhere on the page
+    const normalized = items.map(it => ({
+      item_id: it.item_id ?? it.itemId ?? it.Item_Id,
+      name: it.name,
+      description: it.description,
+      price: it.price,
+      is_add_on: it.is_add_on ?? it.isAddOn,
+      item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
+      category_id: it.categoryID ?? it.categoryId ?? it.category_id,
+      category: it.category,
+      tags: it.tags ?? []
+    }));
+
+    //Group the items so all each category has its own list
+    const grouped = normalized.reduce((acc, item) => {
+      (acc[item.category_id] ||= []).push(item);
+      return acc;
+    }, {});
+
+    setMenuItems(prev => ({ ...prev, ...grouped }));
+  } catch (err) {
+    console.error(`Error fetching menu items for menu ${menu_id}:`, err);
+  }
+};
 
   const handleBillChange = (event) => {
     const billId = event.target.value;
@@ -372,7 +406,7 @@ useEffect(() => {
     setError(null);
 
     try {
-      const orderResponse = await api.post("/orders", {
+      const orderResponse = await api.post("/Order", {
         session_id: sessionId,
         bill_id: selectedBillId,
       });
@@ -454,7 +488,7 @@ useEffect(() => {
           )}
         </Box>
 
-        {selectedBillId > 0 && (
+        {/*selectedBillId > 0  && */(
           <Box sx={{ width: "100%", mb: 4 }}>
             {categories.map((category) => {
               const filteredItems = filterMenuItems(
