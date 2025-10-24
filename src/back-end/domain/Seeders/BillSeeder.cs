@@ -41,10 +41,14 @@ namespace back_end.domain.Seeders
 
       foreach (var s in sessions)
       {
-        var participantIds = _context.SessionParticipants
-            .Where(p => p.Session_Id == s.Session_Id && customers.Any(c => c.User_id == p.User_Id))
-            .Select(p => p.User_Id)
-            .ToList();
+          var customerIds = customers.Select(c => c.User_id).ToList();
+          
+          var participantIds = _context.SessionParticipants
+              .Where(p => p.Session_Id == s.Session_Id 
+                  && p.User_Id.HasValue 
+                  && customerIds.Contains(p.User_Id.Value))
+              .Select(p => p.User_Id.Value)
+              .ToList();
 
         if (!participantIds.Any()) continue;
 

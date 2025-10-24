@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using back_end.domain.enums;
 
 
 namespace back_end.controllers
@@ -63,28 +64,31 @@ namespace back_end.controllers
             string UserEmail = request.UserEmail ?? string.Empty;
             string UserPassword = request.UserPassword ?? string.Empty;
             var ReturnedUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == UserEmail);
-            bool isPasswordVerified = BCryptNet.Verify(UserPassword, ReturnedUser?.Password_hash ?? string.Empty);
-            if (ReturnedUser == null || !isPasswordVerified)
+            if (ReturnedUser == null)
             {
                 return Unauthorized(new { message = "Invalid email or password" });
             }
-            if (isPasswordVerified)
+            if (ReturnedUser.Status != UserStatus.Active)
             {
-                ReturnedUser.Last_Interaction_at = DateTime.UtcNow;
-                _context.Users.Update(ReturnedUser);
-                await _context.SaveChangesAsync();
-
-                //Generate the JWT token with Returned user assigned above
-                var token = GenerateJwtToken(ReturnedUser);
-                return Ok(new
-                {
-                    access_token = token,
-                    token_type = "Bearer",
-                    expires_in = 7200, // 2 hours in seconds:
-                });
-
+                return BadRequest("Issue Login into System");
             }
-            return Unauthorized(new { message = "Invalid email or password" });
+            bool isPasswordVerified = BCryptNet.Verify(UserPassword, ReturnedUser.Password_hash ?? string.Empty);
+            if (!isPasswordVerified)
+            {
+                return Unauthorized(new { message = "Invalid email or password" });
+            }
+            ReturnedUser.Last_Interaction_at = DateTime.UtcNow;
+            _context.Users.Update(ReturnedUser);
+            await _context.SaveChangesAsync();
+
+            //Generate the JWT token with Returned user assigned above
+            var token = GenerateJwtToken(ReturnedUser);
+            return Ok(new
+            {
+                access_token = token,
+                token_type = "Bearer",
+                expires_in = 7200, // 2 hours in seconds:
+            });
 
         }
     
