@@ -107,12 +107,23 @@ const NewSessionDialog = ({ open, onClose }) => {
     setLoading(true);
     try {
       // Create the session first
+      const sessionData =
+        tableAssignmentType === "table"
+          ? {
+              menu_Id: selectedMenu,
+              location_Id: selectedLocation,
+              table_Id: selectedTable,
+              tablegroup_Id: null,
+            }
+          : {
+              menu_Id: selectedMenu,
+              location_Id: selectedLocation,
+              table_Id: null,
+              tablegroup_Id: selectedTableGroup,
+            };
       const sessionResponse = await api.post(
         "/DiningSession/Create_Dinning_Session",
-        {
-          menu_Id: selectedMenu,
-          location_Id: selectedLocation,
-        }
+        sessionData
       );
 
       if (sessionResponse.status === 200) {

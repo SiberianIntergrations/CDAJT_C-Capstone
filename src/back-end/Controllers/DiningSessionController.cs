@@ -92,9 +92,10 @@ namespace back_end.controllers
         {
           Menu_Id = sessionData.Menu_Id,
           Location_Id = sessionData.Location_Id,
+          Table_Id = sessionData.Table_Id,
+          TableGroup_Id = sessionData.TableGroup_Id,
           Started_At = DateTime.UtcNow
         };
-        // TODO: Table_Id or TableGroup_Id should be set here
 
         _context.Add<DiningSession>(newSession);
         await _context.SaveChangesAsync();

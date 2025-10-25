@@ -19,7 +19,8 @@ namespace back_end.DTO.DiningSessionDTOs
     [Range(1, int.MaxValue, ErrorMessage = "Menu Id Bust be Positive")]
     public int Menu_Id { get; set; }
     public int Location_Id { get; set; }
-
+    public int? Table_Id { get; set; }
+    public int? TableGroup_Id { get; set; }
   }
 
   public class DiningSessionResponseDTO
