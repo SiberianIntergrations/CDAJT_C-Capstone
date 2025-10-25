@@ -1,27 +1,23 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import api from "@/config/api";
+
 
 const TableTurnover = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [partySize, setPartySize] = useState(2);
-  const [maxPartySize, setMaxPartySize] = useState(null); // Add state for max party size
+  const [maxPartySize, setMaxPartySize] = useState(4);
   const router = useRouter();
 
   useEffect(() => {
     const fetchMaxPartySize = async () => {
       try {
-        const response = await axios.get(
-          "http://127.0.0.1:8000/analytics/max-party-size",
-          {
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-            },
-          }
-        );
-        setMaxPartySize(response.data.max_party_size);
+        const response = await api.get("analytics/max-party-size");
+        setMaxPartySize(response.data);
+        console.log("Max Party Size Response:", response.data);
       } catch (err) {
         console.error("Error fetching max party size:", err);
         setError("Failed to fetch max party size");
@@ -34,67 +30,36 @@ const TableTurnover = () => {
   useEffect(() => {
     const fetchData = async () => {
       const accessToken = localStorage.getItem("access_token");
-      const refreshToken = localStorage.getItem("refresh_token");
-      console.log("Access Token:", accessToken);
-      console.log("Refresh Token:", refreshToken);
 
-      if (!accessToken || !refreshToken) {
+      if (!accessToken) {
         setError("No token found");
         router.push("/auth/login");
         return;
       }
 
       try {
-        const response = await axios.get(
-          `http://127.0.0.1:8000/analytics/table-turnover?party_size=${partySize}`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        setData(response.data);
-      } catch (err) {
+        const response = await api.get("analytics/table-turnover");
+        
+        setData(response.data); // FIXED: Remove the duplicate line
+        console.log("Table Turnover Data:", response.data);
+      } 
+      catch (err) {
         console.error("Error fetching data:", err);
         if (err.response && err.response.status === 401) {
-          try {
-            const tokenResponse = await axios.post(
-              "http://127.0.0.1:8000/auth/refresh",
-              new URLSearchParams({
-                refresh_token: refreshToken,
-                grant_type: "refresh_token",
-              }),
-              {
-                headers: {
-                  "Content-Type": "application/x-www-form-urlencoded",
-                  accept: "application/json",
-                },
-              }
-            );
-
-            const { access_token } = tokenResponse.data;
-            localStorage.setItem("access_token", access_token);
-            fetchData();
-          } catch (refreshErr) {
-            console.error("Error refreshing token:", refreshErr);
-            setError("Session expired, please log in again");
-            router.push("/auth/login");
-          }
-        } else {
-          setError("Failed to fetch data");
-        }
-      } finally {
+          console.log(err.response);
+        } 
+      }
+      finally {
         setLoading(false);
       }
     };
 
-    if (maxPartySize !== null) {
-      fetchData();
-    }
-  }, [router, partySize, maxPartySize]);
+    fetchData();
+  }, [router]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
+  if (!data) return <p>No data available</p>; // ADDED: Check if data exists
 
   return (
     <div>
@@ -126,7 +91,7 @@ const TableTurnover = () => {
           </tr>
         </thead>
         <tbody>
-          {data.monthly &&
+          {data.monthly && data.monthly.length > 0 ? ( // ADDED: Check if monthly exists and has data
             data.monthly
               .filter((entry) => entry.party_size === partySize)
               .map((entry, index) => (
@@ -134,12 +99,17 @@ const TableTurnover = () => {
                   <td>{entry.month}</td>
                   <td>{entry.party_size}</td>
                   <td>
-                    {entry.average_duration < 0
+                    {entry.averageDuration < 0
                       ? "Invalid data"
-                      : entry.average_duration}
+                      : entry.averageDuration}
                   </td>
                 </tr>
-              ))}
+              ))
+          ) : (
+            <tr>
+              <td colSpan="3">No monthly data available</td>
+            </tr>
+          )}
         </tbody>
       </table>
 
@@ -153,7 +123,7 @@ const TableTurnover = () => {
           </tr>
         </thead>
         <tbody>
-          {data.daily &&
+          {data.daily && data.daily.length > 0 ? ( // ADDED: Check if daily exists and has data
             data.daily
               .filter((entry) => entry.party_size === partySize)
               .map((entry, index) => (
@@ -161,12 +131,17 @@ const TableTurnover = () => {
                   <td>{entry.day}</td>
                   <td>{entry.party_size}</td>
                   <td>
-                    {entry.average_duration < 0
-                      ? "no entry in end_time "
-                      : entry.average_duration}
+                    {entry.averageDuration < 0
+                      ? "no entry in end_time"
+                      : entry.averageDuration}
                   </td>
                 </tr>
-              ))}
+              ))
+          ) : (
+            <tr>
+              <td colSpan="3">No daily data available</td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

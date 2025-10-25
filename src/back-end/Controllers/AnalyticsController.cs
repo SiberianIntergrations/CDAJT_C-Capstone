@@ -194,8 +194,8 @@ namespace back_end.controllers
             {
                 // Filter out bills with null Closed_At because we need to group by Closed_At date/time
                 var filteredBills = _context.Bills
-                    .Where(b => b.Closed_At.HasValue)
-                    .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize);
+                    .Where(b => b.Closed_At.HasValue);
+                    // .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize);
 
                 // Daily turnover query
                 var dailyTurnover = await filteredBills
@@ -260,6 +260,51 @@ namespace back_end.controllers
                 _logger.LogError($"Error retrieving table turnover metrics: {ex.Message}");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
+        }
+
+
+
+        [HttpGet("order-timing")]
+        [ProducesResponseType(typeof(TableTurnOverResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetOrderTimingMetrics()
+        {
+            try
+            {
+                var orderTiming = await _context.DiningSessions
+                    .Where(ds => ds.First_Order_At != null && ds.Started_At != null)
+                    .Select(ds => new
+                    {
+                        sessionId = ds.Session_Id,
+                        TimeToFirstOrderSeconds = EF.Functions.DateDiffSecond(ds.Started_At, ds.First_Order_At)
+                    }).Take(25)
+                    .ToListAsync();
+
+                var dailyAverageTiming = await _context.DiningSessions
+                    .Where(ds => ds.First_Order_At != null && ds.Started_At != null)
+                    .GroupBy(ds => ds.Started_At.Date)
+                    .Select(g => new
+                    {
+                        Day = g.Key,
+                        AverageTimeToFirstOrderSeconds = g.Average(ds => EF.Functions.DateDiffSecond(ds.Started_At, ds.First_Order_At))
+                    })
+                    .ToListAsync();
+
+                return Ok(new { orderTiming, dailyAverageTiming });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving order timing metrics: {ex.Message}");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }
+
+        [HttpGet("max-party-size")]
+        public async Task<IActionResult> GetMaxPartySize()
+        {
+            var maxPartySize = _context.Bills.Max(b => b.Child_Count + b.Adult_Count + b.Senior_Count);
+            return Ok(maxPartySize);
         }
     }
 }
