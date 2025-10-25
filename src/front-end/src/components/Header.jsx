@@ -171,6 +171,11 @@ const Header = () => {
             </>
           )}
         </div>
+        <div>
+          <h1>
+            This is Going to be the Location Drop down
+          </h1>
+        </div>
         <div className={styles.navbarRightContainer}>
           <button className={styles.authButton} onClick={handleLogout}>
             {isAuthenticated ? "Logout" : "Login"}
