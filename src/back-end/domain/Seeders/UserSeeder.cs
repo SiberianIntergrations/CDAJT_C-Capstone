@@ -57,7 +57,8 @@ namespace back_end.domain.Seeders
                     Status = UserStatus.Active,
                     Is_email_confirmed = true,
                     Created_at = DateTime.UtcNow,
-                    Last_Interaction_at = DateTime.UtcNow
+                    Last_Interaction_at = DateTime.UtcNow,
+                    Location_id = 2
                 },
                 new User
                 {
@@ -69,7 +70,8 @@ namespace back_end.domain.Seeders
                     Status = UserStatus.Active,
                     Is_email_confirmed = true,
                     Created_at = DateTime.UtcNow,
-                    Last_Interaction_at = DateTime.UtcNow
+                    Last_Interaction_at = DateTime.UtcNow,
+                    Location_id = 1
                 },
                 new User
                 {
@@ -81,7 +83,8 @@ namespace back_end.domain.Seeders
                     Status = UserStatus.Active,
                     Is_email_confirmed = true,
                     Created_at = DateTime.UtcNow,
-                    Last_Interaction_at = DateTime.UtcNow
+                    Last_Interaction_at = DateTime.UtcNow,
+                    Location_id = 2
                 }
             };
 

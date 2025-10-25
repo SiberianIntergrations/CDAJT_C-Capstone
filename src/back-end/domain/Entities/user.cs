@@ -18,6 +18,13 @@ namespace back_end.domain.Entities
         [MaxLength(255)]
         public string Normalized_email { get => Email.ToUpper(); private set { } }
 
+
+        [ForeignKey(nameof(PrimaryLocation))]
+        public int? Location_id { get; set; }
+
+
+        public Locations? PrimaryLocation { get; set; }
+
         [Required]
         [MaxLength(255)]
         public string Password_hash { get; set; } = string.Empty;
@@ -42,6 +49,7 @@ namespace back_end.domain.Entities
         public bool Is_email_confirmed { get; set; } = false;
 
 
+        public ICollection<Locations> Locations { get; set; } = new List<Locations>();
         public ICollection<SessionOrder> Orders { get; set; } = new List<SessionOrder>();
         public ICollection<SessionParticipant> SessionParticipants { get; set; } = new List<SessionParticipant>();
         public ICollection<ServiceRequest> RequestedServices { get; set; } = new List<ServiceRequest>();

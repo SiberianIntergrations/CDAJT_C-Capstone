@@ -77,6 +77,8 @@ namespace back_end.domain.Seeders
         }
 
         // Base data in dependency order
+        _locationSeeder.Seed(); _logger.LogInformation("Locations seeded successfully");
+        await _context.SaveChangesAsync();
         _userSeeder.Seed(); _logger.LogInformation("Users seeded successfully");
         await _context.SaveChangesAsync();
         _categorySeeder.Seed(); _logger.LogInformation("Categories seeded successfully");
@@ -91,10 +93,6 @@ namespace back_end.domain.Seeders
         await _context.SaveChangesAsync();
         _tableGroupSeeder.Seed(); _logger.LogInformation("Table groups seeded successfully");
         await _context.SaveChangesAsync();
-        _locationSeeder.Seed(); _logger.LogInformation("Locations seeded successfully");
-
-        await _context.SaveChangesAsync();
-
         // Sessions then session-driven data
         _diningSessionSeeder.Seed(); _logger.LogInformation("Dining sessions seeded successfully");
         await _context.SaveChangesAsync();

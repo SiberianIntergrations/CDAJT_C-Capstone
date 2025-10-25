@@ -90,7 +90,7 @@ namespace back_end.Controllers
                 {
                     Participant_Id = newParticipant.Participant_Id,
                     Session_Id = newParticipant.Session_Id,
-                    User_Id = newParticipant.User_Id,
+                    User_Id = newParticipant.User_Id ??0,
                     Joined_At = newParticipant.Joined_At,
                     Left_At = newParticipant.Left_At
 

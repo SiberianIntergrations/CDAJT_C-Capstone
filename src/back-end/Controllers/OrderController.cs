@@ -88,7 +88,7 @@ namespace back_end.Controllers
                     Order_Id = newOrder.Order_Id,
                     Session_Id = newOrder.session_id,
                     Bill_Id = newOrder.Bill_Id,
-                    User_Id = newOrder.User_Id,
+                    User_Id = newOrder.User_Id ?? 0,
                     Status = newOrder.Status,
                     Created_At = newOrder.Created_At
                 });
@@ -160,7 +160,7 @@ namespace back_end.Controllers
                     Order_Id = order.Order_Id,
                     Session_Id = order.session_id,
                     Bill_Id = order.Bill_Id,
-                    User_Id = order.User_Id,
+                    User_Id = order.User_Id ?? 0,
                     Status = order_data.Status,
                     Created_At = order.Created_At,
                 };
@@ -472,7 +472,7 @@ namespace back_end.Controllers
                     Order_Id = order.Order_Id,
                     Session_Id = order.session_id,
                     Bill_Id = order.Bill_Id,
-                    User_Id = order.User_Id,
+                    User_Id = order.User_Id ??0,
                     Status = order.Status,
                     Created_At = order.Created_At,
                 };
@@ -609,6 +609,7 @@ namespace back_end.Controllers
         /// </remarks>
         //GET: api/order/session/{id}
         //Get all orders tied to a Dining Session
+        [HttpGet("session/{sessionId}")]
         public async Task<ActionResult<IEnumerable<object>>> GetOrderBySession(int sessionId)
         {
             try
