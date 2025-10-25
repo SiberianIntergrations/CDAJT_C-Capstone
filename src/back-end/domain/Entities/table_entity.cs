@@ -20,8 +20,13 @@ namespace back_end.domain.Entities
 
     public bool is_active { get; set; } = false;
 
+    [ForeignKey(nameof(Location))]
+    public int Location_Id { get; set; }
+
     [ForeignKey(nameof(TableGroup))]
     public int? TableGroup_Id { get; set; }
+
+    public Locations Location { get; set; } = null!;
 
     public TableGroup? TableGroup { get; set; }
 

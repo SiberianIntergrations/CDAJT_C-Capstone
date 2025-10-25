@@ -6,7 +6,7 @@ using back_end.DTO.Analytics;
 using back_end.domain.Entities;
 using back_end.domain;
 using back_end.domain.enums;
-using back_end.DTO.DashBoardDTOs;
+using back_end.DTO.DiningSessionDTOs;
 using back_end.DTO.TableGroupDTOs;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using System.Security.Cryptography;
@@ -82,12 +82,20 @@ namespace back_end.controllers
           return BadRequest("Menu Does not Exist");
         }
 
+        var location = await _context.Locations.Where(l => l.Location_Id == sessionData.Location_Id).FirstOrDefaultAsync();
+        if (location == null)
+        {
+          return BadRequest("Location Does not Exist");
+        }
+
         var newSession = new DiningSession
         {
           Menu_Id = sessionData.Menu_Id,
+          Location_Id = sessionData.Location_Id,
+          Table_Id = sessionData.Table_Id,
+          TableGroup_Id = sessionData.TableGroup_Id,
           Started_At = DateTime.UtcNow
         };
-        // TODO: Table_Id or TableGroup_Id should be set here
 
         _context.Add<DiningSession>(newSession);
         await _context.SaveChangesAsync();
@@ -308,41 +316,40 @@ namespace back_end.controllers
             .Include(d => d.Bills)
             .FirstOrDefaultAsync(s => s.Session_Id == session_id);
 
-        // Check if the session exists
         if (session == null)
         {
           return NotFound($"Session: {session_id} not found");
         }
 
-        // Check if the session has already ended
         if (session.Ended_At != null)
         {
           return BadRequest($"Cannot modify an ended session: {session_id}");
         }
 
-        // Check if a bill has been added to the session
         if (session.Bills.Any())
         {
           return BadRequest("Cannot add tables after a bill has been created");
         }
 
-        // Check if session already has a table group assigned
         if (session.TableGroup_Id.HasValue)
         {
           return BadRequest("Cannot assign individual table to session with table group. Remove table group first.");
         }
 
-        // Find the table that matches the inputted ID and check if it's active
         var table = await _context.Tables
             .FirstOrDefaultAsync(t => t.Table_Id == tableData.Table_Id && t.is_active);
 
-        // Check if the table exists and it's active
         if (table == null)
         {
           return BadRequest($"Table: {tableData.Table_Id} not found or inactive");
         }
 
-        // Check if the table is assigned to another dining session
+        // Validate that table belongs to same location as session
+        if (table.Location_Id != session.Location_Id)
+        {
+          return BadRequest($"Table belongs to a different location. Session is for location {session.Location_Id}, table is for location {table.Location_Id}");
+        }
+
         var checkIfAlreadyActiveSession = await _context.DiningSessions
             .AnyAsync(d => d.Ended_At == null &&
                           d.Session_Id != session_id &&
@@ -353,11 +360,9 @@ namespace back_end.controllers
           return BadRequest($"Table ID: {table.Table_Id} is currently in another active dining session.");
         }
 
-        // Assign the table to the session
         session.Table_Id = table.Table_Id;
         session.Table = table;
 
-        // Validate that only one assignment exists
         ValidateTableAssignment(session);
 
         await _context.SaveChangesAsync();
@@ -394,42 +399,41 @@ namespace back_end.controllers
             .Include(d => d.Bills)
             .FirstOrDefaultAsync(s => s.Session_Id == session_id);
 
-        // Check if the session exists
         if (session == null)
         {
           return NotFound($"Session: {session_id} not found");
         }
 
-        // Check if the session has already ended
         if (session.Ended_At != null)
         {
           return BadRequest($"Cannot modify an ended session: {session_id}");
         }
 
-        // Check if a bill has been added to the session
         if (session.Bills.Any())
         {
           return BadRequest("Cannot add table group after a bill has been created");
         }
 
-        // Check if session already has an individual table assigned
         if (session.Table_Id.HasValue)
         {
           return BadRequest("Cannot assign table group to session with individual table. Remove table first.");
         }
 
-        // Find the table group
         var tableGroup = await _context.TableGroups
             .Include(tg => tg.Tables)
             .FirstOrDefaultAsync(tg => tg.TableGroup_Id == tableGroupData.TableGroup_Id && tg.Is_Active);
 
-        // Check if the table group exists and is active
         if (tableGroup == null)
         {
           return BadRequest($"Table group: {tableGroupData.TableGroup_Id} not found or inactive");
         }
 
-        // Check if any tables in the group are assigned to another active session
+        // Validate that table group belongs to same location as session
+        if (tableGroup.Location_Id != session.Location_Id)
+        {
+          return BadRequest($"Table group belongs to a different location. Session is for location {session.Location_Id}, table group is for location {tableGroup.Location_Id}");
+        }
+
         var tableIds = tableGroup.Tables.Select(t => t.Table_Id).ToList();
         var checkIfTablesInActiveSession = await _context.DiningSessions
             .AnyAsync(d => d.Ended_At == null &&
@@ -442,11 +446,9 @@ namespace back_end.controllers
           return BadRequest($"One or more tables in table group {tableGroup.TableGroup_Id} are currently in another active dining session.");
         }
 
-        // Assign the table group to the session
         session.TableGroup_Id = tableGroup.TableGroup_Id;
         session.TableGroup = tableGroup;
 
-        // Validate that only one assignment exists
         ValidateTableAssignment(session);
 
         await _context.SaveChangesAsync();

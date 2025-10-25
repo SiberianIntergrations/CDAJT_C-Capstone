@@ -97,7 +97,12 @@ const DashboardSummary = () => {
   }, []);
 
   return (
-    <Box className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+    <Box
+      className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3"
+      sx={{
+        marginBottom: "20px",
+      }}
+    >
       <CompactCard hasRequests={serviceRequests > 0}>
         <Box
           sx={{
@@ -141,13 +146,13 @@ const DashboardSummary = () => {
         </Box>
       </CompactCard>
 
-      <CompactCard>
+      {/* <CompactCard>
         <Box sx={{ width: "100%", textAlign: "left" }}>
           <Typography variant="h5" color="secondary">
             Tables in Use: {dashboardSummary.total_tables_in_use}
           </Typography>
         </Box>
-      </CompactCard>
+      </CompactCard> */}
     </Box>
   );
 };

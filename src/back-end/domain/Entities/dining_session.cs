@@ -12,6 +12,9 @@ namespace back_end.domain.Entities
     [ForeignKey(nameof(Menu))]
     public int Menu_Id { get; set; }
 
+    [ForeignKey(nameof(Location))]
+    public int Location_Id { get; set; }
+
     public DateTime Started_At { get; set; }
 
     public DateTime? Ended_At { get; set; }
@@ -25,6 +28,8 @@ namespace back_end.domain.Entities
     public int? TableGroup_Id { get; set; }
 
     public Menu Menu { get; set; } = null!;
+
+    public Locations Location { get; set; } = null!;
 
     public TableEntity? Table { get; set; }
 

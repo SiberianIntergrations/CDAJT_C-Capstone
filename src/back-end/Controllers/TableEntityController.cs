@@ -51,12 +51,23 @@ namespace back_end.Controllers
     {
       try
       {
+        // Validate location exists
+        var location = await _context.Locations
+            .FirstOrDefaultAsync(l => l.Location_Id == table_data.Location_Id);
+
+        if (location == null)
+        {
+          return BadRequest("Location does not exist");
+        }
+
+        // Check if table number already exists at this location
         var existingTable = await _context.Tables
-            .FirstOrDefaultAsync(t => t.table_number == table_data.Table_Number);
+            .FirstOrDefaultAsync(t => t.table_number == table_data.Table_Number &&
+                                      t.Location_Id == table_data.Location_Id);
 
         if (existingTable != null)
         {
-          return BadRequest("Table Number already exists");
+          return BadRequest("Table number already exists at this location");
         }
 
         var newTable = new TableEntity
@@ -65,6 +76,7 @@ namespace back_end.Controllers
           QR_Code = table_data.Qr_Code_Url,
           seat_count = table_data.Seat_Count,
           is_active = table_data.Is_Active,
+          Location_Id = table_data.Location_Id
         };
 
         _context.Tables.Add(newTable);
@@ -89,13 +101,21 @@ namespace back_end.Controllers
     /// <response code="500">An internal server error occurred while retrieving tables.</response>
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TableEntity>>> GetAllTables()
+    public async Task<ActionResult<IEnumerable<TableEntity>>> GetAllTables([FromQuery] int? locationId)
     {
       try
       {
-        var tables = await _context.Tables
+        var query = _context.Tables
             .Include(t => t.TableGroup)
-            .ToListAsync();
+            .Include(t => t.Location)
+            .AsQueryable();
+
+        if (locationId.HasValue)
+        {
+          query = query.Where(t => t.Location_Id == locationId.Value);
+        }
+
+        var tables = await query.ToListAsync();
         return Ok(tables);
       }
       catch (Exception ex)
@@ -116,20 +136,23 @@ namespace back_end.Controllers
     /// <response code="500">An unexpected error occurred while retrieving the tables.</response>
     [Authorize]
     [HttpGet("empty")]
-    public async Task<ActionResult<IEnumerable<TableEntity>>> ListEmptyTables()
+    public async Task<ActionResult<IEnumerable<TableEntity>>> ListEmptyTables([FromQuery] int? locationId)
     {
       try
       {
-        // Find tables that are:
-        // 1. Active
-        // 2. Not assigned to any active dining session (either directly or through a table group)
-        var emptyTables = await _context.Tables
+        var query = _context.Tables
             .Include(t => t.TableGroup)
+            .Include(t => t.Location)
             .Where(t => t.is_active == true &&
                         !t.DiningSessions.Any(ds => ds.Ended_At == null) &&
-                        (t.TableGroup == null || !t.TableGroup.DiningSessions.Any(ds => ds.Ended_At == null)))
-            .ToListAsync();
+                        (t.TableGroup == null || !t.TableGroup.DiningSessions.Any(ds => ds.Ended_At == null)));
 
+        if (locationId.HasValue)
+        {
+          query = query.Where(t => t.Location_Id == locationId.Value);
+        }
+
+        var emptyTables = await query.ToListAsync();
         return Ok(emptyTables);
       }
       catch (Exception ex)
@@ -445,7 +468,12 @@ namespace back_end.Controllers
           return NotFound("Table group not found");
         }
 
-        // Check if table is in an active session
+        // Validate that table and table group belong to same location
+        if (table.Location_Id != tableGroup.Location_Id)
+        {
+          return BadRequest($"Table and table group must belong to the same location. Table is at location {table.Location_Id}, group is at location {tableGroup.Location_Id}");
+        }
+
         var activeSession = await _context.DiningSessions
             .AnyAsync(ds => ds.Table_Id == table_id && ds.Ended_At == null);
 
@@ -508,5 +536,6 @@ namespace back_end.Controllers
         return StatusCode(500, "Internal Server Error");
       }
     }
+
   }
 }

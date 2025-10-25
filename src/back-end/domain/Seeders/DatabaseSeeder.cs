@@ -89,10 +89,13 @@ namespace back_end.domain.Seeders
         await _context.SaveChangesAsync();
         _menuItemSeeder.Seed(); _logger.LogInformation("Menu items and assignments seeded successfully");
         await _context.SaveChangesAsync();
+
+        // IMPORTANT: Tables must be seeded before TableGroups
         _tableSeeder.Seed(); _logger.LogInformation("Tables seeded successfully");
         await _context.SaveChangesAsync();
         _tableGroupSeeder.Seed(); _logger.LogInformation("Table groups seeded successfully");
         await _context.SaveChangesAsync();
+
         // Sessions then session-driven data
         _diningSessionSeeder.Seed(); _logger.LogInformation("Dining sessions seeded successfully");
         await _context.SaveChangesAsync();
@@ -121,6 +124,7 @@ namespace back_end.domain.Seeders
     {
       try
       {
+        var locations = _context.Locations.Count();
         var categories = _context.Categories.Count();
         var tags = _context.Tags.Count();
         var menus = _context.Menus.Count();
@@ -138,6 +142,7 @@ namespace back_end.domain.Seeders
         var serviceRequests = _context.ServiceRequests.Count();
 
         // Log counts
+        _logger.LogInformation($"Locations: {locations}");
         _logger.LogInformation($"Categories: {categories}");
         _logger.LogInformation($"Tags: {tags}");
         _logger.LogInformation($"Menus: {menus}");
@@ -155,16 +160,17 @@ namespace back_end.domain.Seeders
 
         var verification = new List<bool>
                 {
+                    locations == 2,                    // Exactly 2 locations
                     categories >= 6,                   // At least 6 categories
                     tags >= 10,                        // At least 10 tags
                     menus >= 2,                        // At least 2 menus
                     menuItems >= 90,                   // At least 15 items per category
                     assignments >= menuItems * 2,      // Each item should be in both menus
-                    tables == 34,                      // Exactly 34 tables
-                    tableGroups == 4,                  // Exactly 4 table groups
+                    tables == 68,                      // Exactly 68 tables (34 per location × 2 locations)
+                    tableGroups == 8,                  // Exactly 8 table groups (4 per location × 2 locations)
                     users >= 13,                       // Admin + 3 staff + 10 customers (13 total)
-                    diningSessions >= 50,              // At least 50 sessions
-                    activeSessions == 5                // Exactly 5 active sessions
+                    diningSessions >= 100,             // At least 100 sessions (50 per location × 2 locations)
+                    activeSessions == 10               // Exactly 10 active sessions (5 per location × 2 locations)
                 };
 
         var allValid = verification.All(v => v);
@@ -193,13 +199,14 @@ namespace back_end.domain.Seeders
       _context.SessionParticipants.RemoveRange(_context.SessionParticipants);
       _context.DiningSessions.RemoveRange(_context.DiningSessions);
       _context.TableGroups.RemoveRange(_context.TableGroups);
+      _context.Tables.RemoveRange(_context.Tables);
       _context.MenuItemAssignments.RemoveRange(_context.MenuItemAssignments);
       _context.MenuItems.RemoveRange(_context.MenuItems);
       _context.Menus.RemoveRange(_context.Menus);
       _context.Categories.RemoveRange(_context.Categories);
       _context.Tags.RemoveRange(_context.Tags);
-      _context.Tables.RemoveRange(_context.Tables);
       _context.Users.RemoveRange(_context.Users);
+      _context.Locations.RemoveRange(_context.Locations);
 
       _context.SaveChanges();
       _logger.LogInformation("Existing data cleared");
