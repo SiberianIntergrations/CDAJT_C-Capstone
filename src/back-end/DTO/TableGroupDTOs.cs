@@ -9,6 +9,7 @@ namespace back_end.DTO.TableGroupDTOs
   {
     public string Group_Name { get; set; } = string.Empty;
     public bool? Is_Active { get; set; }
+    public int Location_Id { get; set; }
   }
 
   public class TableGroupUpdateDTO
