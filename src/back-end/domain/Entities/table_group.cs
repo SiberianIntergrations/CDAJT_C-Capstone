@@ -15,7 +15,12 @@ namespace back_end.domain.Entities
 
     public bool Is_Active { get; set; } = true;
 
+    [ForeignKey(nameof(Location))]
+    public int Location_Id { get; set; }
+
     public DateTime Created_At { get; set; } = DateTime.Now;
+
+    public Locations Location { get; set; } = null!;
 
     public ICollection<TableEntity> Tables { get; set; } = new List<TableEntity>();
     public ICollection<DiningSession> DiningSessions { get; set; } = new List<DiningSession>();

@@ -26,19 +26,30 @@ namespace back_end.Controllers
     {
       try
       {
-        // Check if group name already exists
+        // Validate location exists
+        var location = await _context.Locations
+            .FirstOrDefaultAsync(l => l.Location_Id == groupData.Location_Id);
+
+        if (location == null)
+        {
+          return BadRequest("Location does not exist");
+        }
+
+        // Check if group name already exists at this location
         var existingGroup = await _context.TableGroups
-            .FirstOrDefaultAsync(tg => tg.Group_Name == groupData.Group_Name);
+            .FirstOrDefaultAsync(tg => tg.Group_Name == groupData.Group_Name &&
+                                       tg.Location_Id == groupData.Location_Id);
 
         if (existingGroup != null)
         {
-          return BadRequest("Table group with this name already exists");
+          return BadRequest("Table group with this name already exists at this location");
         }
 
         var newTableGroup = new TableGroup
         {
           Group_Name = groupData.Group_Name,
           Is_Active = groupData.Is_Active ?? true,
+          Location_Id = groupData.Location_Id,
           Created_At = DateTime.UtcNow
         };
 
@@ -58,19 +69,26 @@ namespace back_end.Controllers
       }
     }
 
+
     [Authorize]
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<TableGroup>>> GetAllTableGroups([FromQuery] bool? activeOnly)
+    public async Task<ActionResult<IEnumerable<TableGroup>>> GetAllTableGroups([FromQuery] bool? activeOnly, [FromQuery] int? locationId)
     {
       try
       {
         var query = _context.TableGroups
             .Include(tg => tg.Tables)
+            .Include(tg => tg.Location)
             .AsQueryable();
 
         if (activeOnly.HasValue && activeOnly.Value)
         {
           query = query.Where(tg => tg.Is_Active);
+        }
+
+        if (locationId.HasValue)
+        {
+          query = query.Where(tg => tg.Location_Id == locationId.Value);
         }
 
         var tableGroups = await query
@@ -82,6 +100,8 @@ namespace back_end.Controllers
           tableGroup_Id = tg.TableGroup_Id,
           group_Name = tg.Group_Name,
           is_Active = tg.Is_Active,
+          location_Id = tg.Location_Id,
+          location_Name = tg.Location?.Name,
           created_At = tg.Created_At,
           table_Count = tg.Tables.Count,
           tables = tg.Tables.Select(t => new
@@ -104,15 +124,22 @@ namespace back_end.Controllers
 
     [Authorize]
     [HttpGet("available")]
-    public async Task<ActionResult<IEnumerable<TableGroup>>> GetAvailableTableGroups()
+    public async Task<ActionResult<IEnumerable<TableGroup>>> GetAvailableTableGroups([FromQuery] int? locationId)
     {
       try
       {
-        // Get table groups that are active and not assigned to any active dining session
-        var availableGroups = await _context.TableGroups
+        var query = _context.TableGroups
             .Include(tg => tg.Tables)
+            .Include(tg => tg.Location)
             .Where(tg => tg.Is_Active &&
-                        !tg.DiningSessions.Any(ds => ds.Ended_At == null))
+                        !tg.DiningSessions.Any(ds => ds.Ended_At == null));
+
+        if (locationId.HasValue)
+        {
+          query = query.Where(tg => tg.Location_Id == locationId.Value);
+        }
+
+        var availableGroups = await query
             .OrderBy(tg => tg.Group_Name)
             .ToListAsync();
 
@@ -121,6 +148,8 @@ namespace back_end.Controllers
           tableGroup_Id = tg.TableGroup_Id,
           group_Name = tg.Group_Name,
           is_Active = tg.Is_Active,
+          location_Id = tg.Location_Id,
+          location_Name = tg.Location?.Name,
           table_Count = tg.Tables.Count,
           total_Seats = tg.Tables.Sum(t => t.seat_count),
           tables = tg.Tables.Select(t => new
@@ -312,19 +341,22 @@ namespace back_end.Controllers
           return NotFound("Table not found");
         }
 
-        // Check if table is already in another group
+        // Validate that table and table group belong to same location
+        if (table.Location_Id != tableGroup.Location_Id)
+        {
+          return BadRequest($"Table and table group must belong to the same location. Table is at location {table.Location_Id}, group is at location {tableGroup.Location_Id}");
+        }
+
         if (table.TableGroup_Id.HasValue && table.TableGroup_Id.Value != table_group_id)
         {
           return BadRequest($"Table is already assigned to another group (Group ID: {table.TableGroup_Id})");
         }
 
-        // Check if table is already in this group
         if (table.TableGroup_Id == table_group_id)
         {
           return BadRequest("Table is already in this group");
         }
 
-        // Check if table is in an active session
         var isTableInActiveSession = await _context.DiningSessions
             .AnyAsync(ds => ds.Table_Id == table_id && ds.Ended_At == null);
 
