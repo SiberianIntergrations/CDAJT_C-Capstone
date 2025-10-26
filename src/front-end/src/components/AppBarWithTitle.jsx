@@ -54,12 +54,12 @@ const AppBarWithTitle = ({ title }) => {
   useEffect(() => {
     const fetchAllLocations = async () => {
       try {
+        if(!isAuthenticated || !userRole || (userRole !== "staff" && userRole !=="admin")){
+          return
+        }
         const response = await api.get("location/");
         setAllLocations(response.data);
-        console.log("All locations:", response.data);
-        
         const locationResponse = await api.get("staff/get-initial-staff-location");
-        console.log("Starting Location: ", locationResponse.data);
         setSelectedLocation(locationResponse.data.location_Id);
         
       } catch (err) {
@@ -67,7 +67,7 @@ const AppBarWithTitle = ({ title }) => {
       }
     };
     fetchAllLocations();
-  }, []);
+  }, [isAuthenticated, userRole, loading]);
 
 
   const handleLogout = async () => {
