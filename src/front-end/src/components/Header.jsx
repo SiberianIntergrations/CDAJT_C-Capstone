@@ -171,6 +171,7 @@ const Header = () => {
             </>
           )}
         </div>
+
         <div className={styles.navbarRightContainer}>
           <button className={styles.authButton} onClick={handleLogout}>
             {isAuthenticated ? "Logout" : "Login"}
