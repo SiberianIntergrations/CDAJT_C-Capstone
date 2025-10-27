@@ -4,11 +4,16 @@ import { useRouter } from "next/navigation";
 import { Box, CircularProgress } from "@mui/material";
 import dynamic from "next/dynamic";
 import { getAccessToken } from "@/utils/token";
-
+import api from "@/config/api";
+import { useAuth } from "@/hooks/useAuth";
 // export const metadata = {
 //   title: "Menu Item Management | Sushi Toshi",
 //   description: "Manage menu items",
 //
+
+
+
+
 
 const MenuItemManagement = dynamic(
   () => import("@/components/admin/MenuItemManagement"),
@@ -31,6 +36,8 @@ export default function MenuItemsPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const { isAuthenticated, userRole, loading } = useAuth();
+
 
   useEffect(() => {
     const checkAuth = () => {
@@ -42,14 +49,16 @@ export default function MenuItemsPage() {
           return;
         }
 
-        // TODO: Fix role-based access control
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
+        if (loading) {
+          console.log("Still loading auth...");
+          return;
+        }
         
-        // if (tokenData.role !== "admin") {
-        //   router.push("/unauthorized");
-        //   return;
-        // }
-        
+        if(userRole !== "admin"){
+          router.push("/unauthorized");
+          return;
+        }
+
         setIsAuthorized(true);
       } catch (error) {
         console.error("Error verifying token:", error);
@@ -60,7 +69,7 @@ export default function MenuItemsPage() {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router,isAuthenticated,userRole,loading ]);
 
   if (isLoading || !isAuthorized) {
     return (

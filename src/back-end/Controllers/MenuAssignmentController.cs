@@ -162,8 +162,8 @@ namespace back_end.Controllers
                 var finalSeniorLimit = updateData.Senior_Limit ?? assignment.Senior_limit;
                 var finalChildLimit = updateData.Child_Limit ?? assignment.Child_limit;
                 var finalTotLimit = updateData.Tot_Limit ?? assignment.Tot_Limit;
-                var finalTotalLimit = updateData.Total_Units_Ordered ?? assignment.Total_Units_Ordered;
-                if ((finalChildLimit > assignment.Adult_Limit) || finalChildLimit > assignment.Tot_Limit)
+
+                if (finalChildLimit > assignment.Adult_Limit)
                 {
                     return BadRequest("Child Limit Can not be Greater then a Adult or Total Limit");
                 }
@@ -174,10 +174,6 @@ namespace back_end.Controllers
                 if (finalSeniorLimit > assignment.Adult_Limit)
                 {
                     return BadRequest("Senior Limit Can not be Greater then a Adult or Total limit");
-                }
-                if (finalAdultLimit + finalChildLimit + finalSeniorLimit > finalTotalLimit)
-                {
-                    return BadRequest($"Adult:{finalAdultLimit},Senior:{finalSeniorLimit},Child{finalSeniorLimit} total:{finalAdultLimit + finalSeniorLimit + finalChildLimit} Limits can not be greater then Total Limit{finalTotalLimit}");
                 }
                 if (updateData.Adult_Limit.HasValue)
                 {
@@ -308,7 +304,8 @@ namespace back_end.Controllers
         [HttpPost("copy_menu/{source_menu_id}")]
         [ProducesResponseType(typeof(IEnumerable<MenuItemAssignment>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]        public async Task<IActionResult> Copy_Menu_Assignments(
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]       
+        public async Task<IActionResult> Copy_Menu_Assignments(
             int source_menu_id,
             string new_menu_name
         )
