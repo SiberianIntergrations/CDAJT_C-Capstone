@@ -1,0 +1,45 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "DotNET Core API",
+            "type": "coreclr",
+            "request": "launch",
+            "program": "dotnet",
+            "args": ["run", "--project", "${workspaceFolder}/src/back-end/back-end.csproj"],
+            "cwd": "${workspaceFolder}/src/back-end",
+            "stopAtEntry": false,
+            // "serverReadyAction": {
+            //     "action": "openExternally",
+            //     "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+            // },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            }
+        },
+        {
+            "name": "NextJS React Frontend",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/front-end/node_modules/next/dist/bin/next",
+            "args": ["dev"],
+            "cwd": "${workspaceFolder}/src/front-end",
+            "env": {
+                "NODE_ENV": "development"
+            },
+            "console": "integratedTerminal",
+            "serverReadyAction": {
+            "pattern": "ready - started server on .+, url: (https?://\\S+)",
+            "uriFormat": "%s",
+            "action": "openExternally"
+            }
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Launch Full Stack",
+            "configurations": ["DotNET Core API", "NextJS React Frontend"],
+            "stopAll": true
+        }
+    ]
+}

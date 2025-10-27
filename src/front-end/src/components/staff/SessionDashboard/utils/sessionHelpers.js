@@ -122,7 +122,7 @@ export const canRemoveTable = (session, tableNumber) => {
   if (session.bills && session.bills.length > 0) return false;
 
   // Can't remove the last table
-  if (session.table_numbers.length <= 1) return false;
+  if (session.table_Numbers.length <= 1) return false;
 
   return true;
 };

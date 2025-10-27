@@ -11,9 +11,9 @@ import {
   Typography,
   Chip,
 } from "@mui/material";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
-const BillSelect = ({ session_id, value, onChange, disabled, message }) => {
+const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,7 +27,7 @@ const BillSelect = ({ session_id, value, onChange, disabled, message }) => {
   
   useEffect(() => {
     const fetchBills = async () => {
-      if (!session_id) {
+      if (!_session_id) {
         setLoading(false);
         return;
       }
@@ -36,9 +36,8 @@ const BillSelect = ({ session_id, value, onChange, disabled, message }) => {
         setLoading(true);
         setError(null);
 
-        const response = await axiosInstance.get(
-          createApiUrl(`/bills/by-session/${session_id}`)
-        );
+        // api from old project: /bills/by-session/{sessionId} GET
+        const response = await api.get(`/Bill/get_bills/${_session_id}`);
         console.log("Bills response:", response.data);
 
         const billsData = Array.isArray(response.data) ? response.data : [];
@@ -60,7 +59,7 @@ const BillSelect = ({ session_id, value, onChange, disabled, message }) => {
     }, 90000);
 
     return () => clearInterval(intervalId);
-  }, [session_id]);
+  }, [_session_id]);
 
   const isValueValid = bills.some((bill) => bill.bill_id === value);
 

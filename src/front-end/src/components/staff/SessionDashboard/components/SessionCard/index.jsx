@@ -18,7 +18,7 @@ import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";
 import { useSession } from "../../context/SessionContext";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const CardWrapper = styled("div")(({ theme }) => ({
   position: "relative",
@@ -125,6 +125,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
   const touchStartX = useRef(null);
   const { endSession, actionError, clearActionError } = useSession();
 
+  console.log("SESSION: ", session);
+
   useEffect(() => {
     if (actionError) {
       console.log("Action error in SessionCard:", actionError);
@@ -135,21 +137,22 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
   }, [actionError]);
 
   const fetchRequests = useCallback(async () => {
+    console.log("fetching", session);
     try {
-      const response = await axiosInstance.get(
-        createApiUrl(`/service-requests/by-session/${session.session_id}`)
+      const response = await api.get(
+        `/ServiceRequest/by-session/${session.session_Id}`
       );
 
-      if (!response.statusText === "OK")
-        throw new Error("Failed to fetch requests");
+      if (response.status !== 200) throw new Error("Failed to fetch requests");
       const data = response.data;
+      console.log("data: ", data);
       setRequests(data);
       setIsBlinking(data.length > 0);
-      onRequestUpdate(session.session_id, data);
+      onRequestUpdate(session.session_Id, data);
     } catch (error) {
       console.error("Error fetching requests:", error);
     }
-  }, [session.session_id, onRequestUpdate]);
+  }, [session.session_Id, onRequestUpdate]);
 
   useEffect(() => {
     if (showConfirm && expanded) {
@@ -183,11 +186,13 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
   const handleComplete = async (requestId) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/service-requests/${requestId}/complete`)
+      // previously used /service-requests/{requestId}/complete
+      // TODO: Endpoint to mark a service request as complete
+      const response = await api.post(
+        `/service-requests/${requestId}/complete`
       );
 
-      if (!response.statusText === "OK")
+      if (response.status !== 200)
         throw new Error("Failed to complete request");
       await fetchRequests();
     } catch (error) {
@@ -216,7 +221,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
     try {
       setIsEnding(true);
       clearActionError(); // Clear any previous errors
-      const success = await endSession(session.session_id);
+      const success = await endSession(session.session_Id);
       if (!success) {
         console.log("Session end failed, current action error:", actionError);
       }
@@ -326,7 +331,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
                 flexGrow: 1,
               }}
             >
-              End Session #{session.session_id}?
+              End Session #{session.session_Id}?
             </Typography>
             <Button
               variant="contained"
@@ -363,8 +368,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
       >
         <AccordionSummary
           expandIcon={<ChevronDown />}
-          aria-controls={`session-${session.session_id}-content`}
-          id={`session-${session.session_id}-header`}
+          aria-controls={`session-${session.session_Id}-content`}
+          id={`session-${session.session_Id}-header`}
         >
           <Box sx={{ width: "100%" }}>
             <Box
@@ -377,7 +382,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Typography variant="h6">
-                  Session #{session.session_id}
+                  Session #{session.session_Id}
                 </Typography>
                 {requests.length > 0 && (
                   <Chip

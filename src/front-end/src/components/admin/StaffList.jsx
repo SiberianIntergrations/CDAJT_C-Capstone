@@ -1,4 +1,5 @@
 import React from "react";
+// TODO: Fix depcrecated DataGrid import
 import { DataGrid, GridActionsCellItem, GridToolbar } from "@mui/x-data-grid";
 import {
   Box,
@@ -19,7 +20,9 @@ const StaffList = ({
   onStatusChange,
   onChangePassword,
 }) => {
+
   const getStatusColor = (status) => {
+
     switch (status) {
       case "active":
         return "success";
@@ -79,6 +82,17 @@ const StaffList = ({
       ),
     },
     {
+      field: "Location",
+      headerName: "Location",
+      flex:1,
+      renderCell: (params) =>(
+        <Chip
+          label={params.row.location}
+          size="small"
+        />
+      )
+    },
+    {
       field: "role",
       headerName: "Role",
       flex: 1,
@@ -132,7 +146,7 @@ const StaffList = ({
         >
           <GridActionsCellItem
             icon={
-              params.row.status === "active" ? (
+              params.row.status.toLowerCase === "active" ? (
                 <UserMinus size={20} />
               ) : (
                 <UserCheck size={20} />
@@ -142,7 +156,8 @@ const StaffList = ({
             onClick={() =>
               onStatusChange(
                 params.row,
-                params.row.status === "active" ? "inactive" : "active"
+                params.row.status.toLowerCase() === "active" ? "inactive" : "active",
+
               )
             }
             disabled={params.row.email === currentUser}

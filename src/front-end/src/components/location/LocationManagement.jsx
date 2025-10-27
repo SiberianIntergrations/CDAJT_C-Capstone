@@ -16,7 +16,7 @@ import { Edit, Delete, Plus, Menu, AlertTriangle, Trash2 } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import LocationForm from "@/components/location/LocationForm";
 import MenuAssignmentForm from "@/components/location/MenuAssignmentForm";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const LocationManagement = () => {
   const [locations, setLocations] = useState([]);
@@ -31,8 +31,29 @@ const LocationManagement = () => {
 
   const fetchLocations = async () => {
     try {
-      const response = await axiosInstance.get(createApiUrl("/locations"));
-      setLocations(response.data);
+      setLoading(true);
+      const response = await api.get("/Location");
+      const data = Array.isArray(response.data) ? response.data : [];
+
+      const normalized = data.map((r) => {
+        const locationId = r.location_id ?? r.location_Id ?? r.locationId ?? r.id ?? r.ID ?? null;
+
+        return {
+          ...r,
+          location_id: locationId,
+          id: locationId, // DataGrid default id field
+          name: r.name ?? r.Name,
+          address_one: r.address_one ?? r.address_Primary ?? r.addressPrimary ?? r.address1,
+          address_two: r.address_two ?? r.address_Secondary ?? r.addressSecondary ?? r.address2,
+          city: r.city ?? r.City,
+          province: r.province ?? r.Province,
+          postal_code: r.postal_code ?? r.postalCode ?? r.postal_Code ?? r.PostalCode,
+          phone_Number: r.phone_Number ?? r.phoneNumber,
+          created_At: r.created_At ?? r.createdAt ?? r.CreatedAt,
+        };
+      });
+      
+      setLocations(normalized);
     } catch (err) {
       setError("Failed to fetch locations");
       console.error(err);
@@ -64,9 +85,7 @@ const LocationManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await axiosInstance.delete(
-        createApiUrl(`/locations/${locationToDelete.location_id}`)
-      );
+      await api.delete(`/Location/${locationToDelete.location_id}`);
       await fetchLocations();
       setDeleteDialogOpen(false);
       setLocationToDelete(null);
@@ -79,10 +98,10 @@ const LocationManagement = () => {
   const handleSubmit = async (formData) => {
     try {
       if (formMode === "create") {
-        await axiosInstance.post(createApiUrl("/locations"), formData);
+        await api.post("/Location", formData);
       } else {
-        await axiosInstance.put(
-          createApiUrl(`/locations/${selectedLocation.location_id}`),
+        // TODO: Need endpoint to /Location/{id} on the backend
+        await api.put(`/Location/${selectedLocation.location_id}`,
           formData
         );
       }
@@ -165,7 +184,6 @@ const LocationManagement = () => {
         columns={columns}
         loading={loading}
         getRowId={(row) => row.location_id}
-        autoHeight
         disableSelectionOnClick
         sx={{
           bgcolor: "background.paper",
@@ -202,7 +220,7 @@ const LocationManagement = () => {
         <MenuAssignmentForm
           location={selectedLocation}
           onClose={() => setIsMenuFormOpen(false)}
-          axiosInstance={axiosInstance}
+          api={api}
         />
       </Dialog>
 

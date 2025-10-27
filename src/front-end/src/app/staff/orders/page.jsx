@@ -19,7 +19,7 @@ import {
   Chip,
 } from "@mui/material";
 import { Trash2, Check, AlertCircle, Package, ShoppingBag } from "lucide-react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const OrderDashboard = () => {
   const [orders, setOrders] = useState([]);
@@ -36,11 +36,9 @@ const OrderDashboard = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get(
-        createApiUrl("/orders/?session_id=1")
-      );
+      const response = await api.get("/orders/?session_id=1"); // TODO: Replace with actual session ID and update the rest of endpoints
 
-      if (response.statusText !== "OK")
+      if (response.status !== 200)
         throw new Error("Failed to fetch orders");
       console.log("Response:", response);
 
@@ -67,13 +65,7 @@ const OrderDashboard = () => {
 
   const handleRemoveItem = async (orderId, itemId) => {
     try {
-      const token = localStorage.getItem("access_token");
-      await fetch(`http://localhost:8000/orders/${orderId}/items/${itemId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.delete(`/orders/${orderId}/items/${itemId}`);
       await fetchOrders();
     } catch (err) {
       setError("Failed to remove item");
@@ -82,7 +74,6 @@ const OrderDashboard = () => {
 
   const handleApproveOrder = async (orderId) => {
     try {
-      const token = localStorage.getItem("access_token");
       const itemUpdates = Object.entries(editingItems)
         .filter(([key]) => key.startsWith(`${orderId}-`))
         .map(([key, quantity]) => ({
@@ -90,14 +81,7 @@ const OrderDashboard = () => {
           quantity,
         }));
 
-      await fetch(`http://localhost:8000/orders/${orderId}/approve`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ items: itemUpdates }),
-      });
+      await api.post(`/orders/${orderId}/approve`, { items: itemUpdates });
 
       // Clear editing state for this order
       setEditingItems((prev) => {
@@ -116,18 +100,13 @@ const OrderDashboard = () => {
 
   const handleMarkDelivered = async (orderId) => {
     try {
-      const token = localStorage.getItem("access_token");
-      await fetch(`http://localhost:8000/orders/${orderId}/deliver`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      await api.post(`/orders/${orderId}/deliver`);
       await fetchOrders();
     } catch (err) {
       setError("Failed to mark order as delivered");
     }
   };
+
 
   if (loading) {
     return (

@@ -1,18 +1,12 @@
-"use client";
-import Head from "next/head";
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
+
+export const metadata = {
+  title: "Reset Password | Sushi Toshi",
+  description: "Set a new password for your Sushi Toshi account",
+};
 
 export default function ResetPasswordPage() {
   return (
-    <>
-      <Head>
-        <title>Reset Password | Sushi Toshi</title>
-        <meta
-          name="description"
-          content="Set a new password for your Sushi Toshi account"
-        />
-      </Head>
-      <ResetPasswordForm />
-    </>
+    <ResetPasswordForm />
   );
-}
+};

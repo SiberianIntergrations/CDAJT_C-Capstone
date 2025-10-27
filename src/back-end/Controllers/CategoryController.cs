@@ -21,9 +21,30 @@ namespace back_end.Controllers
             _context = context;
             _logger = logger;
         }
+
+        
+        /// <summary>
+        /// Retrieves all categories from the database.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="ActionResult"/> containing a collection of <see cref="Category"/> objects.
+        /// Returns HTTP 200 (OK) with the list of all categories on success.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of all categories</response>
+        /// <response code="500">If an internal error occurs while retrieving categories</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/category
+        ///
+        /// Returns all categories in the system with their details including limits and statistics.
+        /// </remarks>
         //GET api/category
-        //Get all categoeies
+        //Get all categories
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<Category>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<Category>>> GetAllCategories()
         {
             try
@@ -38,7 +59,40 @@ namespace back_end.Controllers
             }
         }
 
+        /// <summary>
+        /// Creates a new category in the system.
+        /// </summary>
+        /// <param name="category">The category data including name, description, and limits</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the created <see cref="Category"/> object.
+        /// Returns HTTP 200 (OK) with the created category on success.
+        /// Returns HTTP 409 (Conflict) if a category with the same name already exists.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+        /// </returns>
+        /// <response code="200">Returns the newly created category</response>
+        /// <response code="409">If a category with the same name already exists</response>
+        /// <response code="500">If an internal error occurs while creating the category</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/category
+        ///     {
+        ///         "name": "Appetizers",
+        ///         "description": "Starter dishes and small plates",
+        ///         "adult_Limit": 100,
+        ///         "child_Limit": 50,
+        ///         "senior_Limit": 75,
+        ///         "total_Limit": 200
+        ///     }
+        ///
+        /// Creates a new category with the provided information.
+        /// Category names must be unique.
+        /// Last viewed timestamp is automatically set to current UTC time.
+        /// </remarks>
         [HttpPost]
+        [ProducesResponseType(typeof(Category), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> CreateCategory(CreateCategory category)
         {
             try
@@ -74,7 +128,30 @@ namespace back_end.Controllers
 
         }
 
-        [HttpGet("get_category{_categoryId}")]
+        /// <summary>
+        /// Retrieves a specific category by its ID.
+        /// </summary>
+        /// <param name="_categoryId">The unique identifier of the category</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the <see cref="Category"/> object.
+        /// Returns HTTP 200 (OK) with the category details on success.
+        /// Returns HTTP 404 (Not Found) if the category doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the category with the specified ID</response>
+        /// <response code="404">If the category is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving the category</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/category/get_category/123
+        ///
+        /// Returns the complete category details for the specified ID.
+        /// </remarks>
+        [HttpGet("get_category/{_categoryId}")]
+        [ProducesResponseType(typeof(Category), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetCategoryById(int _categoryId)
         {
             try
@@ -96,7 +173,41 @@ namespace back_end.Controllers
             }
         }
 
-        [HttpPut("update_category{_categoryId}")]
+        /// <summary>
+        /// Updates an existing category's information and limits.
+        /// </summary>
+        /// <param name="_categoryId">The unique identifier of the category to update</param>
+        /// <param name="updatedCategory">The updated category data</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the updated category object.
+        /// Returns HTTP 200 (OK) with the updated category on success.
+        /// Returns HTTP 404 (Not Found) if the category doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the update.
+        /// </returns>
+        /// <response code="200">Returns the updated category</response>
+        /// <response code="404">If the category is not found</response>
+        /// <response code="500">If an internal error occurs while updating the category</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     PUT /api/category/update_category/123
+        ///     {
+        ///         "name": "Appetizers",
+        ///         "description": "Starter dishes and small plates",
+        ///         "adult_Limit": 100,
+        ///         "child_Limit": 50,
+        ///         "senior_Limit": 75,
+        ///         "total_Limit": 200
+        ///     }
+        ///
+        /// Updates the category information and limits.
+        /// Name and description are optional - if not provided, existing values are retained.
+        /// Last viewed timestamp is automatically updated to current UTC time.
+        /// </remarks>
+        [HttpPut("update_category/{_categoryId}")]
+        [ProducesResponseType(typeof(Category), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> UpdateCategory(int _categoryId, UpdateCategory updatedCategory)
         {
             try
@@ -128,7 +239,31 @@ namespace back_end.Controllers
             }
         }
 
-        [HttpDelete("delete_category{_categoryId}")]
+        /// <summary>
+        /// Deletes a category from the system.
+        /// </summary>
+        /// <param name="_categoryId">The unique identifier of the category to delete</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the operation.
+        /// Returns HTTP 200 (OK) with a success message when the category is deleted.
+        /// Returns HTTP 404 (Not Found) if the category doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during deletion.
+        /// </returns>
+        /// <response code="200">Returns a success message when the category is deleted</response>
+        /// <response code="404">If the category is not found</response>
+        /// <response code="500">If an internal error occurs while deleting the category</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     DELETE /api/category/delete_category/123
+        ///
+        /// Permanently removes the category from the database.
+        /// This may affect menu items associated with this category depending on cascade settings.
+        /// </remarks>
+        [HttpDelete("delete_category/{_categoryId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> DeleteCategory(int _categoryId)
         {
             try
@@ -153,7 +288,37 @@ namespace back_end.Controllers
             }
         }
 
-        [HttpGet("get_menu_by_category{_categoryId}")]
+       /// <summary>
+        /// Retrieves menu items for a specific category with pagination support.
+        /// </summary>
+        /// <param name="_categoryId">The unique identifier of the category</param>
+        /// <param name="skip">The number of items to skip for pagination (default: 0)</param>
+        /// <param name="limit">The maximum number of items to return (default: 10)</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a collection of <see cref="Menu_Item"/> objects.
+        /// Returns HTTP 200 (OK) with the list of menu items on success.
+        /// Returns HTTP 404 (Not Found) if no menu items exist for the category.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of menu items for the specified category</response>
+        /// <response code="404">If no menu items are found for the category</response>
+        /// <response code="500">If an internal error occurs while retrieving menu items</response>
+        /// <remarks>
+        /// Sample requests:
+        ///
+        ///     GET /api/category/get_menu_by_category/123
+        ///     (Returns first 10 items)
+        ///     
+        ///     GET /api/category/get_menu_by_category/123?skip=10&amp;limit=20
+        ///     (Returns items 11-30)
+        ///
+        /// Supports pagination through skip and limit parameters.
+        /// Default pagination: skip=0, limit=10
+        /// </remarks>
+        [HttpGet("get_menu_by_category/{_categoryId}")]
+        [ProducesResponseType(typeof(IEnumerable<Menu_Item>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetMenuItemsByCategory(int _categoryId, int skip = 0, int limit = 10)
         {
             try
@@ -178,7 +343,37 @@ namespace back_end.Controllers
             }
         }
 
-        [HttpPost("track_viewed{_categoryId}")]
+         /// <summary>
+        /// Tracks a view event for a specific category, recording view duration and incrementing view count.
+        /// </summary>
+        /// <param name="_categoryId">The unique identifier of the category</param>
+        /// <param name="viewSeconds">The number of seconds the category was viewed</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the operation.
+        /// Returns HTTP 200 (OK) with a success message when the view is tracked.
+        /// Returns HTTP 400 (Bad Request) if view_seconds is negative.
+        /// Returns HTTP 404 (Not Found) if the category doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during tracking.
+        /// </returns>
+        /// <response code="200">Returns a success message when the category view is tracked</response>
+        /// <response code="400">If view_seconds is a negative value</response>
+        /// <response code="404">If the category is not found</response>
+        /// <response code="500">If an internal error occurs while tracking the view</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/category/track_viewed/123?view_seconds=45
+        ///
+        /// Updates the category's tracking statistics:
+        /// - Increments total view count by 1
+        /// - Adds view_seconds to total view duration
+        /// - Updates last viewed timestamp to current UTC time
+        /// </remarks>
+        [HttpPost("track_viewed/{_categoryId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> TrackCategoryView(int _categoryId, [FromQuery(Name = "view_seconds")] int viewSeconds)
         {
             try

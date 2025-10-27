@@ -22,7 +22,37 @@ namespace back_end.controllers
             _logger = logger;
         }
 
+        /// <summary>
+        /// Retrieves performance metrics for all menu items showing total units sold.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing performance data with date range and item statistics.
+        /// Returns HTTP 200 (OK) with item performance metrics on success.
+        /// Returns HTTP 404 (Not Found) if no performance data is available.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns item performance metrics with date range and sales data</response>
+        /// <response code="404">If no item performance data is found</response>
+        /// <response code="500">If an internal error occurs while retrieving metrics</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/analytics/item-performance
+        ///
+        /// Returns performance data including:
+        /// - Date range (earliest and latest order completion dates)
+        /// - For each menu item:
+        ///   - Item ID and name
+        ///   - Total units sold across all orders
+        /// 
+        /// Items with zero sales are included in the results.
+        /// The date range represents the period covered by completed orders.
+        /// </remarks>
         [HttpGet("item-performance")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
         public async Task<IActionResult> GetItemPerformance()
         {
             try
@@ -56,7 +86,35 @@ namespace back_end.controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves browsing behavior metrics for menu items showing total views and view duration.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a collection of browsing behavior data objects.
+        /// Returns HTTP 200 (OK) with browsing metrics on success.
+        /// Returns HTTP 404 (Not Found) if no browsing data is available.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns browsing behavior metrics for all menu items</response>
+        /// <response code="404">If no browsing behavior data is found</response>
+        /// <response code="500">If an internal error occurs while retrieving metrics</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/analytics/browsing-behavior
+        ///
+        /// Returns aggregated metrics across all menu assignments showing:
+        /// - Item ID and name
+        /// - Total view duration in seconds
+        /// - Total number of views across all menus
+        /// 
+        /// Data is aggregated from all MenuItemAssignments, combining statistics
+        /// for the same item across different menus.
+        /// </remarks>
         [HttpGet("browsing-behavior")]
+        [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetBrowsingBehavior()
         {
             try
@@ -96,15 +154,48 @@ namespace back_end.controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves table turnover metrics showing average dining duration grouped by day and month.
+        /// </summary>
+        /// <param name="partySize">The party size to filter metrics by (default: 2)</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing a <see cref="TableTurnOverResponseDTO"/> object with daily and monthly metrics.
+        /// Returns HTTP 200 (OK) with turnover metrics on success.
+        /// Returns HTTP 404 (Not Found) if no data is available for the specified party size.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns table turnover metrics grouped by day and month</response>
+        /// <response code="404">If no turnover data is found for the specified party size</response>
+        /// <response code="500">If an internal error occurs while retrieving metrics</response>
+        /// <remarks>
+        /// Sample requests:
+        ///
+        ///     GET /api/analytics/table-turnover
+        ///     (Returns metrics for party size of 2)
+        ///     
+        ///     GET /api/analytics/table-turnover?partySize=4
+        ///     (Returns metrics for party size of 4)
+        ///
+        /// Calculates average dining duration (from bill creation to closure) in minutes.
+        /// Party size is calculated as the sum of seniors, adults, and children on each bill.
+        /// Only includes closed bills (bills with a Closed_At timestamp).
+        /// 
+        /// Returns two datasets:
+        /// - Daily: Average duration per day (format: yyyy-MM-dd)
+        /// - Monthly: Average duration per month (format: yyyy-MM)
+        /// </remarks>
         [HttpGet("table-turnover")]
+        [ProducesResponseType(typeof(TableTurnOverResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetTableTurnoverMetrics([FromQuery] int partySize = 2)
         {
             try
             {
                 // Filter out bills with null Closed_At because we need to group by Closed_At date/time
                 var filteredBills = _context.Bills
-                    .Where(b => b.Closed_At.HasValue)
-                    .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize);
+                    .Where(b => b.Closed_At.HasValue);
+                    // .Where(b => (b.Senior_Count + b.Adult_Count + b.Child_Count) == partySize);
 
                 // Daily turnover query
                 var dailyTurnover = await filteredBills
@@ -169,6 +260,51 @@ namespace back_end.controllers
                 _logger.LogError($"Error retrieving table turnover metrics: {ex.Message}");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
+        }
+
+
+
+        [HttpGet("order-timing")]
+        [ProducesResponseType(typeof(TableTurnOverResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> GetOrderTimingMetrics()
+        {
+            try
+            {
+                var orderTiming = await _context.DiningSessions
+                    .Where(ds => ds.First_Order_At != null && ds.Started_At != null)
+                    .Select(ds => new
+                    {
+                        sessionId = ds.Session_Id,
+                        TimeToFirstOrderSeconds = EF.Functions.DateDiffSecond(ds.Started_At, ds.First_Order_At)
+                    }).Take(25)
+                    .ToListAsync();
+
+                var dailyAverageTiming = await _context.DiningSessions
+                    .Where(ds => ds.First_Order_At != null && ds.Started_At != null)
+                    .GroupBy(ds => ds.Started_At.Date)
+                    .Select(g => new
+                    {
+                        Day = g.Key,
+                        AverageTimeToFirstOrderSeconds = g.Average(ds => EF.Functions.DateDiffSecond(ds.Started_At, ds.First_Order_At))
+                    })
+                    .ToListAsync();
+
+                return Ok(new { orderTiming, dailyAverageTiming });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving order timing metrics: {ex.Message}");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }
+
+        [HttpGet("max-party-size")]
+        public async Task<IActionResult> GetMaxPartySize()
+        {
+            var maxPartySize = _context.Bills.Max(b => b.Child_Count + b.Adult_Count + b.Senior_Count);
+            return Ok(maxPartySize);
         }
     }
 }

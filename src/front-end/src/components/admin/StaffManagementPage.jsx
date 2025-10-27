@@ -14,10 +14,13 @@ import { UserPlus } from "lucide-react";
 import StaffManagementForm from "@/components/admin/StaffManagementForm";
 import StaffList from "@/components/admin/StaffList";
 import PasswordChangeDialog from "@/components/admin/PasswordChangeDialog";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
+
+// TODO: Missing Staff api
 
 const StaffManagementPage = () => {
   const [staff, setStaff] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -35,10 +38,10 @@ const StaffManagementPage = () => {
     try {
       setLoading(true);
 
-      const response = await axiosInstance.get(createApiUrl("/staff"));
+      const response = await api.get("/staff");
       console.log(response);
       console.log(response.statusText);
-      if (response.statusText !== "OK")
+      if (response.status !== 200)
         throw new Error("Failed to fetch staff members");
 
       const data = response.data;
@@ -70,33 +73,35 @@ const StaffManagementPage = () => {
 
   useEffect(() => {
     fetchStaff();
+    console.log(staff);
   }, []);
 
-  const handleStatusChange = async (staffMember, newStatus) => {
-    try {
-      setSubmitting(true);
-
-      await axiosInstance.put(createApiUrl(`/staff/${staffMember.user_id}`), {
-        status: newStatus,
-      });
-
-      await fetchStaff();
-      setSnackbar({
-        open: true,
-        message: `Staff member ${
-          newStatus === "active" ? "activated" : "deactivated"
-        } successfully`,
-        severity: "success",
-      });
-    } catch (err) {
-      console.error("Error updating staff status:", err);
-      setError(
-        err.response?.data?.detail || "Failed to update staff member status"
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+const handleStatusChange = async (staffMember, newStatus) => {
+  try {
+    setSubmitting(true);
+    
+    const response = await api.put(`/staff/${staffMember.user_id}`, {
+      status: newStatus,
+    });
+    
+    await fetchStaff();
+    
+    setSnackbar({
+      open: true,
+      message: `Staff member ${
+        newStatus === "active" ? "activated" : "deactivated"
+      } successfully`,
+      severity: "success",
+    });
+  } catch (err) {
+    console.error("Error updating staff status:", err);
+    setError(
+      err.response?.data?.detail || "Failed to update staff member status"
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const handleCreateStaff = async (formData) => {
     try {
@@ -104,10 +109,10 @@ const StaffManagementPage = () => {
 
       let role = formData.role;
       formData.status = "active";
-      delete formData.role;
+      // delete formData.role;
 
-      await axiosInstance.post(createApiUrl(`/staff/?role=${role}`), formData);
-
+      // await api.post(`/staff/?role=${role}`, formData);
+      await api.post(`/staff/`, formData);
       await fetchStaff();
       setFormOpen(false);
       setSnackbar({
@@ -126,13 +131,13 @@ const StaffManagementPage = () => {
   const handleUpdateStaff = async (formData) => {
     try {
       setSubmitting(true);
+      console.log(formData);
 
-      const response = await axiosInstance.put(
-        createApiUrl(`/staff/${selectedStaff.user_id}`),
+      const response = await api.put(`/staff/${selectedStaff.user_id}`,
         formData
       );
 
-      if (response.statusText !== "OK")
+      if (response.status !== 200)
         throw new Error("Failed to update staff member");
 
       await fetchStaff();
@@ -154,14 +159,13 @@ const StaffManagementPage = () => {
   const handleChangePassword = async (passwordData) => {
     try {
       setSubmitting(true);
+      console.log(passwordData)
 
-      const response = await axiosInstance.post(
-        createApiUrl(`/staff/${selectedStaff.user_id}/reset-password`),
+      const response = await api.post(`/staff/${selectedStaff.user_id}/reset-password`,
         { new_password: passwordData.new_password }
       );
-      if (response.statusText !== "OK") {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to reset password");
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || "Failed to reset password");
       }
 
       setPasswordDialogOpen(false);
@@ -215,6 +219,7 @@ const StaffManagementPage = () => {
         onChangePassword={(staff) => {
           setSelectedStaff(staff);
           setPasswordDialogOpen(true);
+          
         }}
       />
 

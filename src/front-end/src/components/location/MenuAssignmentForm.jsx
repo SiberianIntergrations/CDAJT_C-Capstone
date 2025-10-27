@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { Trash, Plus } from "lucide-react";
 
-const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
+const MenuAssignmentForm = ({ location, onClose, api }) => {
   const [menus, setMenus] = useState([]);
   const [assignedMenus, setAssignedMenus] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,8 +25,9 @@ const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
     const fetchData = async () => {
       try {
         const [allMenusRes, assignedMenusRes] = await Promise.all([
-          axiosInstance.get("/menus"),
-          axiosInstance.get(`/locations/${location.location_id}/menus`),
+          api.get("/Menu"),
+          // TODO: Endpoint to get menus assigned to a location (old project api: /locations/{locationId}/menus)
+          api.get(`/Location/${location.location_id}/menus`),
         ]);
 
         setMenus(allMenusRes.data);
@@ -44,7 +45,8 @@ const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
 
   const handleAssign = async (menuId) => {
     try {
-      await axiosInstance.post(`/locations/${location.location_id}/menus`, {
+      // old project api: /locations/{locationId}/menus
+      await api.post(`/Location/${location.location_id}/menus`, {
         menu_id: menuId,
       });
       setAssignedMenus([...assignedMenus, menuId]);
@@ -56,8 +58,9 @@ const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
 
   const handleUnassign = async (menuId) => {
     try {
-      await axiosInstance.delete(
-        `/locations/${location.location_id}/menus/${menuId}`
+      // old project api: /locations/{locationId}/menus/{menuId}
+      await api.delete(
+        `/Location/${location.location_id}/menus/${menuId}`
       );
       setAssignedMenus(assignedMenus.filter((id) => id !== menuId));
     } catch (err) {
@@ -74,6 +77,7 @@ const MenuAssignmentForm = ({ location, onClose, axiosInstance }) => {
     );
   }
 
+  // TODO: Fix deprecated ListItemSecondaryAction warning
   return (
     <>
       <DialogTitle>Manage Menus - {location.name}</DialogTitle>

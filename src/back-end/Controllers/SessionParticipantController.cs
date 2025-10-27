@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization.Infrastructure;
 using back_end.domain.Seeders;
 using System.Security.Claims;
 using back_end.DTO.SessionParticipantDTOs;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace back_end.Controllers
 {
@@ -28,8 +29,30 @@ namespace back_end.Controllers
             _logger = logger;
         }
 
+
+        /// <summary>
+        /// Joins the specified dining session.
+        /// </summary>
+        /// <param name="session_id">The session identifier to join.</param>
+        /// <remarks>
+        /// - You cannot join a session that has already ended.  
+        /// - If the user is already an active participant, the request is rejected.  
+        /// - Returns the created participant record on success.
+        /// </remarks>
+        /// <response code="200">Joined the session successfully; returns the participant.</response>
+        /// <response code="401">The request is unauthenticated or the user claim is missing.</response>
+        /// <response code="404">The session or user record was not found.</response>
+        /// <response code="409">The user is already an active participant in the session.</response>
+        /// <response code="500">An unexpected error occurred while joining the session.</response>
         [Authorize]
-        [HttpPost("join")]
+        [HttpPost("{session_id:int}/join")]
+        [Produces("application/json")]
+        [SwaggerOperation(
+            OperationId = "JoinSession",
+            Summary = "Join a dining session",
+            Description = "Adds the current user as a participant to the specified session if it hasn't ended."
+        )]
+        [ProducesResponseType(typeof(SessionParticipantResponseDTO), StatusCodes.Status200OK)]
         public async Task<IActionResult> JoinSession(
             int session_id
         )
@@ -67,7 +90,7 @@ namespace back_end.Controllers
                 {
                     Participant_Id = newParticipant.Participant_Id,
                     Session_Id = newParticipant.Session_Id,
-                    User_Id = newParticipant.User_Id,
+                    User_Id = newParticipant.User_Id ??0,
                     Joined_At = newParticipant.Joined_At,
                     Left_At = newParticipant.Left_At
 
@@ -75,13 +98,33 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error Creating Session");
-                return StatusCode(500, "Internal Server Error");
+                _logger.LogError(ex, "Error joining session {SessionId}", session_id);
+                return StatusCode(500, "Error joining session");
             }
         }
-        [Authorize]
-        [HttpPost("leave")]
-        public async Task<IActionResult> LeaveSession(
+    /// <summary>
+    /// Leaves the specified dining session.
+    /// </summary>
+    /// <param name="session_id">The session identifier to leave.</param>
+    /// <remarks>
+    /// - You must currently be an active participant.  
+    /// - You cannot leave if you have any non-delivered orders in the session.  
+    /// - Sets <c>Left_At</c> to the current UTC time.
+    /// </remarks>
+    /// <response code="200">Left the session successfully.</response>
+    /// <response code="401">The request is unauthenticated or the user claim is missing.</response>
+    /// <response code="404">The session or user record was not found.</response>
+    /// <response code="400">The user is not an active participant, or has active orders.</response>
+    /// <response code="500">An unexpected error occurred while leaving the session.</response>
+    [Authorize]
+    [HttpPost("{session_id:int}/leave")]
+    [Produces("application/json")]
+        [SwaggerOperation(
+        OperationId = "LeaveSession",
+        Summary = "Leave a dining session",
+        Description = "Marks the current user as having left the specified session, provided there are no active orders."
+    )]        
+    public async Task<IActionResult> LeaveSession(
             int session_id
         )
         {
@@ -113,8 +156,8 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error Creating Session");
-                return StatusCode(500, "Internal Server Error");
+                _logger.LogError(ex, "Error leaving session {SessionId}", session_id);
+                return StatusCode(500, "Error leaving session");
             }
         }
 

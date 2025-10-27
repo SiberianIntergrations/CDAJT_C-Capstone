@@ -13,6 +13,8 @@ import {
   Typography,
 } from "@mui/material";
 import InsightTextBox from "@/components/analytics/insight";
+import api from "@/config/api";
+
 const ItemPerformance = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,82 +22,52 @@ const ItemPerformance = () => {
   const router = useRouter();
   const [sortBy, setSortBy] = useState("name_asc");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const accessToken = localStorage.getItem("access_token");
-      const refreshToken = localStorage.getItem("refresh_token");
-      console.log("Access Token:", accessToken);
-      console.log("Refresh Token:", refreshToken);
 
-      if (!accessToken || !refreshToken) {
-        setError("No token found");
-        router.push("/auth/login");
-        return;
-      }
 
-      try {
-        const response = await axios.get(
-          "http://127.0.0.1:8000/analytics/item-performance",
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        setData(response.data);
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        if (err.response) {
-          if (err.response.status === 401) {
-            try {
-              const tokenResponse = await axios.post(
-                "http://127.0.0.1:8000/auth/refresh",
-                new URLSearchParams({
-                  refresh_token: refreshToken,
-                  grant_type: "refresh_token",
-                }),
-                {
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    accept: "application/json",
-                  },
-                }
-              );
-
-              const { access_token } = tokenResponse.data;
-              localStorage.setItem("access_token", access_token);
-              fetchData();
-            } catch (refreshErr) {
-              console.error("Error refreshing token:", refreshErr);
-              setError("Session expired, please log in again");
-              router.push("/auth/login");
-            }
-          } else if (err.response.status === 404) {
-            setError("Data not found");
-          } else {
-            setError("Failed to fetch data");
-          }
-        } else {
-          setError("Failed to fetch data");
+    useEffect(() => {
+      const fetchData = async () => {
+        const accessToken = localStorage.getItem("access_token");
+  
+  
+        if (!accessToken) {
+          setError("No token found");
+          router.push("/auth/login");
+          return;
         }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [router]);
+  
+        try {
+          const response = await api.get("analytics/item-performance")
+          
+          setData(response.data);
+          console.log(response.data)
+        } 
+        catch (err) {
+          console.error("Error fetching data:", err);
+          if (err.response && err.response.status === 401) {
+            console.log(err.response)
+          } 
+        }
+        finally {
+          setLoading(false);
+        }
+      };
+  
+      fetchData();
+    }, [router]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
 
-  const top5Items = data.items_performance
-    .sort((a, b) => b.total_units_sold - a.total_units_sold)
+  const top5Items = data.item_performance
+
+    .sort((a, b) => b.totalUnitsSold - a.totalUnitsSold)
     .slice(0, 5);
 
-  const least5Items = data.items_performance
-    .sort((a, b) => a.total_units_sold - b.total_units_sold)
+
+  const least5Items = data.item_performance
+    .sort((b, a) => b.totalUnitsSold - a.totalUnitsSold)
     .slice(0, 5);
+
 
   return (
     <div>
@@ -116,7 +88,7 @@ const ItemPerformance = () => {
                 {top5Items.map((item) => (
                   <TableRow key={item.item_id}>
                     <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.total_units_sold}</TableCell>
+                    <TableCell>{item.totalUnitsSold}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -139,7 +111,7 @@ const ItemPerformance = () => {
                 {least5Items.map((item) => (
                   <TableRow key={item.item_id}>
                     <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.total_units_sold}</TableCell>
+                    <TableCell>{item.totalUnitsSold}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -176,21 +148,21 @@ const ItemPerformance = () => {
         </thead>
         <tbody>
           {data &&
-            data.items_performance
+            data.item_performance
               .sort((a, b) => {
                 if (sortBy === "name_asc") return a.name.localeCompare(b.name);
                 if (sortBy === "name_desc") return b.name.localeCompare(a.name);
                 if (sortBy === "units_asc")
-                  return a.total_units_sold - b.total_units_sold;
+                  return a.totalUnitsSold - b.totalUnitsSold;
                 if (sortBy === "units_desc")
-                  return b.total_units_sold - a.total_units_sold;
+                  return b.totalUnitsSold - a.totalUnitsSold;
                 return 0;
               })
               .map((item, index) => (
                 <tr key={index}>
                   <td>{item.item_id}</td>
                   <td>{item.name}</td>
-                  <td>{item.total_units_sold}</td>
+                  <td>{item.totalUnitsSold}</td>
                 </tr>
               ))}
         </tbody>

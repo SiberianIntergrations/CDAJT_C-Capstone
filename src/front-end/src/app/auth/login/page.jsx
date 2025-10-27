@@ -1,17 +1,12 @@
-import Head from "next/head";
 import LoginForm from "@/components/auth/LoginForm";
+
+export const metadata = {
+  title: "Login | Sushi Toshi",
+  description: "Sign in to your Sushi Toshi account",
+};
 
 export default function LoginPage() {
   return (
-    <>
-      <Head>
-        <title>Login | Sushi Toshi</title>
-        <meta
-          name="description"
-          content="Sign in to your Sushi Toshi account"
-        />
-      </Head>
-      <LoginForm />
-    </>
+    <LoginForm />
   );
-}
+};

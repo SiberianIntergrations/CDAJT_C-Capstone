@@ -1,11 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Head from "next/head";
 import { Box, CircularProgress } from "@mui/material";
 import { ErrorBoundary } from "react-error-boundary";
 import SessionDashboard from "@/components/staff/SessionDashboard";
 import styled from "@emotion/styled";
+import { getUserRole } from "@/utils/token";
+
+// export const metadata = {
+//   title: "Session Management | Sushi Toshi",
+//   description: "Manage dining sessions and tables",
+//   name: "viewport",
+//   content: "width=device-width, initial-scale=1",
+// };
 
 const ErrorMessage = styled.div`
   padding: 16px;
@@ -44,8 +51,9 @@ const SessionsPage = () => {
       }
 
       try {
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
-        if (!["staff", "admin"].includes(tokenData.role)) {
+        const role = getUserRole(token);
+        console.log("TOKEN: ", role);
+        if (role !== "admin" && role !== "staff") {
           router.push("/unauthorized");
           return false;
         }
@@ -76,18 +84,11 @@ const SessionsPage = () => {
   }
 
   return (
-    <>
-      <Head>
-        <title>Session Management | Sushi Toshi</title>
-        <meta name="description" content="Manage dining sessions and tables" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </Head>
-      <FullPageContainer>
-        <ErrorBoundary FallbackComponent={ErrorFallback}>
-          <SessionDashboard />
-        </ErrorBoundary>
-      </FullPageContainer>
-    </>
+    <FullPageContainer>
+      <ErrorBoundary FallbackComponent={ErrorFallback}>
+        <SessionDashboard />
+      </ErrorBoundary>
+    </FullPageContainer>
   );
 };
 

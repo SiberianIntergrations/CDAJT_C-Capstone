@@ -1,27 +1,38 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.SignalR;
+
 namespace back_end.domain.Entities
 {
-    [Table("table_entity")]
+  [Table("table_entity")]
 
-    public class TableEntity
-    {
-        [Key]
-        public int Table_Id { get; set; }
+  public class TableEntity
+  {
+    [Key]
+    public int Table_Id { get; set; }
 
-        [Required]
-        public int table_number { get; set; }
-        [MaxLength(255)]
-        public string QR_Code { get; set; } = string.Empty;
+    [Required]
+    public int table_number { get; set; }
 
-        public int seat_count { get; set; }
+    [MaxLength(255)]
+    public string QR_Code { get; set; } = string.Empty;
 
-        public bool is_active { get; set; } = false;
+    public int seat_count { get; set; }
 
+    public bool is_active { get; set; } = false;
 
-        public ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
-        public ICollection<Sessions> Sessions { get; set; } = new List<Sessions>();
-        
-    }
+    [ForeignKey(nameof(Location))]
+    public int Location_Id { get; set; }
+
+    [ForeignKey(nameof(TableGroup))]
+    public int? TableGroup_Id { get; set; }
+
+    public Locations Location { get; set; } = null!;
+
+    public TableGroup? TableGroup { get; set; }
+
+    public ICollection<DiningSession> DiningSessions { get; set; } = new List<DiningSession>();
+
+    public ICollection<ServiceRequest> ServiceRequests { get; set; } = new List<ServiceRequest>();
+
+  }
 }

@@ -12,7 +12,7 @@ import {
 } from "@mui/material";
 import { TableIcon, AlertTriangle } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const TableSection = ({ session }) => {
   const { openDialog, fetchSessions } = useSession();
@@ -36,9 +36,9 @@ const TableSection = ({ session }) => {
     setError(null);
 
     try {
-      const tablesResponse = await axiosInstance.get("/table-entities");
+      const tablesResponse = await api.get("/Table");
 
-      if (!tablesResponse.statusText === "OK") {
+      if (tablesResponse.status !== 200) {
         throw new Error("Failed to fetch tables");
       }
 
@@ -49,7 +49,8 @@ const TableSection = ({ session }) => {
         throw new Error("Table not found");
       }
 
-      const response = await axiosInstance.delete(
+      // TODO: Update endpoint (api from old project: /dining-sessions/{sessionId}/tables/{tableId})
+      const response = await api.delete(
         `/dining-sessions/${sessionId}/tables/${table.table_id}`
       );
 
@@ -59,8 +60,7 @@ const TableSection = ({ session }) => {
         setConfirmDialogOpen(false);
         setTableToRemove(null);
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to remove table");
+        throw new Error(response.data?.detail || "Failed to remove table");
       }
     } catch (err) {
       console.error("Error removing table:", err);
@@ -70,7 +70,9 @@ const TableSection = ({ session }) => {
     }
   };
 
-  const displayedTables = session.table_numbers.filter(
+  console.log("session ", session);
+
+  const displayedTables = session.table_Numbers.filter(
     (tableNum) => !removedTableIds.has(tableNum)
   );
 

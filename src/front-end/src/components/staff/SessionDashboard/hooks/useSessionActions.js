@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 export const useSessionActions = (onSuccess) => {
   const [actionError, setActionError] = useState(null);
@@ -12,126 +12,139 @@ export const useSessionActions = (onSuccess) => {
 
   const createSession = async (menuId) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl("/dining-sessions"),
-        {
-          menu_id: parseInt(menuId),
-        }
-      );
-      if (!response.statusText === "OK") {
-        const errorData = response.data;
-        throw new Error(errorData.detail || "Failed to create session");
+      setActionError(null);
+      // TODO: Update endpoint (api from old project: /dining-sessions POST)
+      const response = await api.post("/DiningSession/Create_Dinning_Session", {
+        menu_id: parseInt(menuId),
+      });
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(response.data?.detail || "Failed to create session");
       }
 
       await handleSuccess();
       return true;
     } catch (err) {
-      setActionError(err.message);
+      const errorMessage = err.response?.data?.detail || err.message;
+      setActionError(errorMessage);
+      console.error("Create session error:", errorMessage);
       return false;
     }
   };
 
-  const addTable = async (sessionId, tableId) => {
+  const addTable = async (session_id, tableId) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/dining-sessions/${sessionId}/tables`),
-        {
-          table_id: parseInt(tableId),
-        }
-      );
+      setActionError(null);
 
-      if (!response.statusText === "OK") {
-        const errorData = response.data;
-        throw new Error(errorData.detail || "Failed to add table");
+      // api from old project: /dining-sessions/{sessionId}/tables POST
+      const response = await api.post(`/DiningSession/${session_id}/tables`, {
+        table_id: parseInt(tableId),
+      });
+
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(response.data?.detail || "Failed to add table");
       }
 
       await handleSuccess();
       return true;
     } catch (err) {
-      setActionError(err.message);
+      const errorMessage = err.response?.data?.detail || err.message;
+      setActionError(errorMessage);
+      console.error("Add table error:", errorMessage);
       return false;
     }
   };
 
-  const createBill = async (sessionId, billData) => {
+  const createBill = async (session_id, billData) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/bills/${sessionId}`),
-        {
-          bill_name: billData.billName,
-          adult_count: parseInt(billData.adultCount),
-          child_count: parseInt(billData.childCount),
-          senior_count: parseInt(billData.seniorCount),
-          tot_count: parseInt(billData.totCount),
-        }
-      );
+      setActionError(null);
 
-      if (!response.statusText === "OK") {
-        const errorData = response.data;
-        throw new Error(errorData.detail || "Failed to create bill");
+      // api from old project: /bills/${sessionId} POST
+      const response = await api.post(`/Bill/create_Bill/${session_id}`, {
+        bill_name: billData.billName,
+        adult_count: parseInt(billData.adultCount),
+        child_count: parseInt(billData.childCount),
+        senior_count: parseInt(billData.seniorCount),
+        tot_count: parseInt(billData.totCount),
+      });
+
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(response.data?.detail || "Failed to create bill");
       }
 
       await handleSuccess();
       return true;
     } catch (err) {
-      setActionError(err.message);
+      const errorMessage = err.response?.data?.detail || err.message;
+      setActionError(errorMessage);
+      console.error("Create bill error:", errorMessage);
       return false;
     }
   };
 
-  const closeBill = async (sessionId, billId) => {
+  const closeBill = async (_bill_id) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/bills/${billId}/close?session_id=${sessionId}`)
-      );
-      if (!response.statusText === "OK") {
-        const errorData = response.data;
-        throw new Error(errorData.detail || "Failed to close bill");
+      setActionError(null);
+      // api from old project: /bills/{billId}/close?session_id=${sessionId} POST
+      const response = await api.put(`/Bill/close_Bill/${_bill_id}`);
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(response.data?.detail || "Failed to close bill");
       }
 
       await handleSuccess();
       return true;
     } catch (err) {
-      setActionError(err.message);
+      const errorMessage = err.response?.data?.detail || err.message;
+      setActionError(errorMessage);
+      console.error("Close bill error:", errorMessage);
       return false;
     }
   };
 
   const endSession = async (sessionId) => {
     try {
-      const response = await axiosInstance.post(
-        createApiUrl(`/dining-sessions/${sessionId}/end`)
-      );
+      setActionError(null);
 
-      if (!response.statusText === "OK") {
-        const errorData = response.data;
-        throw new Error(errorData.detail || "Failed to end session");
+      // TODO: Update endpoint (api from old project: /dining-sessions/{sessionId}/end POST)
+      const response = await api.post(`/dining-sessions/${sessionId}/end`);
+
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(response.data?.detail || "Failed to end session");
       }
 
       await handleSuccess();
       return true;
     } catch (err) {
-      setActionError(err.message);
+      const errorMessage = err.response?.data?.detail || err.message;
+      setActionError(errorMessage);
+      console.error("End session error:", errorMessage);
       return false;
     }
   };
 
-  const removeTable = async (sessionId, tableId) => {
+  const removeTable = async (session_id, table_id) => {
     try {
-      const response = await axiosInstance.delete(
-        createApiUrl(`/dining-sessions/${sessionId}/tables/${tableId}`)
+      setActionError(null);
+
+      // api from old project: /dining-sessions/{sessionId}/tables/{tableId} DELETE
+      const response = await api.delete(
+        `/DiningSession/${session_id}/Tables/${table_id}`
       );
-      if (!response.statusText === "OK") {
-        const errorData = response.data;
-        throw new Error(errorData.detail || "Failed to remove table");
+      if (response.status !== 200 && response.status !== 204) {
+        throw new Error(response.data?.detail || "Failed to remove table");
       }
 
       await handleSuccess();
       return true;
     } catch (err) {
-      setActionError(err.message);
+      const errorMessage = err.response?.data?.detail || err.message;
+      setActionError(errorMessage);
+      console.error("Remove table error:", errorMessage);
       return false;
     }
+  };
+
+  const clearActionError = () => {
+    setActionError(null);
   };
 
   return {
@@ -142,6 +155,6 @@ export const useSessionActions = (onSuccess) => {
     closeBill,
     endSession,
     actionError,
-    clearActionError: () => setActionError(null),
+    clearActionError,
   };
 };

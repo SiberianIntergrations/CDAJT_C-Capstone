@@ -10,7 +10,7 @@ import {
 import { Bell, Plus } from "lucide-react";
 import { keyframes, styled } from "@mui/material/styles";
 import { useSession } from "../context/SessionContext";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import api from "@/config/api";
 
 const pulseAnimation = keyframes`
   0% { transform: scale(1); }
@@ -73,11 +73,9 @@ const DashboardSummary = () => {
 
   const checkServiceRequests = async () => {
     try {
-      const response = await axiosInstance.get(
-        createApiUrl("/service-requests/for-all-sessions")
-      );
+      const response = await api.get("/ServiceRequest/pending");
 
-      if (response.statusText === "OK") {
+      if (response.status === 200) {
         const data = response.data;
         setPreviousCount(serviceRequests);
         setServiceRequests(data.length);
@@ -99,7 +97,12 @@ const DashboardSummary = () => {
   }, []);
 
   return (
-    <Box className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+    <Box
+      className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3"
+      sx={{
+        marginBottom: "20px",
+      }}
+    >
       <CompactCard hasRequests={serviceRequests > 0}>
         <Box
           sx={{
@@ -143,13 +146,13 @@ const DashboardSummary = () => {
         </Box>
       </CompactCard>
 
-      <CompactCard>
+      {/* <CompactCard>
         <Box sx={{ width: "100%", textAlign: "left" }}>
           <Typography variant="h5" color="secondary">
             Tables in Use: {dashboardSummary.total_tables_in_use}
           </Typography>
         </Box>
-      </CompactCard>
+      </CompactCard> */}
     </Box>
   );
 };

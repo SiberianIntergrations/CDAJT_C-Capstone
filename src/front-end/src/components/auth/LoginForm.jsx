@@ -1,5 +1,4 @@
 "use client";
-
 import { useState } from "react";
 import {
   Box,
@@ -12,13 +11,13 @@ import {
 } from "@mui/material";
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { axiosInstance, createApiUrl } from "@/config/api";
+import { loginUser } from "@/utils/auth";
 
 const LoginForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: "jamie2@example.com",
-    password: "somethingCool1",
+    email: "admin.user@sushitoshi.ca",
+    password: "AdminPass123!",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -38,34 +37,13 @@ const LoginForm = () => {
 
     try {
       console.log("Attempting login...");
-      const response = await axiosInstance.post(
-        createApiUrl("/Auth/login"),
-        {
-          email: formData.email,
-          password: formData.password,
-          grant_type: "password",
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log("Login response:", response.data);
-
-      if (response.data.access_token) {
-        console.log(response.data.access_token);
-        localStorage.setItem("access_token", response.data.access_token);
-        if (response.data.refresh_token) {
-          localStorage.setItem("refresh_token", response.data.refresh_token);
-        }
-        router.push("/");
-      }
+      const response = await loginUser(formData.email, formData.password);
+      console.log("Login response:", response);
+      router.push("/");
     } catch (err) {
       console.error("Login error:", err);
-      console.error("Error response:", err.request.response);
       setError(
-        err.request.response ||
+        err.response?.data?.detail ||
           "Login failed. Please check your credentials and try again."
       );
     } finally {
