@@ -70,18 +70,19 @@ const MenuItemManagement = () => {
   // TODO: Update APIs for menu items, categories, menu, and tags
   const fetchData = async () => {
     try {
-      console.log("Fetching data...");
+      // console.log("Fetching data...");
       const [
         { data: itemsData },
         { data: categoriesData },
         { data: menusData },
         { data: tagsData },
       ] = await Promise.all([
-        api.get("/menu-items"),
+        api.get("/menuItem"),
         api.get("/Category"),
         api.get("/Menu"),
         api.get("/tag/colors"), // TODO: Need Tag Controllers
       ]);
+  
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setMenus(Array.isArray(menusData) ? menusData : []);
@@ -129,6 +130,7 @@ const MenuItemManagement = () => {
     setImageFile(null);
     setImagePreview("");
     setDialogOpen(true);
+    console.log("Opening Create Item")
   };
 
   const handleEdit = (item) => {
@@ -139,8 +141,9 @@ const MenuItemManagement = () => {
 
   const handleDelete = async (item) => {
     try {
+      console.log("Item Id: ",item)
       const response = await api.get(
-        `/menu-item-assignments/by-item/${item.item_id}`
+        `/menuitem/${item.item_id}`
       );
       console.log("Checking item assignments (api)...");
       const assignments = response.data;
@@ -163,7 +166,7 @@ const MenuItemManagement = () => {
   const handleDeleteConfirm = async () => {
     try {
       console.log("Deleting item...", itemToDelete);
-      await api.delete(`/menu-items/${itemToDelete.item_id}`)
+      await api.delete(`/menuitem/${itemToDelete.item_id}`)
       await fetchData();
       setDeleteDialogOpen(false);
       setItemToDelete(null);
@@ -300,52 +303,91 @@ const MenuItemManagement = () => {
     },
   ];
 
-  const ItemForm = () => {
-    const [formData, setFormData] = useState({
-      name: selectedItem?.name || "",
-      description: selectedItem?.description || "",
-      category_id: selectedItem?.category_id || "",
-    });
+const ItemForm = () => {
+  const [formData, setFormData] = useState({
+    name: selectedItem?.name || "",
+    description: selectedItem?.description || "",
+    category_id: selectedItem?.category_id || "",
+  });
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setSubmitting(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
 
-      try {
-        // Save menu item basic data
-        const url = selectedItem
-          ? `/menu-items/${selectedItem.item_id}`
-          : "/menu-items";
+    try {
+      let savedItem;
 
-        const savedItem = await axiosInstance({
-          method: selectedItem ? "PUT" : "POST",
-          url,
-          data: formData,
-        });
+      // Step 1: Save menu item basic data
+      if (selectedItem) {
+        // UPDATE existing item
+        console.log("Updating item:", selectedItem.item_id);
+        savedItem = await api.put(
+          `/menuItem/${selectedItem.item_id}`,
+          formData
+        );
+      } else {
+        // CREATE new item
+        console.log("Creating new item");
+        savedItem = await api.post("/menuItem", formData);
+      }
 
-        // Handle image upload if there is one
-        if (imageFile) {
-          const formData = new FormData();
-          formData.append("file", imageFile);
+      console.log("Saved item response:", savedItem.data);
 
-          await axiosInstance({
-            method: "POST",
-            url: `/menu-items/${savedItem.data.item_id}/image`,
-            data: formData,
+      // Step 2: Handle image upload if there is one
+      if (imageFile) {
+        console.log("Uploading image for item:", savedItem.data.item_id);
+        
+        const imageFormData = new FormData();
+        imageFormData.append("file", imageFile);
+
+        // Log FormData contents
+        for (let pair of imageFormData.entries()) {
+          console.log("FormData:", pair[0], pair[1]);
+        }
+
+        const imageResponse = await api.post(
+          `/menuItem/${savedItem.data.item_id}/image`,
+          imageFormData,
+          {
             headers: {
               "Content-Type": "multipart/form-data",
             },
-          });
-        }
+          }
+        );
 
-        await fetchData();
-        setDialogOpen(false);
-      } catch (err) {
-        setError(err.response?.data?.detail || err.message);
-      } finally {
-        setSubmitting(false);
+        console.log("Image upload response:", imageResponse.data);
       }
-    };
+
+      // Step 3: Refresh data and close dialog
+      await fetchData();
+      setDialogOpen(false);
+      setImageFile(null);
+      setError(null);
+      
+      // Optional: Show success message
+      setSuccessMessage(
+        selectedItem 
+          ? "Menu item updated successfully" 
+          : "Menu item created successfully"
+      );
+      
+    } catch (err) {
+      console.error("Error saving item:", err);
+      console.error("Error response:", err.response);
+      
+      const errorMessage = 
+        err.response?.data?.detail || 
+        err.response?.data?.message || 
+        err.response?.data ||
+        err.message || 
+        "Failed to save menu item";
+        
+      setError(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
     return (
       <Dialog
@@ -470,7 +512,7 @@ const MenuItemManagement = () => {
                     key={category.category_id}
                     value={category.category_id}
                   >
-                    {category.name}
+                    {category.category_name}
                   </MenuItem>
                 ))}
               </Select>
@@ -527,7 +569,7 @@ const MenuItemManagement = () => {
           rows={items}
           columns={[
             {
-              field: "item_image_url",
+              field: "image_url",
               headerName: "Image",
               width: 100,
               renderCell: (params) =>
@@ -603,7 +645,7 @@ const MenuItemManagement = () => {
                       height: "100%",
                     }}
                   >
-                    <Typography>{category?.name || "(No category)"}</Typography>
+                    <Typography>{category?.category_name || "(No category)"}</Typography>
                   </Box>
                 );
               },
