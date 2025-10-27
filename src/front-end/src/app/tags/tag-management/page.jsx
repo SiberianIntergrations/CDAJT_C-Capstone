@@ -3,6 +3,7 @@ import dynamic from "next/dynamic";
 import { Box, CircularProgress } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
 
 const TagManagement = dynamic(() => import("@/components/tags/TagManagement"), {
   loading: () => (
@@ -21,18 +22,29 @@ const TagManagement = dynamic(() => import("@/components/tags/TagManagement"), {
 const TagManagementPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const { isAuthenticated, userRole, loading } = useAuth();
 
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem("access_token");
+      console.log("This is the token: ", token);
+      
       if (!token) {
         router.push("/auth/login");
         return;
       }
 
+      // IMPORTANT: Wait for useAuth to finish loading
+      if (loading) {
+        console.log("Still loading auth...");
+        return;
+      }
+
+      console.log("User Role:", userRole);
+      
       try {
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
-        if (!["admin"].includes(tokenData.role)) {
+        // Now userRole should be loaded
+        if (!userRole || userRole.toLowerCase().trim() !== "admin") {  
           router.push("/unauthorized");
           return;
         }
@@ -44,7 +56,7 @@ const TagManagementPage = () => {
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, isAuthenticated, userRole, loading]);
 
   if (isLoading) {
     return (

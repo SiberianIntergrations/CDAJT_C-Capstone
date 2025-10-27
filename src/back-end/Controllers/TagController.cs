@@ -340,7 +340,7 @@ namespace back_end.controllers
       {
         // Check if user is Admin
         var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-        if (userRole != UserRoles.Staff.ToString())
+        if (userRole != UserRoles.Admin.ToString())
         {
           return StatusCode(403, new { detail = "Permission denied" });
         }
