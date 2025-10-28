@@ -4,6 +4,7 @@ import { X, Plus } from "lucide-react";
 import PropTypes from "prop-types";
 
 const getContrastColor = (hexColor) => {
+
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
   const b = parseInt(hexColor.slice(5, 7), 16);
@@ -111,19 +112,20 @@ const TagChip = ({
     }
   };
 
-  const contrastColor = getContrastColor(tag.color_code);
+  const contrastColor = getContrastColor(tag.tag_color)
 
   const chipProps = {
-    label: tag.name,
+    label: tag.tag_name
+,
     sx: {
-      backgroundColor: tag.color_code,
+      backgroundColor: tag.tag_color,
       color: contrastColor,
       border: `1px solid ${contrastColor}40`,
       cursor: "pointer",
       fontWeight: 500,
       "&:hover": {
         opacity: 0.9,
-        backgroundColor: tag.color_code,
+        backgroundColor: tag.tag_color,
       },
       "& .MuiChip-deleteIcon": {
         color: contrastColor,

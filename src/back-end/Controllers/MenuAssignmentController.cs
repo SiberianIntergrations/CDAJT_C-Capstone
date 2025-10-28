@@ -20,13 +20,60 @@ namespace back_end.Controllers
             _context = context;
             _logger = logger;
         }
+
+
+        
+        /// <summary>
+        /// Creates a new menu item assignment, associating an item with a menu at a specific price.
+        /// </summary>
+        /// <param name="assignmentData">The assignment data including menu ID, item ID, price, limits, and status</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the created <see cref="MenuItemAssignment"/> object.
+        /// Returns HTTP 200 (OK) with the created assignment on success.
+        /// Returns HTTP 400 (Bad Request) if validation fails.
+        /// Returns HTTP 404 (Not Found) if the menu or item doesn't exist.
+        /// Returns HTTP 409 (Conflict) if the assignment already exists.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+        /// </returns>
+        /// <response code="200">Returns the newly created menu item assignment</response>
+        /// <response code="400">If the request data is invalid</response>
+        /// <response code="404">If the menu or menu item is not found</response>
+        /// <response code="409">If the assignment already exists</response>
+        /// <response code="500">If an internal error occurs while creating the assignment</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/menu
+        ///     {
+        ///         "menu_Id": 123,
+        ///         "item_Id": 456,
+        ///         "price": 15.99,
+        ///         "adult_Limit": 100,
+        ///         "senior_Limit": 50,
+        ///         "child_Limit": 30,
+        ///         "tot_Limit": 20,
+        ///         "total_Units_Ordered": 0,
+        ///         "total_Views": 0,
+        ///         "total_View_Seconds": 0,
+        ///         "status": "Available"
+        ///     }
+        ///
+        /// Creates a new association between a menu and a menu item.
+        /// All limit and statistics fields default to 0 if not provided.
+        /// </remarks>
         [HttpPost]
+        [ProducesResponseType(typeof(MenuItemAssignment), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Create_Menu_Item_Assignment(
             MenuAssignmentCreate assignmentData
         )
         {
 
-            try{
+            try
+            {
                 var assignment = new MenuItemAssignment
                 {
                     Menu_Id = assignmentData.Menu_Id,
@@ -41,7 +88,7 @@ namespace back_end.Controllers
                     Tot_Limit = assignmentData.Tot_Limit ?? 0,
                     Status = assignmentData.Status
                 };
-            
+
                 await _context.MenuItemAssignments.AddAsync(assignment);
                 await _context.SaveChangesAsync();
                 return Ok(assignment);
@@ -52,8 +99,52 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
+        
+
+        
+        /// <summary>
+        /// Updates a menu item assignment including price, limits, and statistics.
+        /// </summary>
+        /// <param name="menu_id">The unique identifier of the menu</param>
+        /// <param name="item_id">The unique identifier of the menu item</param>
+        /// <param name="updateData">The updated assignment data</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the updated <see cref="MenuItemAssignment"/> object.
+        /// Returns HTTP 200 (OK) with the updated assignment on success.
+        /// Returns HTTP 400 (Bad Request) if the limit validation fails.
+        /// Returns HTTP 404 (Not Found) if the menu item assignment doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the update.
+        /// </returns>
+        /// <response code="200">Returns the updated menu item assignment</response>
+        /// <response code="400">If limit validation fails</response>
+        /// <response code="404">If the menu item assignment is not found</response>
+        /// <response code="500">If an internal error occurs while updating the assignment</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     PUT /api/menu/123/456
+        ///     {
+        ///         "price": 15.99,
+        ///         "adult_Limit": 100,
+        ///         "senior_Limit": 50,
+        ///         "child_Limit": 30,
+        ///         "tot_Limit": 20,
+        ///         "total_Units_Ordered": 200,
+        ///         "is_Add_on": false,
+        ///         "status": "Available"
+        ///     }
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// All fields are optional - only provided fields will be updated.
+        /// Validates that individual limits do not exceed total limit and follow hierarchy rules.
+        /// Total_Views and Total_View_Seconds are incremented (not replaced) when provided.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpPut("/{menu_id}/item_id")]
+        [HttpPut("{menu_id}/{item_id}")]
+        [ProducesResponseType(typeof(MenuItemAssignment), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Update_Menu_Item_Assignment(
             int menu_id,
             int item_id,
@@ -71,8 +162,8 @@ namespace back_end.Controllers
                 var finalSeniorLimit = updateData.Senior_Limit ?? assignment.Senior_limit;
                 var finalChildLimit = updateData.Child_Limit ?? assignment.Child_limit;
                 var finalTotLimit = updateData.Tot_Limit ?? assignment.Tot_Limit;
-                var finalTotalLimit = updateData.Total_Units_Ordered ?? assignment.Total_Units_Ordered;
-                if ((finalChildLimit > assignment.Adult_Limit) || finalChildLimit > assignment.Tot_Limit)
+
+                if (finalChildLimit > assignment.Adult_Limit)
                 {
                     return BadRequest("Child Limit Can not be Greater then a Adult or Total Limit");
                 }
@@ -83,10 +174,6 @@ namespace back_end.Controllers
                 if (finalSeniorLimit > assignment.Adult_Limit)
                 {
                     return BadRequest("Senior Limit Can not be Greater then a Adult or Total limit");
-                }
-                if (finalAdultLimit + finalChildLimit + finalSeniorLimit > finalTotalLimit)
-                {
-                    return BadRequest($"Adult:{finalAdultLimit},Senior:{finalSeniorLimit},Child{finalSeniorLimit} total:{finalAdultLimit + finalSeniorLimit + finalChildLimit} Limits can not be greater then Total Limit{finalTotalLimit}");
                 }
                 if (updateData.Adult_Limit.HasValue)
                 {
@@ -135,8 +222,33 @@ namespace back_end.Controllers
             }
         }
 
+        /// <summary>
+        /// Removes a menu item assignment from a specific menu.
+        /// </summary>
+        /// <param name="menu_id">The unique identifier of the menu</param>
+        /// <param name="Item_id">The unique identifier of the menu item</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the operation.
+        /// Returns HTTP 200 (OK) with a success message when the assignment is deleted.
+        /// Returns HTTP 404 (Not Found) if the menu item assignment doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during deletion.
+        /// </returns>
+        /// <response code="200">Returns a success message when the assignment is deleted</response>
+        /// <response code="404">If the menu item assignment is not found</response>
+        /// <response code="500">If an internal error occurs while deleting the assignment</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     DELETE /api/menu/123/456
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// Removes the association between the specified menu item and menu.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpDelete("/{menu_id}/{Item_id}")]
+        [HttpDelete("{menu_id}/{Item_id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Delete_Menu_Item_Assignment(
             int menu_id,
             int Item_id
@@ -160,8 +272,39 @@ namespace back_end.Controllers
             }
         }
 
+
+
+        /// <summary>
+        /// Creates a new menu by copying all item assignments from an existing menu.
+        /// </summary>
+        /// <param name="source_menu_id">The unique identifier of the menu to copy from</param>
+        /// <param name="new_menu_name">The name for the new menu</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the collection of newly created <see cref="MenuItemAssignment"/> objects.
+        /// Returns HTTP 200 (OK) with the list of copied assignments on success.
+        /// Returns HTTP 409 (Conflict) if a menu with the new name already exists.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
+        /// </returns>
+        /// <response code="200">Returns the list of newly created menu item assignments</response>
+        /// <response code="409">If a menu with the specified name already exists</response>
+        /// <response code="500">If an internal error occurs while copying the menu</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/menu/copy_menu/123
+        ///     {
+        ///         "new_menu_name": "Winter Menu 2025"
+        ///     }
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// Creates a new menu with the specified name and copies all item assignments (including prices and limits) from the source menu.
+        /// The new menu will be inactive by default.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpPost("/copy_men/{source_menu_id}")]
+        [HttpPost("copy_menu/{source_menu_id}")]
+        [ProducesResponseType(typeof(IEnumerable<MenuItemAssignment>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]       
         public async Task<IActionResult> Copy_Menu_Assignments(
             int source_menu_id,
             string new_menu_name

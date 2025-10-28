@@ -188,7 +188,7 @@ const FullMenu = () => {
     );
   };
 
-useEffect(() => {
+  useEffect(() => {
     const getActiveSession = async () => {
       try {
         setError(null);
@@ -211,54 +211,36 @@ useEffect(() => {
   }, []);
 
 
-useEffect(() => {
-  //Session ID can only be 1 or above
-  if (!sessionId || sessionId < 1) {
-    console.log("Invalid sessionId. Skipping menu fetch.");
-    return;
-  }
-
-  const fetchMenu = async () => {
-    try {
-      setError(null);
-
-      const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
-
-      if (response?.status >= 200 && response.status < 300 && response.data) {
-        const raw = response.data;
-        console.log("session-menu raw =", raw);
-
-
-        const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
-        const getMenuID =
-          typeof id === "number" ? id : parseInt(String(id), 10);
-
-        if (Number.isNaN(getMenuID) || getMenuID < 1) {
-          console.warn("Menu ID is invalid:", raw);
-          setError("No menu for this session");
-          return;
-        }
-
-        setMenuId(getMenuID);
-        
-        console.log("parsed menuId =", getMenuID);
-      } else {
-        console.warn("No menu found", response?.data);
-        setError("No menu found for this session");
-      }
-    } catch (err) {
-      console.error("Error fetching menu:", err);
-      const message =
-        err?.response?.data?.detail ??
-        err?.response?.data?.message ??
-        err?.message ??
-        "Error fetching menu";
-      setError(message);
+  useEffect(() => {
+    if (!sessionId || sessionId < 1) {
+      console.log("Invalid sessionId. Skipping menu fetch.");
+      return;
     }
-  };
-
-  fetchMenu();
-}, [sessionId]);
+    const fetchMenu = async () => {
+      try {
+        setError(null);
+        // api from old project: /dining-sessions/session-menu/{sessionId} GET
+        const response = await api.get(
+          `/DiningSession/session-menu/${sessionId}`
+        );
+        if (response?.status >= 200 && response.status < 300 && response.data) {
+          setMenuId(response.data.menu_id ?? response.data);
+        } else {
+          console.warn("No menu found", response?.data);
+          setError("No menu found for this session");
+        }
+      } catch (err) {
+        console.error("Error fetching menu:", err);
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          "Error fetching menu";
+        setError(message);
+      }
+    };
+    fetchMenu();
+  }, [sessionId]);
 
 //When you have the menuID call to get current menu
 useEffect(() => {
@@ -266,20 +248,19 @@ useEffect(() => {
   fetchMenuItems(null, menuId);
 }, [menuId]);
 
-useEffect(() => {
-  const fetchCategories = async () => {
-    try {
-      setError(null);
-      const response = await api.get("/Category");
-      const data = Array.isArray(response.data) ? response.data : [];
-      setCategories(
-        data.map(c => ({
-          category_id: c.category_id ?? c.Category_id,
-          name: c.name ?? c.Category_name,
-        }))
-      );
-    }catch (err) {
-        console.error("Error fetching categories:", err);
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setError(null);
+        const response = await api.get("/Category");
+        const data = response.data;
+        if (Array.isArray(data)) {
+          setCategories(data);
+        } else {
+          console.error("Categories data is not an array");
+        }
+      } catch (err) {
+        console.error("Error fetching categories:", er);
         const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
         setError(message);
       }
@@ -287,41 +268,29 @@ useEffect(() => {
     fetchCategories();
   }, []);
 
-// TODO: Update api endpoints
-const fetchMenuItems = async (categoryId, menu_id) => {
-
-  //Make sure the menu ID is valid or if we already loaded the menu items
-  if (!menu_id || menuItems[categoryId]) return;
-
-  try {
-    //Call GetItemsByMenu and check if it's in an array
-    const response = await api.get(`/Menu/${menu_id}/items`);
-    const items = Array.isArray(response.data) ? response.data : [];
-
-    //Clean up the field names so it's the same everywhere on the page
-    const normalized = items.map(it => ({
-      item_id: it.item_id ?? it.itemId ?? it.Item_Id,
-      name: it.name,
-      description: it.description,
-      price: it.price,
-      is_add_on: it.is_add_on ?? it.isAddOn,
-      item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
-      category_id: it.categoryID ?? it.categoryId ?? it.category_id,
-      category: it.category,
-      tags: it.tags ?? []
-    }));
-
-    //Group the items so all each category has its own list
-    const grouped = normalized.reduce((acc, item) => {
-      (acc[item.category_id] ||= []).push(item);
-      return acc;
-    }, {});
-
-    setMenuItems(prev => ({ ...prev, ...grouped }));
-  } catch (err) {
-    console.error(`Error fetching menu items for menu ${menu_id}:`, err);
-  }
-};
+  // TODO: Update api endpoints
+  const fetchMenuItems = async (categoryId, menu_id) => {
+    if (!menu_id || menuItems[categoryId]) return;
+    try {
+      const response = await api.get(
+        `/menus/${menu_id}/items?category_id=${categoryId}`
+      );
+      if (response.status === 200) {
+        for (const item of response.data) {
+          const itemTagsResponse = await api.get(
+            `/menu-items/${item.item_id}/tags-with-colors`
+          );
+          item.tags = itemTagsResponse.data;
+        }
+      setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
+      }
+    } catch (err) {
+      console.error(
+        `Error fetching menu items for category ${categoryId}:`,
+        err
+      );
+    }
+  };
 
   const handleBillChange = (event) => {
     const billId = event.target.value;
@@ -354,14 +323,13 @@ const fetchMenuItems = async (categoryId, menu_id) => {
               console.log("New Price: ", newPrice);
 
               const response = await api.post(`/orders/${orderId}/items`, {
-                  order_id: orderId,
-                  menu_id: menuId,
-                  item_id: parseInt(itemId),
-                  quantity: quantity,
-                  price_at_time: newPrice,
-                  status: "pending",
-                }
-              );
+                order_id: orderId,
+                menu_id: menuId,
+                item_id: parseInt(itemId),
+                quantity: quantity,
+                price_at_time: newPrice,
+                status: "pending",
+              });
               if (response.status !== 200 && response.status !== 201) {
                 throw new Error(`Failed to add item ${itemId}`);
               }

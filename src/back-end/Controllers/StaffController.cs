@@ -11,6 +11,10 @@ using back_end.DTO.UserDTOs;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
+using back_end.DTO.StaffDTOs;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
 
 namespace back_end.Controllers
 {
@@ -32,10 +36,12 @@ namespace back_end.Controllers
         [HttpPost]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> CreateStaff(
-            [FromBody] UserCreateDTO user_data,
-            [FromQuery] UserRoles role
+            [FromBody] CreateStaffDTO user_data
+            // [FromQuery] UserRoles role
         )
         {
+            var location = new Locations();
+            var role = user_data.Role;
             if (role != UserRoles.Staff && role != UserRoles.Admin)
                 return BadRequest("Role must be either staff or admin");
 
@@ -53,11 +59,12 @@ namespace back_end.Controllers
                 Password_hash = BCrypt.Net.BCrypt.HashPassword(user_data.Password, workFactor: 12),
                 First_name = user_data.First_name.Trim(),
                 Last_name = user_data.Last_name.Trim(),
-                Role = role,
+                Role = (UserRoles)role,
                 Status = user_data.Status,
                 Is_email_confirmed = true,
                 Created_at = now,
-                Last_Interaction_at = now
+                Last_Interaction_at = now,
+                Location_id = user_data.Location_Id
             };
 
             _context.Users.Add(entity);
@@ -96,8 +103,21 @@ namespace back_end.Controllers
                 .OrderByDescending(u => u.Created_at)
                 .Skip(skip)
                 .Take(limit)
-                .Select(u => ToResponse(u))
+                .Select(u => new StaffResponseDTO
+                {
+                    Created_At = u.Created_at,
+                    Email = u.Email,
+                    IsEmailConfirmed = u.Is_email_confirmed,
+                    LastTransactionAt = u.Last_Interaction_at ?? u.Created_at,
+                    LastName = u.Last_name,
+                    FirstName = u.First_name,
+                    Role = u.Role,
+                    Status = u.Status,
+                    User_Id = u.User_id,
+                    Location = u.PrimaryLocation != null ? u.PrimaryLocation.Name : "Not Assigned"
+                })
                 .ToListAsync();
+            
 
             return Ok(users);
         }
@@ -121,8 +141,8 @@ namespace back_end.Controllers
         // Update a staff/admin user's details.
         [HttpPut("{user_id:int}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<UserResponseDTO>> UpdateStaff(int user_id, [FromBody] StaffUserUpdateDTO user_data)
-        {
+        public async Task<ActionResult<UserResponseDTO>> UpdateStaff(int user_id, [FromBody] StaffMemberUpdateDTO user_data)
+        { 
             var user = await _context.Users
                 .Where(x => x.User_id == user_id &&
                             (x.Role == UserRoles.Staff || x.Role == UserRoles.Admin))
@@ -141,25 +161,27 @@ namespace back_end.Controllers
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(user_data.First_name)) user.First_name = user_data.First_name.Trim();
-            if (!string.IsNullOrWhiteSpace(user_data.Last_name)) user.Last_name = user_data.Last_name.Trim();
+            if (!string.IsNullOrWhiteSpace(user_data.FirstName)) user.First_name = user_data.FirstName.Trim();
+            if (!string.IsNullOrWhiteSpace(user_data.LastName)) user.Last_name = user_data.LastName.Trim();
 
-            if (user_data.Role.HasValue)
+
+            if (user_data.Role != UserRoles.Staff && user_data.Role != UserRoles.Admin)
             {
-                if (user_data.Role != UserRoles.Staff && user_data.Role != UserRoles.Admin)
-                    return BadRequest("Role must be either staff or admin");
-                user.Role = user_data.Role.Value;
+                return BadRequest("Role must be either staff or admin");
             }
 
+            user.Role = user_data.Role;
+            user.Status = user_data.Status;
+
             await _context.SaveChangesAsync();
-            return Ok(ToResponse(user));
+             return Ok(ToResponse(user));
         }
 
         // POST: /api/staff/5/change-password
         // Change a staff user's password by Admin only.
         [HttpPost("{user_id:int}/change-password")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<UserResponseDTO>> ChangeStaffPassword(int user_id, [FromBody] PasswordChangeDTO password_data)
+        public async Task<ActionResult<UserResponseDTO>> ChangeStaffPassword(int user_id, [FromBody] StaffMemberChangePasswordDTO password_data)
         {
             var user = await _context.Users
                 .Where(x => x.User_id == user_id &&
@@ -196,6 +218,71 @@ namespace back_end.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(ToResponse(user));
+        }
+
+
+        [HttpPut("update-user-location/{location_id}")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> UpdateStaffLocation(
+            int location_id
+        )
+        {
+            try
+            {
+                string? nameIdentifier = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                int userId = 0;
+                if (string.IsNullOrEmpty(nameIdentifier) || !int.TryParse(nameIdentifier, out userId))
+                {
+                    return BadRequest("Issue in processing a User location request.");
+                }
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                if (user is null)
+                {
+                    return BadRequest("Issue in Processing a user request for location change");
+                }
+                user.Location_id = location_id;
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+                return Ok("User Location was updated. ");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in updating user locations. ");
+                return BadRequest("Unhandled Exception occurred in processing request.");
+            }
+
+
+        }
+        
+        
+        [HttpGet("get-initial-staff-location")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> GetStaffStartingLocaon(
+        )
+        {
+            try
+            {
+                string? nameIdentifier = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                int userId = 0;
+                if (string.IsNullOrEmpty(nameIdentifier) || !int.TryParse(nameIdentifier, out userId))
+                {
+                    return BadRequest("Issue in processing a User location request.");
+                }
+                var user = await _context.Users.Include( u => u.PrimaryLocation).FirstOrDefaultAsync(u => u.User_id == userId);
+                if (user is null)
+                {
+                    return BadRequest("Issue in Processing a user request for location change");
+                }
+
+                return Ok(user.PrimaryLocation);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in updating user locations. ");
+                return BadRequest("Unhandled Exception occurred in processing request.");
+            }
+
+
         }
 
         private static UserResponseDTO ToResponse(User u) => new UserResponseDTO

@@ -5,6 +5,7 @@ import { Box, CircularProgress } from "@mui/material";
 import { ErrorBoundary } from "react-error-boundary";
 import SessionDashboard from "@/components/staff/SessionDashboard";
 import styled from "@emotion/styled";
+import { getUserRole } from "@/utils/token";
 
 // export const metadata = {
 //   title: "Session Management | Sushi Toshi",
@@ -50,8 +51,9 @@ const SessionsPage = () => {
       }
 
       try {
-        const tokenData = JSON.parse(atob(token.split(".")[1]));
-        if (!["staff", "admin"].includes(tokenData.role)) {
+        const role = getUserRole(token);
+        console.log("TOKEN: ", role);
+        if (role !== "admin" && role !== "staff") {
           router.push("/unauthorized");
           return false;
         }

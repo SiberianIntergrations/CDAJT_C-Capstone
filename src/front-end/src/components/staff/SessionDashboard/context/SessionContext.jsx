@@ -83,17 +83,23 @@
 //   );
 // };
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { useSessionData } from '../hooks/useSessionData';
-import { useSessionActions } from '../hooks/useSessionActions';
-
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
+import { useSessionData } from "../hooks/useSessionData";
+import { useSessionActions } from "../hooks/useSessionActions";
+import api from "../../../../config/api";
 
 const SessionContext = createContext(null);
 
 export const useSession = () => {
   const context = useContext(SessionContext);
   if (!context) {
-    throw new Error('useSession must be used within SessionProvider');
+    throw new Error("useSession must be used within SessionProvider");
   }
   return context;
 };
@@ -105,7 +111,7 @@ export const SessionProvider = ({ children }) => {
     newSession: false,
     addTable: false,
     newBill: false,
-    currentSessionId: null
+    currentSessionId: null,
   });
 
   const {
@@ -114,11 +120,11 @@ export const SessionProvider = ({ children }) => {
     isLoading,
     error,
     fetchSessions,
-    fetchDashboardSummary
+    fetchDashboardSummary,
   } = useSessionData(updateTrigger);
 
   const triggerUpdate = useCallback(() => {
-    setUpdateTrigger(prev => prev + 1);
+    setUpdateTrigger((prev) => prev + 1);
   }, []);
 
   const {
@@ -128,23 +134,27 @@ export const SessionProvider = ({ children }) => {
     closeBill: baseCloseBill,
     endSession: baseEndSession,
     actionError: hookActionError,
-    clearActionError
+    clearActionError,
   } = useSessionActions();
-  
+
   useEffect(() => {
     if (hookActionError) {
-      console.log('Action error in context:', hookActionError);
+      console.log("Action error in context:", hookActionError);
     }
   }, [hookActionError]);
 
   // Wrap each action to trigger updates after completion
-  const createSession = async (menuId) => {
-    const success = await baseCreateSession(menuId);
-    if (success) {
-      await Promise.all([fetchSessions(), fetchDashboardSummary()]);
-      triggerUpdate();
+  const createSession = async (menuId, locationId) => {
+    try {
+      const response = await api.post("/DiningSession/Create_Dinning_Session", {
+        menu_Id: menuId,
+        location_Id: locationId,
+      });
+      // ... rest of your logic
+    } catch (error) {
+      console.error("Error creating session:", error);
+      return false;
     }
-    return success;
   };
 
   const addTable = async (sessionId, tableId) => {
@@ -184,18 +194,18 @@ export const SessionProvider = ({ children }) => {
   };
 
   const openDialog = useCallback((dialogName, sessionId = null) => {
-    setDialogState(prev => ({
+    setDialogState((prev) => ({
       ...prev,
       [dialogName]: true,
-      currentSessionId: sessionId
+      currentSessionId: sessionId,
     }));
   }, []);
 
   const closeDialog = useCallback((dialogName) => {
-    setDialogState(prev => ({
+    setDialogState((prev) => ({
       ...prev,
       [dialogName]: false,
-      currentSessionId: null
+      currentSessionId: null,
     }));
   }, []);
 
@@ -216,12 +226,10 @@ export const SessionProvider = ({ children }) => {
     endSession,
     actionError: hookActionError,
     clearActionError,
-    triggerUpdate
+    triggerUpdate,
   };
 
   return (
-    <SessionContext.Provider value={value}>
-      {children}
-    </SessionContext.Provider>
+    <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
   );
 };

@@ -14,10 +14,25 @@
             "database": "sushi_toshi_db",
             "username": "root",
             "password": "root"
+        },
+        {
+            "mysqlOptions": {
+                "authProtocol": "default",
+                "enableSsl": "Disabled"
+            },
+            "ssh": "Disabled",
+            "previewLimit": 50,
+            "server": "localhost",
+            "port": 3307,
+            "driver": "MySQL",
+            "name": "sushi_toshi_db",
+            "database": "sushi_toshi_db",
+            "username": "app_user"
         }
     ],
     "github.copilot.nextEditSuggestions.enabled": false,
     "cSpell.words": [
-        "Swashbuckle"
+        "Swashbuckle",
+        "Toshi"
     ]
 }

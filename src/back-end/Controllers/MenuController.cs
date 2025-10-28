@@ -28,9 +28,43 @@ namespace back_end.Controllers
         }
 
 
+        /// <summary>
+        /// Creates a new menu item with optional tags.
+        /// </summary>
+        /// <param name="item_data">The menu item data including name, description, category, image URL, and tag IDs</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the created <see cref="MenuItemResponseDTO"/> object.
+        /// Returns HTTP 200 (OK) with the created menu item on success.
+        /// Returns HTTP 409 (Conflict) if a menu item with the same name already exists.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
+        /// </returns>
+        /// <response code="200">Returns the newly created menu item</response>
+        /// <response code="409">If a menu item with the same name already exists</response>
+        /// <response code="500">If an internal error occurs while creating the menu item</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     POST /api/menu
+        ///     {
+        ///         "name": "Grilled Salmon",
+        ///         "description": "Fresh Atlantic salmon with lemon butter sauce",
+        ///         "category_Id": 2,
+        ///         "item_Image_Url": "https://example.com/images/salmon.jpg",
+        ///         "tag_Ids": [1, 3, 5]
+        ///     }
+        ///
+        /// This endpoint requires Admin or Staff role authorization.
+        /// The menu item is automatically created with 'Available' status.
+        /// Tags are optional and will be associated with the item if provided.
+        /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpPost("/")]
-        public async Task<IActionResult> Create_Menu_Item(MenuItemCreateDTO item_data)
+        [HttpPost]
+        [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Create_Menu_Item(
+            MenuItemCreateDTO item_data
+        )
         {
             try
             {
@@ -100,9 +134,28 @@ namespace back_end.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves all active menus from the database.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="ActionResult"/> containing a collection of <see cref="Menu"/> objects.
+        /// Returns HTTP 200 (OK) with the list of active menus on success.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of all active menus</response>
+        /// <response code="500">If an internal error occurs while retrieving menus</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menu
+        ///
+        /// Returns only menus where Is_active is true.
+        /// </remarks>
         //GET: api/menu
         //Get all Menus
         [HttpGet]
+        [ProducesResponseType(typeof(IEnumerable<Menu>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<Menu>>> GetAllMenu()
         {
             try
@@ -120,9 +173,32 @@ namespace back_end.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves a specific menu by its ID.
+        /// </summary>
+        /// <param name="id">The unique identifier of the menu</param>
+        /// <returns>
+        /// An <see cref="ActionResult"/> containing the <see cref="Menu"/> object.
+        /// Returns HTTP 200 (OK) with the menu details on success.
+        /// Returns HTTP 404 (Not Found) if the menu doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the menu with the specified ID</response>
+        /// <response code="404">If the menu is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving the menu</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menu/123
+        ///
+        /// Returns the complete menu details for the specified ID.
+        /// </remarks>
         //GET: api/menu/{id}
         //Get a specific menu by its ID number
         [HttpGet("{id}")]
+        [ProducesResponseType(typeof(Menu), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<Menu>> GetMenuByID(int id)
         {
             try
@@ -144,9 +220,35 @@ namespace back_end.Controllers
             }
         }
 
-        //GET: api/menu/{time}
-        //Gets the correct menu for the current time or inputted time
+        /// <summary>
+        /// Retrieves all active menus available at a specific time.
+        /// </summary>
+        /// <param name="time">Optional time in HH:mm:ss format. If not provided, uses current time.</param>
+        /// <returns>
+        /// An <see cref="ActionResult"/> containing a collection of <see cref="Menu"/> objects.
+        /// Returns HTTP 200 (OK) with the list of active menus on success.
+        /// Returns HTTP 400 (Bad Request) if the time format is invalid.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of active menus available at the specified time</response>
+        /// <response code="400">If the time format is invalid</response>
+        /// <response code="500">If an internal error occurs while retrieving menus</response>
+        /// <remarks>
+        /// Sample requests:
+        ///
+        ///     GET /api/menu/time
+        ///     (Uses current time)
+        ///     
+        ///     GET /api/menu/time?time=18:30:00
+        ///     (Uses specified time)
+        ///
+        /// Returns only active menus where the specified time falls within the menu's start and end times.
+        /// Time format should be HH:mm:ss (e.g., "18:30:00" for 6:30 PM).
+        /// </remarks>
         [HttpGet("time")]
+        [ProducesResponseType(typeof(IEnumerable<Menu>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<Menu>>> GetMenuByTime([FromQuery] string? time)
         {
             TimeOnly currentTime;
@@ -179,10 +281,38 @@ namespace back_end.Controllers
             }
         }
 
+        /// <summary>
+        /// Retrieves all available items from a specific menu with their details, prices, categories, and tags.
+        /// </summary>
+        /// <param name="menu">The unique identifier of the menu</param>
+        /// <returns>
+        /// An <see cref="ActionResult"/> containing a collection of menu item objects with pricing and tag information.
+        /// Returns HTTP 200 (OK) with the list of available menu items on success.
+        /// Returns HTTP 404 (Not Found) if the menu doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of available menu items with details, prices, categories, and tags</response>
+        /// <response code="404">If the menu is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving menu items</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menu/123/item
+        ///
+        /// Returns only items with 'Available' status.
+        /// Each item includes:
+        /// - Item details (ID, name, description, image URL)
+        /// - Price for this specific menu
+        /// - Category information
+        /// - Associated tags with names and color codes
+        /// </remarks>
         //GET: api/menu/{menu}/items
         //Get items from a Menu
         //Display: price, category and diet tags
-        [HttpGet("{menu}/items")]
+        [HttpGet("{menu}/item")]
+        [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<object>>> GetItemsByMenu(int menu)
         {
             try
@@ -243,9 +373,30 @@ namespace back_end.Controllers
             }
         }
 
-        //GET: api/menu/location
-        //Get menus available only at a specific location
+        /// <summary>
+        /// Retrieves all active menus for a specific location.
+        /// </summary>
+        /// <param name="location">The unique identifier of the location</param>
+        /// <returns>
+        /// An <see cref="ActionResult"/> containing a collection of <see cref="Menu"/> objects.
+        /// Returns HTTP 200 (OK) with the list of active menus on success.
+        /// Returns HTTP 404 (Not Found) if the location doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
+        /// </returns>
+        /// <response code="200">Returns the list of active menus for the specified location</response>
+        /// <response code="404">If the location is not found</response>
+        /// <response code="500">If an internal error occurs while retrieving menus</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     GET /api/menu/location/123
+        ///
+        /// Returns only active menus associated with the specified location.
+        /// </remarks>
         [HttpGet("location/{location}")]
+        [ProducesResponseType(typeof(IEnumerable<Menu>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
 
         public async Task<ActionResult<IEnumerable<Menu>>> GetMenuByLocation(int location)
         {
@@ -277,8 +428,46 @@ namespace back_end.Controllers
             }
         }
 
+
+        
+        /// <summary>
+        /// Updates an existing menu.
+        /// </summary>
+        /// <param name="menu_id">The unique identifier of the menu to update</param>
+        /// <param name="menu_data">The updated menu data</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> containing the updated <see cref="MenuResponseDTO"/> object.
+        /// Returns HTTP 200 (OK) with the updated menu on success.
+        /// Returns HTTP 404 (Not Found) if the menu doesn't exist.
+        /// Returns HTTP 409 (Conflict) if a menu with the new name already exists.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the update.
+        /// </returns>
+        /// <response code="200">Returns the updated menu</response>
+        /// <response code="404">If the menu is not found</response>
+        /// <response code="409">If a menu with the same name already exists</response>
+        /// <response code="500">If an internal error occurs while updating the menu</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     PUT /api/menu/123
+        ///     {
+        ///         "name": "Updated Dinner Menu",
+        ///         "description": "Evening dining options",
+        ///         "start_Time": "17:00:00",
+        ///         "end_Time": "22:00:00",
+        ///         "is_Active": true
+        ///     }
+        ///
+        /// This endpoint requires Admin role authorization.
+        /// All fields in the request body are optional - only provided fields will be updated.
+        /// Menu names must be unique.
+        /// </remarks>
         [Authorize(Roles = "Admin")]
-        [HttpPut("/{menu_id}")]
+        [HttpPut("{menu_id}")]
+        [ProducesResponseType(typeof(MenuResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Update_Menu(
             int menu_id,
             MenuUpdateDTO menu_data
@@ -338,8 +527,34 @@ namespace back_end.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
+
+
+        /// <summary>
+        /// Deletes a menu from the system.
+        /// </summary>
+        /// <param name="menu_id">The unique identifier of the menu to delete</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the operation.
+        /// Returns HTTP 200 (OK) with a success message when the menu is deleted.
+        /// Returns HTTP 404 (Not Found) if the menu doesn't exist.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during deletion.
+        /// </returns>
+        /// <response code="200">Returns a success message when the menu is deleted</response>
+        /// <response code="404">If the menu is not found</response>
+        /// <response code="500">If an internal error occurs while deleting the menu</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     DELETE /api/menu/123
+        ///
+        /// This endpoint requires Admin role authorization.
+        /// Permanently removes the menu from the database.
+        /// </remarks>
         [Authorize(Roles = "Admin")]
-        [HttpDelete("menu_id")]
+        [HttpDelete("{menu_id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Delete_Menu(
             int menu_id
         )

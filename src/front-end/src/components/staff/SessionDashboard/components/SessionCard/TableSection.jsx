@@ -38,7 +38,7 @@ const TableSection = ({ session }) => {
     try {
       const tablesResponse = await api.get("/Table");
 
-      if (!tablesResponse.statusText === 200) {
+      if (tablesResponse.status !== 200) {
         throw new Error("Failed to fetch tables");
       }
 
@@ -70,7 +70,9 @@ const TableSection = ({ session }) => {
     }
   };
 
-  const displayedTables = session.table_numbers.filter(
+  console.log("session ", session);
+
+  const displayedTables = session.table_Numbers.filter(
     (tableNum) => !removedTableIds.has(tableNum)
   );
 
