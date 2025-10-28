@@ -3,12 +3,14 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using back_end.domain.DbContexts;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.Versioning;
 
 namespace back_end.Services.QrCode
 {
     /// <summary>
     /// Service for generating QR codes for WiFi and authentication with location-based configuration
     /// </summary>
+    [SupportedOSPlatform("windows")]
     public class QrGeneratorService
     {
         // Made internal for controller access - not ideal but simplifies implementation

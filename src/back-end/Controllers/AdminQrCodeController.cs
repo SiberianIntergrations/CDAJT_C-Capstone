@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using back_end.Services.QrCode;
 using Swashbuckle.AspNetCore.Annotations;
 using System.Drawing.Imaging;
+using System.Runtime.Versioning;
 
 namespace back_end.Controllers
 {
@@ -12,6 +13,7 @@ namespace back_end.Controllers
     [ApiController]
     [Route("api/admin/qr")]
     [Authorize(Roles = "Admin,Staff")]
+    [SupportedOSPlatform("windows")]
     public class AdminQrCodeController : ControllerBase
     {
         private readonly QrGeneratorService _qrService;

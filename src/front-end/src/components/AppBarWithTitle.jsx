@@ -28,6 +28,7 @@ import {
   Users,
   BarChart,
   Tag,
+  QrCode,
   Phone,
   MapPin,
   Table,
@@ -106,6 +107,7 @@ const AppBarWithTitle = ({ title }) => {
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
       { icon: Table, label: "Tables", path: "/dashboard/tables" },
+      { icon: QrCode, label: "QR Codes", path: "/admin/qr-codes" },
     ],
     admin: [
       { icon: Home, label: "Home", path: "/" },
@@ -119,6 +121,7 @@ const AppBarWithTitle = ({ title }) => {
       { icon: MenuIcon, label: "Manage Menu Items", path: "/admin/menu-items" },
       { icon: Users, label: "Manage Staff", path: "/admin/staff" },
       { icon: Tag, label: "Manage Tags", path: "/tags/tag-management" },
+      { icon: QrCode, label: "QR Codes", path: "/admin/qr-codes" },
       { icon: BarChart, label: "Analytics", path: "/analytics/analytic-page" },
     ],
   };

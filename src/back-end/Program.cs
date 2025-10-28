@@ -73,8 +73,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Seeders registration
 builder.Services.AddDatabaseSeeders();
 
-// QR Code Generation Service
-builder.Services.AddScoped<back_end.Services.QrCode.QrGeneratorService>();
+// QR Code Generation Service (Windows-only due to System.Drawing dependency)
+if (OperatingSystem.IsWindows())
+{
+    builder.Services.AddScoped<back_end.Services.QrCode.QrGeneratorService>();
+}
 
 // JWT Auth
 builder.Services.AddAuthentication(options =>
