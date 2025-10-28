@@ -260,8 +260,12 @@ useEffect(() => {
           console.error("Categories data is not an array");
         }
       } catch (err) {
-        console.error("Error fetching categories:", er);
-        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
+        console.error("Error fetching categories:", err);
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          "Error fetching categories";
         setError(message);
       }
     };
@@ -282,7 +286,7 @@ useEffect(() => {
           );
           item.tags = itemTagsResponse.data;
         }
-      setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
+        setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
       }
     } catch (err) {
       console.error(
