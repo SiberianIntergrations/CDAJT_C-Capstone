@@ -240,7 +240,7 @@ useEffect(() => {
         }
 
         setMenuId(getMenuID);
-        
+
         console.log("parsed menuId =", getMenuID);
       } else {
         console.warn("No menu found", response?.data);
@@ -496,16 +496,13 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                 category.category_id
               );
 
-              const hasSelectedItems =
-                getSelectedItemsStats(category.category_id).itemCount > 0;
-              if (filteredItems.length === 0 && !hasSelectedItems) return null;
+              const stats = getSelectedItemsStats(category.category_id);
+              const visibleCount = filteredItems.length;
 
               return (
                 <Accordion
                   key={`category-${category.category_id}`}
-                  onChange={() =>
-                    menuId && fetchMenuItems(category.category_id, menuId)
-                  }
+                  onChange={() => menuId && fetchMenuItems(category.category_id, menuId)}
                   sx={{ mb: 1 }}
                 >
                   <AccordionSummary
@@ -514,27 +511,19 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                       "&.MuiAccordionSummary-root": {
                         backgroundColor: "#f8f9fa",
                         minHeight: "48px",
-                        "&:hover": {
-                          backgroundColor: "#eeeeee",
-                        },
+                        "&:hover": { backgroundColor: "#eeeeee" },
+                        justifyContent: "center",
                       },
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        width: "100%",
-                        pr: 2,
-                      }}
-                    >
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", pr: 2 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                        {category.name} (
-                        {getVisibleItemCount(category.category_id)} items)
+                        {(category.name || menuItems[category.category_id]?.[0]?.category || `Category ${category.category_id}`)}
+                        {" "}
+                        ({visibleCount} {visibleCount === 1 ? "item" : "items"})
                       </Typography>
-                      {getSelectedItemsStats(category.category_id).itemCount >
-                        0 && (
+
+                      {stats.itemCount > 0 && (
                         <Typography
                           variant="subtitle2"
                           sx={{
@@ -544,26 +533,10 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                             py: 0.5,
                             borderRadius: 1,
                             fontWeight: "medium",
+                            textAlign: "center",
                           }}
                         >
-                          {`${
-                            getSelectedItemsStats(category.category_id)
-                              .itemCount
-                          } ${
-                            getSelectedItemsStats(category.category_id)
-                              .itemCount === 1
-                              ? "item"
-                              : "items"
-                          }, 
-                          ${
-                            getSelectedItemsStats(category.category_id)
-                              .totalQuantity
-                          } ${
-                            getSelectedItemsStats(category.category_id)
-                              .totalQuantity === 1
-                              ? "unit"
-                              : "units"
-                          }`}
+                          {`${stats.itemCount} ${stats.itemCount === 1 ? "item" : "items"}, ${stats.totalQuantity} ${stats.totalQuantity === 1 ? "unit" : "units"}`}
                         </Typography>
                       )}
                     </Box>
@@ -697,7 +670,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                                     gap: 0.5,
                                   }}
                                 >
-                                  <Tags item_id={item.item_id} size="m" />
+                                  <Tags item_id={item.tags} size="m" />
                                 </Box>
 
                                 <Box
