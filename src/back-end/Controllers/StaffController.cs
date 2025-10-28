@@ -12,6 +12,9 @@ using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
 using back_end.DTO.StaffDTOs;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using Microsoft.IdentityModel.Tokens;
 
 namespace back_end.Controllers
 {
@@ -177,7 +180,7 @@ namespace back_end.Controllers
         // POST: /api/staff/5/change-password
         // Change a staff user's password by Admin only.
         [HttpPost("{user_id:int}/change-password")]
-        // [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<UserResponseDTO>> ChangeStaffPassword(int user_id, [FromBody] StaffMemberChangePasswordDTO password_data)
         {
             var user = await _context.Users
@@ -215,6 +218,71 @@ namespace back_end.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(ToResponse(user));
+        }
+
+
+        [HttpPut("update-user-location/{location_id}")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> UpdateStaffLocation(
+            int location_id
+        )
+        {
+            try
+            {
+                string? nameIdentifier = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                int userId = 0;
+                if (string.IsNullOrEmpty(nameIdentifier) || !int.TryParse(nameIdentifier, out userId))
+                {
+                    return BadRequest("Issue in processing a User location request.");
+                }
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                if (user is null)
+                {
+                    return BadRequest("Issue in Processing a user request for location change");
+                }
+                user.Location_id = location_id;
+                _context.Update(user);
+                await _context.SaveChangesAsync();
+                return Ok("User Location was updated. ");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in updating user locations. ");
+                return BadRequest("Unhandled Exception occurred in processing request.");
+            }
+
+
+        }
+        
+        
+        [HttpGet("get-initial-staff-location")]
+        [Authorize(Roles = "Admin,Staff")]
+        public async Task<IActionResult> GetStaffStartingLocaon(
+        )
+        {
+            try
+            {
+                string? nameIdentifier = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                int userId = 0;
+                if (string.IsNullOrEmpty(nameIdentifier) || !int.TryParse(nameIdentifier, out userId))
+                {
+                    return BadRequest("Issue in processing a User location request.");
+                }
+                var user = await _context.Users.Include( u => u.PrimaryLocation).FirstOrDefaultAsync(u => u.User_id == userId);
+                if (user is null)
+                {
+                    return BadRequest("Issue in Processing a user request for location change");
+                }
+
+                return Ok(user.PrimaryLocation);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in updating user locations. ");
+                return BadRequest("Unhandled Exception occurred in processing request.");
+            }
+
+
         }
 
         private static UserResponseDTO ToResponse(User u) => new UserResponseDTO

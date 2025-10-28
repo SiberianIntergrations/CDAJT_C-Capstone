@@ -153,7 +153,12 @@ namespace back_end.Controllers
         {
             try
             {
-                var item = _context.MenuItems.Include(mi => mi.MenuItemTags).FirstOrDefaultAsync(mi => mi.item_id == item_id);
+                var item = await _context.MenuItems
+                .Include(mi => mi.MenuAssignments)
+                    .ThenInclude(ma => ma.Menu)  // Navigate through MenuAssignments to get Menu
+                .Include(mi => mi.MenuItemTags)
+                    .ThenInclude(mit => mit.Tag)  // If you also need the Tag details
+                .FirstOrDefaultAsync(mi => mi.item_id == item_id);
                 if (item == null)
                 {
                     return NotFound(new { message = "Menu item was not found" });
@@ -197,7 +202,11 @@ namespace back_end.Controllers
         {
             try
             {
-                var allItems = await _context.MenuItems.Include(mi => mi.MenuItemTags).ToListAsync();
+                var allItems = await _context.MenuItems
+                .Include(mi => mi.MenuItemTags)
+                .OrderBy(mi => mi.Category_id)      // Group by category first
+                .ThenBy(mi => mi.Name)              // Then sort by name within each category
+                .ToListAsync();
                 return Ok(allItems);
 
 
@@ -291,7 +300,7 @@ namespace back_end.Controllers
                     ;
                 }
                 ;
-                _context.Add(itemUpdate);
+                _context.Update(itemUpdate);
                 await _context.SaveChangesAsync();
                 return Ok(new MenuItemResponseDTO
                 {
@@ -368,7 +377,7 @@ namespace back_end.Controllers
             {
                 // 1) Fetch item
                 var item = await _context.MenuItems
-                    .FirstOrDefaultAsync(mi => mi.item_id == item_id, ct); // ensure property name matches your model
+                    .FirstOrDefaultAsync(mi => mi.item_id == item_id, ct);
                 if (item is null) return NotFound("Menu item not found.");
 
                 // 2) Basic file checks
@@ -397,18 +406,23 @@ namespace back_end.Controllers
                 var fileName = $"item_{item_id}_{Guid.NewGuid():N}{ext}";
 
                 // 4) Resolve target folder (front-end/public/menu-items)
-                var backendRoot = _env.ContentRootPath; // .../src/back-end
+                var backendRoot = _env.ContentRootPath;
                 var frontEndFolder = Path.GetFullPath(
                     Path.Combine(backendRoot, "..", "front-end", "public", "menu-items")
-                ); // .../src/front-end/public/menu-items
+                );
 
                 if (!Directory.Exists(frontEndFolder))
                     Directory.CreateDirectory(frontEndFolder);
 
-                // 5) Save file to disk
-                var savePath = Path.Combine(frontEndFolder, fileName);            // filesystem path
+                // 5) Save file to disk - THIS WAS MISSING!
+                var savePath = Path.Combine(frontEndFolder, fileName);
+                
+                using (var stream = new FileStream(savePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream, ct);
+                }
 
-                // 6) Persist and return a public URL (your FE will serve from /menu-items/*)
+                // 6) Persist and return a public URL
                 var publicUrl = $"/menu-items/{fileName}".Replace("\\", "/");
                 item.image_url = publicUrl;
 
@@ -421,7 +435,6 @@ namespace back_end.Controllers
                 _logger.LogError(ex, "Error Saving the File selected");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
-
         }
 
 

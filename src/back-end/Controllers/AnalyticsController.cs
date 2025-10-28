@@ -273,7 +273,7 @@ namespace back_end.controllers
             try
             {
                 var orderTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At != null && ds.Started_At != null)
+                    .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null)
                     .Select(ds => new
                     {
                         sessionId = ds.Session_Id,
@@ -282,7 +282,7 @@ namespace back_end.controllers
                     .ToListAsync();
 
                 var dailyAverageTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At != null && ds.Started_At != null)
+                    .Where(ds => ds.First_Order_At.ToString() != null && ds.Started_At.ToString() != null)
                     .GroupBy(ds => ds.Started_At.Date)
                     .Select(g => new
                     {

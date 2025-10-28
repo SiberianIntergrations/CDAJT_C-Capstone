@@ -50,15 +50,17 @@ const MenuAssignmentDialog = ({
   const [editingAssignment, setEditingAssignment] = useState(null);
   const [error, setError] = useState(null);
 
-  // TODO: Update API endpoints for menu item assignments
   useEffect(() => {
     const fetchAssignments = async () => {
       if (!selectedItem) return;
       try {
-        const response = await api.get(`/menu-item-assignments/by-item/${selectedItem.item_id}`);
-        setAssignments(response.data);
+        const response = await api.get(`/menuItem/${selectedItem.item_id}`);
+        const assignmentsData = response.data.menuAssignments || [];
+        setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
       } catch (err) {
+        console.error("Fetch error:", err);
         setError("Failed to fetch assignments");
+        setAssignments([]);
       }
     };
     fetchAssignments();
@@ -67,22 +69,22 @@ const MenuAssignmentDialog = ({
   useEffect(() => {
     if (editingAssignment) {
       setFormData({
-        menu_id: editingAssignment.menu_id,
-        price: editingAssignment.price,
-        is_add_on: editingAssignment.is_add_on === true,
-        status: (editingAssignment.status || "AVAILABLE").toLowerCase(),
-        adult_limit: editingAssignment.adult_limit || 0,
+        menu_id: editingAssignment.menu_Id, // FIXED: capital I
+        price: editingAssignment.price.toString(),
+        is_add_on: editingAssignment.is_Add_On === true, // FIXED: capital A and O
+        status: (editingAssignment.status || "Available").toLowerCase(),
+        adult_limit: editingAssignment.adult_Limit || 0, // FIXED: capital L
         child_limit: editingAssignment.child_limit || 0,
         senior_limit: editingAssignment.senior_limit || 0,
-        tot_limit: editingAssignment.tot_limit || 0,
+        tot_limit: editingAssignment.tot_Limit || 0, // FIXED: capital L
       });
     }
   }, [editingAssignment]);
 
   const handleDeleteAssignment = async (menuId, itemId) => {
     try {
-      await api.delete(`/menu-item-assignments/${menuId}/${itemId}`);
-      setAssignments((prev) => prev.filter((a) => a.menu_id !== menuId));
+      await api.delete(`/menuassignment/${menuId}/${itemId}`);
+      setAssignments((prev) => prev.filter((a) => a.menu_Id !== menuId)); // FIXED: capital I
       resetForm();
     } catch (err) {
       setError("Failed to delete assignment");
@@ -108,14 +110,13 @@ const MenuAssignmentDialog = ({
     setSubmitting(true);
     try {
       const url = editingAssignment
-      ? `/menu-item-assignments/${editingAssignment.menu_id}/${selectedItem.item_id}`
-      : "/menu-item-assignments";
+        ? `/menuassignment/${editingAssignment.menu_Id}/${selectedItem.item_id}` // FIXED: menu_Id
+        : "/menuassignment";
 
-      const response = await api({
+      await api({
         method: editingAssignment ? "PUT" : "POST",
         url,
         data: {
-          ...formData,
           menu_id: parseInt(formData.menu_id),
           item_id: selectedItem.item_id,
           price: parseFloat(formData.price),
@@ -124,40 +125,39 @@ const MenuAssignmentDialog = ({
           senior_limit: parseInt(formData.senior_limit) || 0,
           tot_limit: parseInt(formData.tot_limit) || 0,
           status: formData.status,
+          is_add_on: formData.is_add_on,
         },
       });
 
-      if (editingAssignment) {
-        setAssignments((prev) =>
-          prev.map((a) =>
-            a.menu_id === response.data.menu_id ? response.data : a
-          )
-        );
-      } else {
-        setAssignments((prev) => [...prev, response.data]);
-      }
+      // Refetch assignments to ensure we have complete data with menu objects
+      const response = await api.get(`/menuItem/${selectedItem.item_id}`);
+      const assignmentsData = response.data.menuAssignments || [];
+      setAssignments(Array.isArray(assignmentsData) ? assignmentsData : []);
 
       resetForm();
       if (onSuccess) onSuccess();
     } catch (err) {
+      console.error("Submit error:", err);
       setError(
-        editingAssignment
+        err.response?.data?.message ||
+        (editingAssignment
           ? "Failed to update assignment"
-          : "Failed to create assignment"
+          : "Failed to create assignment")
       );
     } finally {
       setSubmitting(false);
     }
   };
 
-  const availableMenus = menus.filter(
-    (menu) =>
-      !assignments.some(
-        (assignment) =>
-          assignment.menu_id === menu.menu_id &&
-          assignment.menu_id !== editingAssignment?.menu_id
-      )
-  );
+  // FIXED: Better filtering logic
+  const availableMenus = menus.filter((menu) => {
+    // If we're editing, allow the current menu
+    if (editingAssignment && editingAssignment.menu_Id === menu.menu_id) {
+      return true;
+    }
+    // Otherwise, check if this menu is already assigned
+    return !assignments.some((assignment) => assignment.menu_Id === menu.menu_id);
+  });
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -181,7 +181,7 @@ const MenuAssignmentDialog = ({
           </Stack>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
+            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
               {error}
             </Alert>
           )}
@@ -206,20 +206,15 @@ const MenuAssignmentDialog = ({
                 </TableHead>
                 <TableBody>
                   {assignments.map((assignment) => (
-                    <TableRow key={assignment.menu_id}>
+                    <TableRow key={assignment.menu_Id}>
                       <TableCell>
-                        {
-                          menus.find((m) => m.menu_id === assignment.menu_id)
-                            ?.name
-                        }
+                        {/* FIXED: Use the nested menu object directly */}
+                        {assignment.menu?.name || 'Unknown Menu'}
                       </TableCell>
                       <TableCell>${assignment.price.toFixed(2)}</TableCell>
+                      <TableCell>{assignment.status}</TableCell>
                       <TableCell>
-                        {assignment.status.charAt(0).toUpperCase() +
-                          assignment.status.slice(1)}
-                      </TableCell>
-                      <TableCell>
-                        {assignment.is_add_on ? "Yes" : "No"}
+                        {assignment.is_Add_On ? "Yes" : "No"}
                       </TableCell>
                       <TableCell align="right">
                         <IconButton
@@ -234,7 +229,7 @@ const MenuAssignmentDialog = ({
                           color="error"
                           onClick={() =>
                             handleDeleteAssignment(
-                              assignment.menu_id,
+                              assignment.menu_Id, // FIXED: capital I
                               selectedItem.item_id
                             )
                           }
@@ -274,11 +269,8 @@ const MenuAssignmentDialog = ({
                   </MenuItem>
                 ))}
                 {editingAssignment && (
-                  <MenuItem value={editingAssignment.menu_id}>
-                    {
-                      menus.find((m) => m.menu_id === editingAssignment.menu_id)
-                        ?.name
-                    }
+                  <MenuItem value={editingAssignment.menu_Id}>
+                    {editingAssignment.menu?.name}
                   </MenuItem>
                 )}
               </Select>
@@ -294,14 +286,14 @@ const MenuAssignmentDialog = ({
                 }
                 required
                 disabled={formData.is_add_on}
-                inputProps={{ step: "0.01" }}
+                inputProps={{ step: "0.01", min: "0" }}
                 sx={{ flex: 1 }}
               />
 
               <FormControl sx={{ flex: 1 }}>
                 <InputLabel>Status</InputLabel>
                 <Select
-                  value={formData.status || "available"}
+                  value={formData.status}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, status: e.target.value }))
                   }
@@ -330,22 +322,9 @@ const MenuAssignmentDialog = ({
               label="Is Add-on Item"
             />
 
-            <Grid
-              container
-              spacing={2}
-              sx={{
-                m: 0,
-                pl: 0,
-                pr: "0.75rem",
-                "& .MuiGrid-item": {
-                  pl: 0,
-                  pr: 0,
-                },
-              }}
-            >
+            <Grid container spacing={2}>
               <Grid item xs={6}>
                 <TextField
-                  sx={{ pr: 0.75 }}
                   fullWidth
                   label="Adult Limit"
                   type="number"
@@ -359,9 +338,8 @@ const MenuAssignmentDialog = ({
                   inputProps={{ min: 0, max: 99 }}
                 />
               </Grid>
-              <Grid item xs={6} sx={{ pr: 0 }}>
+              <Grid item xs={6}>
                 <TextField
-                  sx={{ pl: 1 }}
                   fullWidth
                   label="Child Limit"
                   type="number"
@@ -377,7 +355,6 @@ const MenuAssignmentDialog = ({
               </Grid>
               <Grid item xs={6}>
                 <TextField
-                  sx={{ pr: 0.75 }}
                   fullWidth
                   label="Senior Limit"
                   type="number"
@@ -393,7 +370,6 @@ const MenuAssignmentDialog = ({
               </Grid>
               <Grid item xs={6}>
                 <TextField
-                  sx={{ pl: 1 }}
                   fullWidth
                   label="Tot Limit"
                   type="number"

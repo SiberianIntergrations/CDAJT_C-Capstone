@@ -37,7 +37,10 @@ const onRefreshed = (token) => {
 const redirectToLogin = () => {
   clearAuthTokens();
   if (typeof window !== "undefined") {
-    window.location.href = "/auth/login";
+    const isAuthPage = window.location.pathname.includes('/auth/');
+    if (!isAuthPage) { // ✅ Only redirect if not already on auth page
+      window.location.href = "/auth/login";
+    }
   }
 };
 
