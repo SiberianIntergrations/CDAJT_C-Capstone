@@ -67,7 +67,7 @@ export const normalizedUserRole = (role) => {
 
   const roleMap = {
     'admin': 'admin',
-    'employee': 'staff',
+    'staff': 'staff',
     'customer': 'customer',
   };
   const normalized = roleMap[roleLower] || 'customer';
