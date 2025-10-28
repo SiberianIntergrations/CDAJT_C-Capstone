@@ -73,6 +73,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Seeders registration
 builder.Services.AddDatabaseSeeders();
 
+// QR Code Generation Service
+builder.Services.AddScoped<back_end.Services.QrCode.QrGeneratorService>();
+
 // JWT Auth
 builder.Services.AddAuthentication(options =>
 {
