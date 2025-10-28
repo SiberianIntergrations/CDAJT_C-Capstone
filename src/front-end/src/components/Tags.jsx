@@ -1,45 +1,18 @@
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Box } from "@mui/material";
 import TagChip from "./tags/TagChip";
-import api from "@/config/api";
 
-const Tags = ({ item_id, size = "l" }) => {
-  const [tags, setTags] = useState([]);
-  const [error, setError] = useState(null);
 
-  // May be deleted later
-  // const getToken = () => {
-  //   if (typeof window !== "undefined") {
-  //     return localStorage.getItem("access_token");
-  //   }
-  //   return null;
-  // };
+const Tags = ({ tags = [], size = "l" }) => {
+  const normalized = useMemo(() => {
+    return (Array.isArray(tags) ? tags : []).map((t, idx) => ({
+      tag_id: t.tag_id ?? t.Tag_Id ?? t.id ?? `${t.name ?? t.tag_name ?? idx}`,
+      name: t.name ?? t.tag_name ?? "",
+      color_code: t.color_code ?? t.color ?? t.colorCode ?? undefined,
+    }));
+  }, [tags]);
 
-  // TODO: Update endpoint
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const response = await api.get(
-          `/menu-items/${item_id}/tags-with-colors`
-        );
-
-        if (response.data) {
-          setTags(response.data);
-          setError(null);
-        }
-      } catch (error) {
-        console.error("Error fetching tags:", error);
-        setError("Failed to load tags");
-      }
-    };
-
-    if (item_id) {
-      fetchTags();
-    }
-  }, [item_id]);
-
-  if (error) return null;
-  if (!tags.length) return null;
+  if (!normalized.length) return null;
 
   return (
     <Box
@@ -51,7 +24,7 @@ const Tags = ({ item_id, size = "l" }) => {
         maxWidth: "100%",
       }}
     >
-      {tags.map((tag) => (
+      {normalized.map((tag) => (
         <TagChip key={tag.tag_id} tag={tag} size={size} />
       ))}
     </Box>

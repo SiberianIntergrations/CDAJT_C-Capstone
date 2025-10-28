@@ -211,36 +211,55 @@ const FullMenu = () => {
   }, []);
 
 
-  useEffect(() => {
-    if (!sessionId || sessionId < 1) {
-      console.log("Invalid sessionId. Skipping menu fetch.");
-      return;
-    }
-    const fetchMenu = async () => {
-      try {
-        setError(null);
-        // api from old project: /dining-sessions/session-menu/{sessionId} GET
-        const response = await api.get(
-          `/DiningSession/session-menu/${sessionId}`
-        );
-        if (response?.status >= 200 && response.status < 300 && response.data) {
-          setMenuId(response.data.menu_id ?? response.data);
-        } else {
-          console.warn("No menu found", response?.data);
-          setError("No menu found for this session");
+useEffect(() => {
+  //Session ID can only be 1 or above
+  if (!sessionId || sessionId < 1) {
+    console.log("Invalid sessionId. Skipping menu fetch.");
+    return;
+  }
+
+  const fetchMenu = async () => {
+    try {
+      setError(null);
+
+      const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
+
+      if (response?.status >= 200 && response.status < 300 && response.data) {
+        const raw = response.data;
+        console.log("session-menu raw =", raw);
+
+
+        const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
+        const getMenuID =
+          typeof id === "number" ? id : parseInt(String(id), 10);
+
+        if (Number.isNaN(getMenuID) || getMenuID < 1) {
+          console.warn("Menu ID is invalid:", raw);
+          setError("No menu for this session");
+          return;
         }
-      } catch (err) {
-        console.error("Error fetching menu:", err);
-        const message =
-          err?.response?.data?.detail ??
-          err?.response?.data?.message ??
-          err?.message ??
-          "Error fetching menu";
-        setError(message);
+
+        setMenuId(getMenuID);
+
+        console.log("parsed menuId =", getMenuID);
+      } else {
+        console.warn("No menu found", response?.data);
+        setError("No menu found for this session");
       }
-    };
-    fetchMenu();
-  }, [sessionId]);
+    } catch (err) {
+      console.error("Error fetching menu:", err);
+      const message =
+        err?.response?.data?.detail ??
+        err?.response?.data?.message ??
+        err?.message ??
+        "Error fetching menu";
+      setError(message);
+    }
+  };
+
+  fetchMenu();
+}, [sessionId]);
+
 
 //When you have the menuID call to get current menu
 useEffect(() => {
@@ -468,16 +487,13 @@ useEffect(() => {
                 category.category_id
               );
 
-              const hasSelectedItems =
-                getSelectedItemsStats(category.category_id).itemCount > 0;
-              if (filteredItems.length === 0 && !hasSelectedItems) return null;
+              const stats = getSelectedItemsStats(category.category_id);
+              const visibleCount = filteredItems.length;
 
               return (
                 <Accordion
                   key={`category-${category.category_id}`}
-                  onChange={() =>
-                    menuId && fetchMenuItems(category.category_id, menuId)
-                  }
+                  onChange={() => menuId && fetchMenuItems(category.category_id, menuId)}
                   sx={{ mb: 1 }}
                 >
                   <AccordionSummary
@@ -486,27 +502,19 @@ useEffect(() => {
                       "&.MuiAccordionSummary-root": {
                         backgroundColor: "#f8f9fa",
                         minHeight: "48px",
-                        "&:hover": {
-                          backgroundColor: "#eeeeee",
-                        },
+                        "&:hover": { backgroundColor: "#eeeeee" },
+                        justifyContent: "center",
                       },
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        width: "100%",
-                        pr: 2,
-                      }}
-                    >
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", pr: 2 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                        {category.name} (
-                        {getVisibleItemCount(category.category_id)} items)
+                        {(category.name || menuItems[category.category_id]?.[0]?.category || `Category ${category.category_id}`)}
+                        {" "}
+                        ({visibleCount} {visibleCount === 1 ? "item" : "items"})
                       </Typography>
-                      {getSelectedItemsStats(category.category_id).itemCount >
-                        0 && (
+
+                      {stats.itemCount > 0 && (
                         <Typography
                           variant="subtitle2"
                           sx={{
@@ -516,26 +524,10 @@ useEffect(() => {
                             py: 0.5,
                             borderRadius: 1,
                             fontWeight: "medium",
+                            textAlign: "center",
                           }}
                         >
-                          {`${
-                            getSelectedItemsStats(category.category_id)
-                              .itemCount
-                          } ${
-                            getSelectedItemsStats(category.category_id)
-                              .itemCount === 1
-                              ? "item"
-                              : "items"
-                          }, 
-                          ${
-                            getSelectedItemsStats(category.category_id)
-                              .totalQuantity
-                          } ${
-                            getSelectedItemsStats(category.category_id)
-                              .totalQuantity === 1
-                              ? "unit"
-                              : "units"
-                          }`}
+                          {`${stats.itemCount} ${stats.itemCount === 1 ? "item" : "items"}, ${stats.totalQuantity} ${stats.totalQuantity === 1 ? "unit" : "units"}`}
                         </Typography>
                       )}
                     </Box>
@@ -669,7 +661,7 @@ useEffect(() => {
                                     gap: 0.5,
                                   }}
                                 >
-                                  <Tags item_id={item.item_id} size="m" />
+                                  <Tags item_id={item.tags} size="m" />
                                 </Box>
 
                                 <Box
