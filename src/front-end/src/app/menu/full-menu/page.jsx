@@ -292,28 +292,40 @@ useEffect(() => {
   }, []);
 
   // TODO: Update api endpoints
-  const fetchMenuItems = async (categoryId, menu_id) => {
-    if (!menu_id || menuItems[categoryId]) return;
-    try {
-      const response = await api.get(
-        `/menus/${menu_id}/items?category_id=${categoryId}`
-      );
-      if (response.status === 200) {
-        for (const item of response.data) {
-          const itemTagsResponse = await api.get(
-            `/menu-items/${item.item_id}/tags-with-colors`
-          );
-          item.tags = itemTagsResponse.data;
-        }
-        setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
-      }
-    } catch (err) {
-      console.error(
-        `Error fetching menu items for category ${categoryId}:`,
-        err
-      );
-    }
-  };
+const fetchMenuItems = async (categoryId, menu_id) => {
+
+  //Make sure the menu ID is valid or if we already loaded the menu items
+  if (!menu_id || menuItems[categoryId]) return;
+
+  try {
+    //Call GetItemsByMenu and check if it's in an array
+    const response = await api.get(`/Menu/${menu_id}/item`);
+    const items = Array.isArray(response.data) ? response.data : [];
+
+    //Clean up the field names so it's the same everywhere on the page
+    const normalized = items.map(it => ({
+      item_id: it.item_id ?? it.itemId ?? it.Item_Id,
+      name: it.name,
+      description: it.description,
+      price: it.price,
+      is_add_on: it.is_add_on ?? it.isAddOn,
+      item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
+      category_id: it.categoryID ?? it.categoryId ?? it.category_id,
+      category: it.category,
+      tags: it.tags ?? []
+    }));
+
+    //Group the items so all each category has its own list
+    const grouped = normalized.reduce((acc, item) => {
+      (acc[item.category_id] ||= []).push(item);
+      return acc;
+    }, {});
+
+    setMenuItems(prev => ({ ...prev, ...grouped }));
+  } catch (err) {
+    console.error(`Error fetching menu items for menu ${menu_id}:`, err);
+  }
+};
 
   const handleBillChange = (event) => {
     const billId = event.target.value;
