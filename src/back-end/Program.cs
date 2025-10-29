@@ -35,17 +35,6 @@ builder.Services.AddSwaggerGen(c =>
         Version = "v1",
         Description = "API for Sushi Toshi Restaurant Management System"
     });
-
-    // Add JWT Authentication to Swagger
-    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Description = "Enter 'Bearer' [space] and then your valid token in the text input below.\r\n\r\nExample: \"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\""
-    });
     var scopes = new Dictionary<string, string>()
     { };
     c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
@@ -90,30 +79,21 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseSeeders();
 
 // JWT Auth
-builder.Services.AddAuthentication(options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd");
+builder.Services.AddAuthorization(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme    = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.IncludeErrorDetails = builder.Environment.IsDevelopment();
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        //We'll need to set these to true - but okay now for testing
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!)),
-        NameClaimType = ClaimTypes.NameIdentifier,
-        RoleClaimType = ClaimTypes.Role,
-        ClockSkew = TimeSpan.Zero
-    };
 
-    // Force JwtSecurityTokenHandler
-    options.TokenHandlers.Clear();
-    options.TokenHandlers.Add(new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler());
+    options.AddPolicy("adminOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole("user.Admin");
+    });
+    options.AddPolicy("staffOnly", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireRole(["user.Staff","user.Admin"]);
+    });
+
 });
 
 builder.Services.AddAuthorization();
