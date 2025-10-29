@@ -120,4 +120,49 @@ api.interceptors.response.use(
   }
 );
 
+
+
+export const msalAxiosClient = (msalInstance) => {
+  const axiosInstance = axios.create({
+    baseURL: API_BASE_URL,
+    headers: {},
+  });
+
+  // Add a request interceptor to handle authentication
+  axiosInstance.interceptors.request.use(async (config) => {
+    try {
+      // Get active account (the currently signed in user)
+      const activeAccount = msalInstance.getActiveAccount()
+      
+      if (!activeAccount) {
+        throw new Error('No active account! Please sign in before making API calls.');
+      }
+
+      // Attempt to acquire token silently
+      const response = await msalInstance.acquireTokenSilent({
+        scopes: [API_SCOPE],
+        account: activeAccount
+      });
+      
+      // Add the token to the Authorization header
+      config.headers.Authorization = `Bearer ${response.accessToken}`;
+      
+      return config;
+    } catch (error) {
+      console.error("Error acquiring token silently:", error);
+
+      // If silent token acquisition fails, attempt to acquire token via popup
+      try {
+        const popupResponse = await msalInstance.acquireTokenPopup({ scopes: apiScopes });
+        config.headers.Authorization = `Bearer ${popupResponse.accessToken}`;
+        return config;
+      } catch (popupError) {
+        console.error("Error acquiring token via popup:", popupError);
+        return Promise.reject(popupError);
+      }
+    }
+  });
+  return axiosInstance;
+};
+
 export default api;
