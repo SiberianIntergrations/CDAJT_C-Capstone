@@ -18,39 +18,45 @@ export const useAuth = () => {
         let isMounted = true;
         setLoading(true);
 
-        const accounts = msalInstance.getAllAccounts();
-        const account = accounts && accounts.length > 0 ? accounts[0] : null;
-        if (account) {
-            msalInstance.setActiveAccount(account);
-            setIsAuthenticated(true);
-            setUserId(account.localAccountId || account.homeAccountId || null);
-            setUserEmail(account.username || null);
+        const initAndCheckAuth = async () => {
+            await msalInstance.initialize();
+            const accounts = msalInstance.getAllAccounts();
+            const account = accounts && accounts.length > 0 ? accounts[0] : null;
+            if (account) {
+                msalInstance.setActiveAccount(account);
+                setIsAuthenticated(true);
+                setUserId(account.localAccountId || account.homeAccountId || null);
+                setUserEmail(account.username || null);
 
-            msalInstance.acquireTokenSilent({ ...silentRequest, account }).then((response) => {
-                let rawRoles = response.idTokenClaims?.roles || response.idTokenClaims?.role || [];
-                const roleList = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
-                // Map Azure AD roles to app roles
-                if (roleList.includes("user.Admin")) setUserRole("admin");
-                else if (roleList.includes("user.Staff")) setUserRole("staff");
-                else setUserRole("customer");
-                setLoading(false);
-            }).catch(() => {
+                msalInstance.acquireTokenSilent({ ...silentRequest, account }).then((response) => {
+                    let rawRoles = response.idTokenClaims?.roles || response.idTokenClaims?.role || [];
+                    const roleList = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
+                    // Map Azure AD roles to app roles
+                    if (roleList.includes("user.Admin")) setUserRole("admin");
+                    else if (roleList.includes("user.Staff")) setUserRole("staff");
+                    else setUserRole("customer");
+                    setLoading(false);
+                }).catch(() => {
+                    setIsAuthenticated(false);
+                    setUserRole(null);
+                    setUserId(null);
+                    setUserEmail(null);
+                    setLoading(false);
+                });
+            } else {
                 setIsAuthenticated(false);
                 setUserRole(null);
                 setUserId(null);
                 setUserEmail(null);
                 setLoading(false);
-            });
-        } else {
-            setIsAuthenticated(false);
-            setUserRole(null);
-            setUserId(null);
-            setUserEmail(null);
-            setLoading(false);
-        }
+            }
+        };
+
+        initAndCheckAuth();
 
         // Listen for MSAL account changes (e.g., login/logout in other tabs)
-        const handleMsalChange = () => {
+        const handleMsalChange = async () => {
+            await msalInstance.initialize();
             const accounts = msalInstance.getAllAccounts();
             const account = accounts && accounts.length > 0 ? accounts[0] : null;
             if (account) {
