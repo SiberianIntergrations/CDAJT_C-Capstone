@@ -35,7 +35,7 @@ import {
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import { logoutUser } from "@/utils/auth";
+import { logoutUser, loginUser } from "@/utils/auth";
 import api from "@/config/api";
 
 const AppBarWithTitle = ({ title }) => {
@@ -46,22 +46,18 @@ const AppBarWithTitle = ({ title }) => {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [allLocations, setAllLocations] = useState([]);
 
-
   const { isAuthenticated, userRole, loading } = useAuth();
-
-
 
   useEffect(() => {
     const fetchAllLocations = async () => {
       try {
-        if(!isAuthenticated || !userRole || (userRole !== "staff" && userRole !=="admin")){
-          return
+        if (!isAuthenticated || !userRole || (userRole !== "staff" && userRole !== "admin")) {
+          return;
         }
         const response = await api.get("location/");
         setAllLocations(response.data);
         const locationResponse = await api.get("staff/get-initial-staff-location");
         setSelectedLocation(locationResponse.data.location_Id);
-        
       } catch (err) {
         console.error("Error Fetching Locations", err);
       }
@@ -69,10 +65,13 @@ const AppBarWithTitle = ({ title }) => {
     fetchAllLocations();
   }, [isAuthenticated, userRole, loading]);
 
-
   const handleLogout = async () => {
     await logoutUser();
     setDrawerOpen(false);
+  };
+
+  const handleLogin = async () => {
+    await loginUser();
   };
 
   const handleNavigation = (path) => {
@@ -82,9 +81,9 @@ const AppBarWithTitle = ({ title }) => {
 
   const handleLocationChange = async (event) => {
     const locationId = event.target.value;
-    console.log("Event: ",event.target.value)
+    console.log("Event: ", event.target.value);
     setSelectedLocation(locationId);
-    
+
     try {
       const response = await api.put(`staff/update-user-location/${locationId}`);
       console.log("Location updated successfully:", response.data);
@@ -205,7 +204,7 @@ const AppBarWithTitle = ({ title }) => {
             {title}
           </Typography>
         </Box>
-            
+
         <Box
           sx={{
             position: "absolute",
@@ -276,7 +275,7 @@ const AppBarWithTitle = ({ title }) => {
             onClick={
               isAuthenticated
                 ? handleLogout
-                : () => handleNavigation("/auth/login")
+                : handleLogin
             }
             startIcon={isAuthenticated ? <LogOut /> : <LogIn />}
             sx={{

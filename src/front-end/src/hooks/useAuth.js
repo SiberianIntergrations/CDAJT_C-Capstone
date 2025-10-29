@@ -100,8 +100,6 @@ export const useAuth = () => {
         return roles.includes(userRole);
     };
 
-    console.log("auth hook - isAuthenticated:", isAuthenticated, "userRole:", userRole, "loading:", loading, "userId:", userId, "userEmail:", userEmail);
-
     return {
         isAuthenticated,
         userRole,
