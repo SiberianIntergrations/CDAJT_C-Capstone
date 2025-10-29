@@ -45,7 +45,6 @@ const AppBarWithTitle = ({ title }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [allLocations, setAllLocations] = useState([]);
-
   const { isAuthenticated, userRole, loading } = useAuth();
 
   useEffect(() => {
@@ -65,13 +64,32 @@ const AppBarWithTitle = ({ title }) => {
     fetchAllLocations();
   }, [isAuthenticated, userRole, loading]);
 
+  useEffect(() => {
+    // Listen for MSAL account changes and force rerender
+    const handleAuthEvent = () => {
+      // This will cause useAuth to rerun and update component
+      // No need to set local state, just force update by calling setState
+      // But since useAuth uses useState, this will update automatically
+      // So just force update by calling setState on a dummy state
+      setDrawerOpen(false); // This is enough to trigger rerender if needed
+    };
+    window.addEventListener("msal:accountChanged", handleAuthEvent);
+    window.addEventListener("auth:changed", handleAuthEvent);
+    return () => {
+      window.removeEventListener("msal:accountChanged", handleAuthEvent);
+      window.removeEventListener("auth:changed", handleAuthEvent);
+    };
+  }, []);
+
   const handleLogout = async () => {
     await logoutUser();
     setDrawerOpen(false);
+    window.dispatchEvent(new Event("auth:changed"));
   };
 
   const handleLogin = async () => {
     await loginUser();
+    window.dispatchEvent(new Event("auth:changed"));
   };
 
   const handleNavigation = (path) => {

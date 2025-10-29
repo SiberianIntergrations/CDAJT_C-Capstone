@@ -10,6 +10,7 @@ export const useAuth = () => {
     const [userId, setUserId] = useState(null);
     const [userEmail, setUserEmail] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [authChanged, setAuthChanged] = useState(0); // Add this state
 
     useEffect(() => {
         // Only run on client
@@ -54,47 +55,20 @@ export const useAuth = () => {
 
         initAndCheckAuth();
 
-        // Listen for MSAL account changes (e.g., login/logout in other tabs)
-        const handleMsalChange = async () => {
-            await msalInstance.initialize();
-            const accounts = msalInstance.getAllAccounts();
-            const account = accounts && accounts.length > 0 ? accounts[0] : null;
-            if (account) {
-                msalInstance.setActiveAccount(account);
-                setIsAuthenticated(true);
-                setUserId(account.localAccountId || account.homeAccountId || null);
-                setUserEmail(account.username || null);
-
-                msalInstance.acquireTokenSilent({ ...silentRequest, account }).then((response) => {
-                    let rawRoles = response.idTokenClaims?.roles || response.idTokenClaims?.role || [];
-                    const roleList = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
-                    if (roleList.includes("user.Admin")) setUserRole("admin");
-                    else if (roleList.includes("user.Staff")) setUserRole("staff");
-                    else setUserRole("customer");
-                    setLoading(false);
-                }).catch(() => {
-                    setIsAuthenticated(false);
-                    setUserRole(null);
-                    setUserId(null);
-                    setUserEmail(null);
-                    setLoading(false);
-                });
-            } else {
-                setIsAuthenticated(false);
-                setUserRole(null);
-                setUserId(null);
-                setUserEmail(null);
-                setLoading(false);
-            }
+        // Listen for MSAL account changes and custom auth changed event
+        const handleMsalChange = () => {
+            setAuthChanged((prev) => prev + 1);
         };
-
         window.addEventListener("msal:accountChanged", handleMsalChange);
+        window.addEventListener("auth:changed", handleMsalChange);
 
         return () => {
             isMounted = false;
             window.removeEventListener("msal:accountChanged", handleMsalChange);
+            window.removeEventListener("auth:changed", handleMsalChange);
         };
-    }, [msalInstance]);
+    // Add authChanged to dependency array to rerun effect
+    }, [msalInstance, authChanged]);
 
     // Check if user has a specific role
     const hasRole = (role) => {
