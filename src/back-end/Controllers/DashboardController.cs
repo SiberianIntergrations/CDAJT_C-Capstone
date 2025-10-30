@@ -58,6 +58,7 @@ namespace back_end.controllers
     /// <summary>
     /// Retrieves detailed information about all active dining sessions for dashboard display.
     /// </summary>
+    /// <param name="locationId">Optional location ID to filter sessions by specific location</param>
     /// <returns>
     /// An <see cref="IActionResult"/> containing a collection of <see cref="DashBoardSessionsDTO"/> objects.
     /// Returns HTTP 200 (OK) with the list of active sessions on success.
@@ -68,12 +69,16 @@ namespace back_end.controllers
     /// <response code="404">If no active dining sessions are found</response>
     /// <response code="500">If an internal error occurs while retrieving sessions</response>
     /// <remarks>
-    /// Sample request:
+    /// Sample requests:
     ///
-    ///     GET /api/diningsession/sessions
+    ///     GET /api/dashboard/sessions
+    ///     (Returns all active sessions across all locations)
+    ///     
+    ///     GET /api/dashboard/sessions?locationId=1
+    ///     (Returns only active sessions for location with ID 1)
     ///
     /// Returns comprehensive information about each active session including:
-    /// - Session metadata (ID, menu, timestamps)
+    /// - Session metadata (ID, menu, timestamps, location)
     /// - Table numbers
     /// - Active participant count
     /// - Associated bills with details
@@ -82,16 +87,25 @@ namespace back_end.controllers
     /// Sessions are ordered by start time (newest first).
     /// </remarks>
     [HttpGet("sessions")]
-    public async Task<IActionResult> GetDashBoardSessions()
+    public async Task<IActionResult> GetDashBoardSessions([FromQuery] int? locationId)
     {
       try
       {
-        var sessions = await _context.DiningSessions
+        var query = _context.DiningSessions
+            .Include(ds => ds.Location)
             .Include(ds => ds.Table)
             .Include(ds => ds.TableGroup)
                 .ThenInclude(tg => tg.Tables)
             .Include(ds => ds.Bills)
-            .Where(ds => ds.Ended_At == null)
+            .Where(ds => ds.Ended_At == null);
+
+        // Filter by location if provided
+        if (locationId.HasValue)
+        {
+          query = query.Where(ds => ds.Location_Id == locationId.Value);
+        }
+
+        var sessions = await query
             .OrderByDescending(ds => ds.Started_At)
             .ToListAsync();
 
@@ -110,10 +124,12 @@ namespace back_end.controllers
               .Where(sp => sp.Session_Id == session.Session_Id && sp.Left_At == null)
               .CountAsync();
 
-          var dashBoard_session = new DashBoardSessionsDTO
+          var dashBoard_session = new
           {
             Session_Id = session.Session_Id,
             Menu_Id = session.Menu_Id,
+            Location_Id = session.Location_Id,
+            Location_Name = session.Location?.Name,
             Started_At = session.Started_At,
             Ended_At = session.Ended_At,
             First_Order_At = session.First_Order_At,
@@ -144,6 +160,7 @@ namespace back_end.controllers
     /// <summary>
     /// Retrieves dashboard summary statistics for active dining sessions.
     /// </summary>
+    /// <param name="locationId">Optional location ID to filter statistics by specific location</param>
     /// <returns>
     /// An <see cref="IActionResult"/> containing a <see cref="DashBoardSummaryDTO"/> object with summary statistics.
     /// Returns HTTP 200 (OK) with the dashboard summary on success.
@@ -152,49 +169,94 @@ namespace back_end.controllers
     /// <response code="200">Returns dashboard summary statistics</response>
     /// <response code="500">If an internal error occurs while retrieving the summary</response>
     /// <remarks>
-    /// Sample request:
+    /// Sample requests:
     ///
-    ///     GET /api/diningsession/summary
+    ///     GET /api/dashboard/summary
+    ///     (Returns statistics for all locations)
+    ///     
+    ///     GET /api/dashboard/summary?locationId=1
+    ///     (Returns statistics for location with ID 1 only)
     ///
     /// Returns real-time statistics including:
     /// - Total number of active (not ended) sessions
     /// - Total number of tables currently in use
     /// - Total number of open bills in active sessions
     /// - Total number of active participants (who haven't left)
+    /// - Location information (if filtered by location)
     /// </remarks>
     [HttpGet("summary")]
-    public async Task<IActionResult> GetDashBoardSummary()
+    public async Task<IActionResult> GetDashBoardSummary([FromQuery] int? locationId)
     {
       try
       {
-        var active_sessions = await _context.DiningSessions
+        var query = _context.DiningSessions
             .Include(ds => ds.Table)
             .Include(ds => ds.TableGroup)
                 .ThenInclude(tg => tg.Tables)
-            .Where(ds => ds.Ended_At == null)
-            .ToListAsync();
+            .Include(ds => ds.Location)
+            .Where(ds => ds.Ended_At == null);
+
+        // Filter by location if provided
+        if (locationId.HasValue)
+        {
+          query = query.Where(ds => ds.Location_Id == locationId.Value);
+        }
+
+        var active_sessions = await query.ToListAsync();
 
         int total_active_sessions = active_sessions.Count();
 
         // Count total tables in use - sum of individual tables and tables in groups
         int total_total_tables_in_use = active_sessions.Sum(session => GetTableCount(session));
 
-        int total_active_bills = await _context.Bills
+        // Build query for active bills
+        var billsQuery = _context.Bills
             .Join(
                 _context.DiningSessions,
                 bill => bill.Session_Id,
                 session => session.Session_Id,
                 (bill, session) => new { bill, session })
             .Where(x => x.session.Ended_At == null &&
-                        x.bill.Status == BillStatus.Open)
-            .CountAsync();
+                        x.bill.Status == BillStatus.Open);
 
-        int total_active_participants = await _context.SessionParticipants
-            .Where(sp => sp.Left_At == null)
-            .CountAsync();
-
-        return Ok(new DashBoardSummaryDTO
+        // Filter by location if provided
+        if (locationId.HasValue)
         {
+          billsQuery = billsQuery.Where(x => x.session.Location_Id == locationId.Value);
+        }
+
+        int total_active_bills = await billsQuery.CountAsync();
+
+        // Build query for active participants
+        var participantsQuery = _context.SessionParticipants
+            .Join(
+                _context.DiningSessions,
+                sp => sp.Session_Id,
+                session => session.Session_Id,
+                (sp, session) => new { sp, session })
+            .Where(x => x.sp.Left_At == null);
+
+        // Filter by location if provided
+        if (locationId.HasValue)
+        {
+          participantsQuery = participantsQuery.Where(x => x.session.Location_Id == locationId.Value);
+        }
+
+        int total_active_participants = await participantsQuery.CountAsync();
+
+        // Get location name if filtering by location
+        string locationName = null;
+        if (locationId.HasValue)
+        {
+          var location = await _context.Locations
+              .FirstOrDefaultAsync(l => l.Location_Id == locationId.Value);
+          locationName = location?.Name;
+        }
+
+        return Ok(new
+        {
+          Location_Id = locationId,
+          Location_Name = locationName,
           Total_Active_Sessions = total_active_sessions,
           Total_Tables_In_Use = total_total_tables_in_use,
           Total_Active_Bills = total_active_bills,
