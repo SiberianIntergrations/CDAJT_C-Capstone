@@ -22,38 +22,31 @@ const ItemPerformance = () => {
   const router = useRouter();
   const [sortBy, setSortBy] = useState("name_asc");
 
+  useEffect(() => {
+    const fetchData = async () => {
+      const accessToken = localStorage.getItem("access_token");
 
+      if (!accessToken) {
+        setError("No token found");
+        router.push("/auth/login");
+        return;
+      }
 
-    useEffect(() => {
-      const fetchData = async () => {
-        const accessToken = localStorage.getItem("access_token");
-  
-  
-        if (!accessToken) {
-          setError("No token found");
-          router.push("/auth/login");
-          return;
+      try {
+        const response = await api.get("analytics/item-performance");
+
+        setData(response.data);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        if (err.response && err.response.status === 401) {
         }
-  
-        try {
-          const response = await api.get("analytics/item-performance")
-          
-          setData(response.data);
-          console.log(response.data)
-        } 
-        catch (err) {
-          console.error("Error fetching data:", err);
-          if (err.response && err.response.status === 401) {
-            console.log(err.response)
-          } 
-        }
-        finally {
-          setLoading(false);
-        }
-      };
-  
-      fetchData();
-    }, [router]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
@@ -63,11 +56,9 @@ const ItemPerformance = () => {
     .sort((a, b) => b.totalUnitsSold - a.totalUnitsSold)
     .slice(0, 5);
 
-
   const least5Items = data.item_performance
     .sort((b, a) => b.totalUnitsSold - a.totalUnitsSold)
     .slice(0, 5);
-
 
   return (
     <div>

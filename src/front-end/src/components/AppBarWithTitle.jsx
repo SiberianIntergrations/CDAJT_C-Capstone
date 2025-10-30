@@ -46,29 +46,30 @@ const AppBarWithTitle = ({ title }) => {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [allLocations, setAllLocations] = useState([]);
 
-
   const { isAuthenticated, userRole, loading } = useAuth();
-
-
 
   useEffect(() => {
     const fetchAllLocations = async () => {
       try {
-        if(!isAuthenticated || !userRole || (userRole !== "staff" && userRole !=="admin")){
-          return
+        if (
+          !isAuthenticated ||
+          !userRole ||
+          (userRole !== "staff" && userRole !== "admin")
+        ) {
+          return;
         }
         const response = await api.get("location/");
         setAllLocations(response.data);
-        const locationResponse = await api.get("staff/get-initial-staff-location");
+        const locationResponse = await api.get(
+          "staff/get-initial-staff-location"
+        );
         setSelectedLocation(locationResponse.data.location_Id);
-        
       } catch (err) {
         console.error("Error Fetching Locations", err);
       }
     };
     fetchAllLocations();
   }, [isAuthenticated, userRole, loading]);
-
 
   const handleLogout = async () => {
     await logoutUser();
@@ -82,12 +83,13 @@ const AppBarWithTitle = ({ title }) => {
 
   const handleLocationChange = async (event) => {
     const locationId = event.target.value;
-    console.log("Event: ",event.target.value)
+    // console.log("Event: ", event.target.value);
     setSelectedLocation(locationId);
-    
+
     try {
-      const response = await api.put(`staff/update-user-location/${locationId}`);
-      console.log("Location updated successfully:", response.data);
+      const response = await api.put(
+        `staff/update-user-location/${locationId}`
+      );
     } catch (err) {
       console.error("Error updating location:", err);
       // Optionally revert the selection on error
@@ -205,7 +207,7 @@ const AppBarWithTitle = ({ title }) => {
             {title}
           </Typography>
         </Box>
-            
+
         <Box
           sx={{
             position: "absolute",
@@ -228,48 +230,59 @@ const AppBarWithTitle = ({ title }) => {
         </Box>
 
         <Box
-          sx={{ flex: "1 1 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2 }}
+          sx={{
+            flex: "1 1 0",
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 2,
+          }}
         >
           {/* Location Dropdown - Only visible for staff and admin */}
-          {isAuthenticated && (userRole === "staff" || userRole === "admin") && (
-            <FormControl
-              size="small"
-              sx={{
-                minWidth: { xs: 120, sm: 150 },
-                display: { xs: "none", sm: "block" },
-              }}
-            >
-              <Select
-                value={selectedLocation}
-                onChange={handleLocationChange}
-                displayEmpty
+          {isAuthenticated &&
+            (userRole === "staff" || userRole === "admin") && (
+              <FormControl
+                size="small"
                 sx={{
-                  color: "white",
-                  ".MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                  },
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(255, 255, 255, 0.7)",
-                  },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "white",
-                  },
-                  ".MuiSvgIcon-root": {
-                    color: "white",
-                  },
+                  minWidth: { xs: 120, sm: 150 },
+                  display: { xs: "none", sm: "block" },
                 }}
               >
-                <MenuItem value="" disabled>
-                  Select Location
-                </MenuItem>
-                {Array.isArray(allLocations) && allLocations.map((location) => (
-                  <MenuItem key={location.location_Id} value={location.location_Id}>
-                    {location.name}
+                <Select
+                  value={selectedLocation}
+                  onChange={handleLocationChange}
+                  displayEmpty
+                  sx={{
+                    color: "white",
+                    ".MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.5)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.7)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "white",
+                    },
+                    ".MuiSvgIcon-root": {
+                      color: "white",
+                    },
+                  }}
+                >
+                  <MenuItem value="" disabled>
+                    Select Location
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+                  {Array.isArray(allLocations) &&
+                    allLocations.map((location) => (
+                      <MenuItem
+                        key={location.location_Id}
+                        value={location.location_Id}
+                      >
+                        {location.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            )}
 
           <Button
             color="inherit"

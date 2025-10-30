@@ -28,9 +28,8 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
 
     try {
       setIsSubmitting(true);
-      console.log("Submitting bill data:", billData);
+
       const success = await createBill(sessionId, billData);
-      console.log("Bill creation result:", success);
 
       if (success) {
         setBillData({
@@ -40,7 +39,7 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
           seniorCount: 0,
           totCount: 0,
         });
-        console.log("Closing dialog with success");
+
         onClose(true);
       }
     } catch (error) {

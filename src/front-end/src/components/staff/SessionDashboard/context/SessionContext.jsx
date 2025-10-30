@@ -139,7 +139,6 @@ export const SessionProvider = ({ children }) => {
 
   useEffect(() => {
     if (hookActionError) {
-      console.log("Action error in context:", hookActionError);
     }
   }, [hookActionError]);
 
