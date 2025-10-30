@@ -420,7 +420,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
             >
               <EndSessionButton
                 variant="contained"
-                disabled={!session.is_closable || isEnding}
+                // disabled={!session.is_closable || isEnding}
                 onClick={handleInitiateEnd}
                 startIcon={<AlertCircle />}
               >

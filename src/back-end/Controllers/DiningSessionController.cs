@@ -701,5 +701,84 @@ namespace back_end.controllers
         return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
       }
     }
+
+    /// <summary>
+    /// Closes an active dining session by setting the end timestamp.
+    /// </summary>
+    /// <param name="session_id">The unique identifier of the dining session to close</param>
+    /// <returns>
+    /// An <see cref="IActionResult"/> containing the updated <see cref="DiningSessionResponseDTO"/> object.
+    /// Returns HTTP 200 (OK) with the updated session details on success.
+    /// Returns HTTP 400 (Bad Request) if the session is already closed or has open bills.
+    /// Returns HTTP 404 (Not Found) if the session doesn't exist.
+    /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
+    /// </returns>
+    /// <response code="200">Returns the closed dining session with the end timestamp</response>
+    /// <response code="400">If the session is already closed or has open bills</response>
+    /// <response code="404">If the session is not found</response>
+    /// <response code="500">If an internal error occurs while closing the session</response>
+    /// <remarks>
+    /// Sample request:
+    ///
+    ///     POST /api/diningsession/123/close
+    ///
+    /// Closes an active dining session by setting the Ended_At timestamp to the current UTC time.
+    /// Requirements:
+    /// - Session must not already be closed (Ended_At must be null)
+    /// - Session must not have any open bills
+    /// </remarks>
+    [HttpPost("{session_id}/close")]
+    [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> close_dining_session(int session_id)
+    {
+      try
+      {
+        var session = await _context.DiningSessions
+            .Include(ds => ds.Bills)
+            .Include(ds => ds.Table)
+            .Include(ds => ds.TableGroup)
+                .ThenInclude(tg => tg.Tables)
+            .Include(ds => ds.Participants)
+            .FirstOrDefaultAsync(ds => ds.Session_Id == session_id);
+
+        if (session == null)
+        {
+          return NotFound($"Session: {session_id} not found");
+        }
+
+        if (session.Ended_At != null)
+        {
+          return BadRequest($"Session: {session_id} is already closed");
+        }
+
+        // Check if there are any open bills
+        if (session.Bills.Any(b => b.Status == BillStatus.Open))
+        {
+          return BadRequest($"Cannot close session with open bills. Please settle all bills first.");
+        }
+
+        session.Ended_At = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(new DiningSessionResponseDTO
+        {
+          Session_Id = session.Session_Id,
+          Menu_Id = session.Menu_Id,
+          Started_at = session.Started_At,
+          Ended_at = session.Ended_At,
+          First_Order_Time = session.First_Order_At,
+          Table_Numbers = GetTableNumbers(session),
+          Active_Participants = session.Participants.Count()
+        });
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error closing dining session");
+        return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+      }
+    }
   }
 }
