@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import api from "@/config/api";
+import storage from "@/utils/storage";
 import {
   Dialog,
   DialogTitle,
@@ -37,28 +38,15 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
       setIsLoading(true);
       setError(null);
 
-      // First, get all active tables
-      // previously used /table-entities
-      const tablesResponse = await api.get("/Table");
-      const allTables = tablesResponse.data;
-
-      // Then, get tables in all active sessions
-      // previously used /dashboard/sessions
-      const sessionsResponse = await api.get("/Session/active");
-      const activeSessions = sessionsResponse.data;
-
-      // Gather all tables in use across all sessions
-      const tablesInUse = new Set();
-      activeSessions.forEach((session) => {
-        session.table_Numbers.forEach((tableNum) => {
-          tablesInUse.add(tableNum);
-        });
-      });
+      // First, get all tables for location
+      const tablesResponse = await api.get(
+        `/Location/${storage.get("branch-location")}/tables`
+      );
+      const locationTables = tablesResponse.data;
+      console.log(locationTables);
 
       // Filter out tables that are active and not in use in any session
-      const availableTables = allTables.filter(
-        (table) => table.is_active && !tablesInUse.has(table.table_number)
-      );
+      const availableTables = locationTables.filter((table) => table.is_active);
 
       setAvailableTables(availableTables);
     } catch (err) {
@@ -110,7 +98,10 @@ const AddTableDialog = ({ open, sessionId, onClose }) => {
           <InputLabel>Select Table</InputLabel>
           <Select
             value={selectedTable}
-            onChange={(e) => setSelectedTable(e.target.value)}
+            onChange={(e) => {
+              console.log(e.target.value);
+              setSelectedTable(e.target.value);
+            }}
             label="Select Table"
             disabled={isLoading}
           >

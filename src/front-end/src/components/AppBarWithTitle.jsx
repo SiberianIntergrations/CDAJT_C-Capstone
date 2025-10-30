@@ -63,10 +63,10 @@ const AppBarWithTitle = ({ title }) => {
         }
         const response = await api.get("location/");
         setAllLocations(response.data);
-        const locationResponse = await api.get(
-          "staff/get-initial-staff-location"
-        );
-        setSelectedLocation(locationResponse.data.location_Id);
+        // const locationResponse = await api.get(
+        //   "staff/get-initial-staff-location"
+        // );
+        // setSelectedLocation(locationResponse.data.location_Id);
       } catch (err) {
         console.error("Error Fetching Locations", err);
       }
@@ -89,13 +89,14 @@ const AppBarWithTitle = ({ title }) => {
     console.log("Event: ", event.target.value);
     setSelectedLocation(locationId);
     storage.set("branch-location", locationId);
+    window.location.reload();
 
     try {
-      const response = await api.put(
-        `staff/update-user-location/${locationId}`
-      );
+      // const response = await api.put(
+      // `staff/update-user-location/${locationId}`
+      // );
     } catch (err) {
-      console.error("Error updating location:", err);
+      // console.error("Error updating location:", err);
       // Optionally revert the selection on error
       // setSelectedLocation(previousValue);
     }
@@ -253,7 +254,7 @@ const AppBarWithTitle = ({ title }) => {
                 }}
               >
                 <Select
-                  value={selectedLocation}
+                  value={Number(selectedLocation)}
                   onChange={handleLocationChange}
                   displayEmpty
                   sx={{
