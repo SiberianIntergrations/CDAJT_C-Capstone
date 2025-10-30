@@ -33,8 +33,7 @@ const ServiceRequestForm = () => {
   useEffect(() => {
     const getActiveSession = async () => {
       try {
-        // TODO: Update endpoint (previous endpoint: /dining-sessions/participants/active-session-id)
-        const response = await api.get("/dining-sessions/participants/active-session-id");
+        const response = await api.get("/DiningSession/participants/active-session-id");
 
         if (response && response.data) {
           setSessionId(response.data.session_id);
@@ -62,8 +61,7 @@ const ServiceRequestForm = () => {
     setSuccess(false);
 
     try {
-      // TODO: Update endpoint (previous endpoint: /service-requests/{sessionId}) Need POST ServiceRequest/${sessionId}
-      const response = await api.post(`/service-requests/${sessionId}`,
+      const response = await api.post(`/ServiceRequest/${sessionId}`,
         { notes: message }
       );
       console.log("Response:", response);
