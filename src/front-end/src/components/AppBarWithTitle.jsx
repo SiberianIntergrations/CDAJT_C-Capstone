@@ -37,13 +37,16 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { logoutUser } from "@/utils/auth";
 import api from "@/config/api";
+import storage from "@/utils/storage";
 
 const AppBarWithTitle = ({ title }) => {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(
+    storage.get("branch-location")
+  );
   const [allLocations, setAllLocations] = useState([]);
 
   const { isAuthenticated, userRole, loading } = useAuth();
@@ -83,8 +86,9 @@ const AppBarWithTitle = ({ title }) => {
 
   const handleLocationChange = async (event) => {
     const locationId = event.target.value;
-    // console.log("Event: ", event.target.value);
+    console.log("Event: ", event.target.value);
     setSelectedLocation(locationId);
+    storage.set("branch-location", locationId);
 
     try {
       const response = await api.put(
