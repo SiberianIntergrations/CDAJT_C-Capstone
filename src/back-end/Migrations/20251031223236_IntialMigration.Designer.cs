@@ -12,8 +12,8 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251031191737_UpdateLocation2Setting")]
-    partial class UpdateLocation2Setting
+    [Migration("20251031223236_IntialMigration")]
+    partial class IntialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

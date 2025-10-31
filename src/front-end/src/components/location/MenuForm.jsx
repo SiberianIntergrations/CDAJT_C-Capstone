@@ -25,7 +25,7 @@ const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [is_add_on]: value,
+      [name]: value,
     }));
   };
 
