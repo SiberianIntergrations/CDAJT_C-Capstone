@@ -179,6 +179,7 @@ const AppBarWithTitle = ({ title }) => {
       <Toolbar
         sx={{
           minHeight: { xs: 56, sm: 64 },
+          display: "flex",
           justifyContent: "space-between",
           px: { xs: 1, sm: 2 },
         }}
@@ -187,6 +188,7 @@ const AppBarWithTitle = ({ title }) => {
           sx={{
             display: "flex",
             alignItems: "center",
+            justifyContent: "start",
             gap: 1,
             flex: "1 1 0",
           }}
@@ -217,10 +219,9 @@ const AppBarWithTitle = ({ title }) => {
 
         <Box
           sx={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
           }}
         >
           <Image
@@ -248,17 +249,10 @@ const AppBarWithTitle = ({ title }) => {
           {/* Location Dropdown - Only visible for staff and admin */}
           {isAuthenticated &&
             (userRole === "staff" || userRole === "admin") && (
-              <FormControl
-                size="small"
-                sx={{
-                  minWidth: { xs: 120, sm: 150 },
-                  display: { xs: "none", sm: "block" },
-                }}
-              >
+              <FormControl size="small">
                 <Select
                   value={Number(selectedLocation)}
                   onChange={handleLocationChange}
-                  // renderValue={() => <LocationOn sx={{ color: "white" }} />}
                   renderValue={(value) => {
                     const location = allLocations?.find(
                       (loc) => loc.location_Id === value
