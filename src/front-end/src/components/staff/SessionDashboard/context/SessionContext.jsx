@@ -214,6 +214,7 @@ export const SessionProvider = ({ children }) => {
   };
 
   const openDialog = useCallback((dialogName, sessionId = null) => {
+    console.log("Dialog session: ", sessionId);
     setDialogState((prev) => ({
       ...prev,
       [dialogName]: true,

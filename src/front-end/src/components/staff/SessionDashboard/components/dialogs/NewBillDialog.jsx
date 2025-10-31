@@ -13,6 +13,7 @@ import { X } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 
 const NewBillDialog = ({ open, sessionId, onClose }) => {
+  console.log("SESSION: ", sessionId);
   const { createBill } = useSession();
   const [billData, setBillData] = useState({
     billName: "",
@@ -24,6 +25,7 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    console.log(sessionId, billData);
     if (!sessionId || isSubmitting) return;
 
     try {
