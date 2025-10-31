@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
 } from "react";
 import { useSessionData } from "../hooks/useSessionData";
 import { useSessionActions } from "../hooks/useSessionActions";
@@ -76,12 +77,14 @@ export const SessionProvider = ({ children }) => {
     
     // Utilities
     clearActionError,
-  } = useSessionActions();
+  } = useSessionActions(async () => {
+    // This callback runs after successful actions
+    await Promise.all([fetchSessions(), fetchDashboardSummary()]);
+    triggerUpdate();
+  });
 
-  useEffect(() => {
-    if (hookActionError) {
-    }
-  }, [hookActionError]);
+  // Combined loading state
+  const isLoading = dataLoading || actionLoading;
 
   // Wrap each action to trigger updates after completion
   const createSession = async (

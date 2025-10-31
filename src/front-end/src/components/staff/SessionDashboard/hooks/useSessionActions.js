@@ -40,8 +40,8 @@ export const useSessionActions = (onSuccess) => {
 
   // DINING SESSION OPERATION
   
-  const createDiningSession = (sessionData) =>
-    apiWrapper("createDiningSession", async () => {
+  const createSession = (sessionData) =>
+    apiWrapper("createSession", async () => {
       const payload = {
         Menu_Id: toInt(sessionData?.Menu_Id),
         Location_Id: toInt(sessionData?.Location_Id),
@@ -90,20 +90,20 @@ export const useSessionActions = (onSuccess) => {
   /**
    * Closes dining session after all bills are paid
    */
-  const closeDiningSession = async (sessionId) =>
-    apiWrapper("closeDiningSession", async () => {
+  const closeSession = async (sessionId) =>
+    apiWrapper("closeSession", async () => {
       const sid = toInt(sessionId);
       validateIds({ "session ID": sid });
 
-      const res = await api.put(`/DiningSession/close_session/${sid}`);
+      const res = await api.put(`/DiningSession/${sid}/close`);
       return res.data;
     }, { triggerSuccess: true });
 
   /**
   * Add table to session
   */
-  const addTableToSession = (sessionId, tableId) =>
-    apiWrapper("addTableToSession", async () => {
+  const addTable = (sessionId, tableId) =>
+    apiWrapper("addTable", async () => {
       const sid = toInt(sessionId);
       const tid = toInt(tableId);
       validateIds({ "session ID": sid, "table ID": tid });
@@ -250,10 +250,11 @@ export const useSessionActions = (onSuccess) => {
       if (!sid) throw new Error("Session ID is required");
 
       const payload = {
-        bill_name: String(billData?.bill_name).trim(),
-        adult_count: toInt(billData?.adult_count, 0),
-        child_count: toInt(billData?.child_count, 0),
-        senior_count: toInt(billData?.senior_count, 0),
+        bill_name: billData.billName,
+        adult_count: parseInt(billData.adultCount),
+        child_count: parseInt(billData.childCount),
+        senior_count: parseInt(billData.seniorCount),
+        tot_count: parseInt(billData.totCount),
       };
 
       if (!payload.bill_name) throw new Error("Bill name is required");
@@ -300,11 +301,11 @@ export const useSessionActions = (onSuccess) => {
     isLoading,
     
     // Dining session operations
-    createDiningSession,
+    createDiningSession: createSession,
     listDiningSessions,
     getDiningSessionDetail,
-    closeDiningSession,
-    addTableToSession,
+    closeDiningSession: closeSession,
+    addTableToSession: addTable,
     addTableGroupToSession,
     removeTableFromSession,
     removeTableGroupFromSession,
