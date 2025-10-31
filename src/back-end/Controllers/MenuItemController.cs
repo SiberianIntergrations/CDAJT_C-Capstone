@@ -203,17 +203,34 @@ namespace back_end.Controllers
             try
             {
                 var allItems = await _context.MenuItems
-                .Include(mi => mi.MenuItemTags)
-                .OrderBy(mi => mi.Category_id)      // Group by category first
-                .ThenBy(mi => mi.Name)              // Then sort by name within each category
-                .ToListAsync();
-                return Ok(allItems);
+                    .Include(mi => mi.MenuItemTags)
+                        .ThenInclude(mit => mit.Tag)
+                    .OrderBy(mi => mi.Category_id)
+                    .ThenBy(mi => mi.Name)
+                    .ToListAsync();
+                
+                var result = allItems.Select(item => new MenuItemResponseDTO
+                {
+                    Item_Id = item.item_id,
+                    Name = item.Name,
+                    Description = item.Description,
+                    Category_Id = item.Category_id,
+                    Item_Image_Url = item.image_url,
+                    Status = item.Status,
 
-
+                    Tags = item.MenuItemTags.Select(mit => new FullTagResponseDTO
+                    {
+                        Tag_Id = mit.Tag.tag_id,
+                        Name = mit.Tag.tag_name,
+                        Color_Code = mit.Tag.tag_color
+                    }).ToList()
+                }).ToList();
+                    
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving active session");
+                _logger.LogError(ex, "Error retrieving menu items");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
@@ -622,10 +639,10 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
-        
-        
 
-        
+
+
+
         /// <summary>
         /// Retrieves all tags with their color codes associated with a specific menu item.
         /// </summary>
@@ -652,7 +669,7 @@ namespace back_end.Controllers
         [ProducesResponseType(typeof(IEnumerable<FullTagResponseDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Add_Tag_To_Menu (
+        public async Task<IActionResult> Add_Tag_To_Menu(
             int item_id,
             int tag_id
         )
@@ -669,7 +686,7 @@ namespace back_end.Controllers
                 {
                     return NotFound("Item Tag Was not found");
                 }
-                if(menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
+                if (menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
                 {
                     return Conflict("Can not Assign tag to same Menu Item");
                 }
@@ -689,7 +706,56 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }          
-       
+ 
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("{item_id}/tags/{tag_id}")]
+        [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AddTagToMenuItem (
+            int item_id,
+            int tag_id
+        )
+        {
+            try
+            {
+                var item = await _context.MenuItems.Include(m => m.MenuItemTags).ThenInclude(mit => mit.Tag).FirstOrDefaultAsync(m => m.item_id == item_id);
+                if (item is null)
+                {
+                    return NotFound("Item you were searching for was not found.");
+                }
+                var tag = await _context.Tags.FirstOrDefaultAsync(t => t.tag_id == tag_id);
+                if (tag is null)
+                {
+                    return BadRequest("Error happened in fetching tags");
+                }
+
+                // prevent assigning the same tag twice
+                if (item.MenuItemTags.Any(mt => mt.Tag_id == tag.tag_id))
+                {
+                    return Conflict("Tag already assigned to this menu item");
+                }
+
+                // add association and save
+                item.MenuItemTags.Add(new MenuItemTag
+                {
+                    Menu_item_id = item.item_id,
+                    Tag_id = tag.tag_id,
+                    Tag = tag
+                });
+
+                await _context.SaveChangesAsync();
+                return Ok(item);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }           
+
         /// <summary>
         /// Removes a tag from a menu item.
         /// </summary>
@@ -737,16 +803,16 @@ namespace back_end.Controllers
                 {
                     return NotFound("Item Tag Was not found");
                 }
-                if(!menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
+                if (!menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
                 {
                     return Conflict("Item does not exist on menu");
                 }
-                menu_item.MenuItemTags.Remove(new MenuItemTag
+                var itemToRemote = menu_item.MenuItemTags.FirstOrDefault(mi => mi.Tag_id == tag_id);
+                if (itemToRemote is null)
                 {
-                    Menu_item_id = menu_item.item_id,
-                    Tag_id = returnedTag.tag_id,
-                    Tag = returnedTag
-                });
+                    return Conflict("Item does not have this tag");
+                }
+                menu_item.MenuItemTags.Remove(itemToRemote);
                 await _context.SaveChangesAsync();
                 return Ok(menu_item);
 

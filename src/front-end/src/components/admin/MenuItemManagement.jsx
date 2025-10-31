@@ -100,10 +100,10 @@ const MenuItemManagement = () => {
   };
 
   useEffect(() => {
-    console.log("Items updated:", items);
-    console.log("Categories updated:", categories);
-    console.log("Menus updated:", menus);
-    console.log("Tags updated:", tags);
+    // console.log("Items updated:", items);
+    // console.log("Categories updated:", categories);
+    // console.log("Menus updated:", menus);
+    // console.log("Tags updated:", tags);
   }, [items, categories, tags, menus]);
 
   useEffect(() => {
@@ -112,11 +112,11 @@ const MenuItemManagement = () => {
 
   const handleTagAction = async (itemId, tagId, action) => {
     try {
-      console.log(`Performing tag ${action} action...`);
+      
       if (action === "add") {
-        await api.post(`/menu-items/${itemId}/tags/${tagId}`)
+        await api.post(`/menuitem/${itemId}/tags/${tagId}`)
       } else {
-        await api.delete(`/menu-items/${itemId}/tags/${tagId}`)
+        await api.delete(`/menuitem/${itemId}/tags/${tagId}`)
       }
       await fetchData();
     } catch (err) {
@@ -130,7 +130,6 @@ const MenuItemManagement = () => {
     setImageFile(null);
     setImagePreview("");
     setDialogOpen(true);
-    console.log("Opening Create Item")
   };
 
   const handleEdit = (item) => {
@@ -141,13 +140,13 @@ const MenuItemManagement = () => {
 
   const handleDelete = async (item) => {
     try {
-      console.log("Item Id: ",item)
+
       const response = await api.get(
         `/menuitem/${item.item_id}`
       );
-      console.log("Checking item assignments (api)...");
+
       const assignments = response.data;
-      console.log("Assignments (api):", assignments);
+
 
       if (assignments.length > 0) {
         setError(
@@ -165,7 +164,7 @@ const MenuItemManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      console.log("Deleting item...", itemToDelete);
+
       await api.delete(`/menuitem/${itemToDelete.item_id}`)
       await fetchData();
       setDeleteDialogOpen(false);
@@ -247,7 +246,8 @@ const MenuItemManagement = () => {
               alignItems: "center",
             }}
           >
-            {params.row.tags?.map((tag) => (
+            {params.row.menuItemTags?.map((tag) => (
+
               <TagChip
                 key={`tag-${tag.tag_id}`}
                 tag={tag}
@@ -321,29 +321,28 @@ const ItemForm = () => {
       // Step 1: Save menu item basic data
       if (selectedItem) {
         // UPDATE existing item
-        console.log("Updating item:", selectedItem.item_id);
+
         savedItem = await api.put(
           `/menuItem/${selectedItem.item_id}`,
           formData
         );
       } else {
         // CREATE new item
-        console.log("Creating new item");
+
         savedItem = await api.post("/menuItem", formData);
       }
 
-      console.log("Saved item response:", savedItem.data);
+
 
       // Step 2: Handle image upload if there is one
       if (imageFile) {
-        console.log("Uploading image for item:", savedItem.data.item_id);
         
         const imageFormData = new FormData();
         imageFormData.append("file", imageFile);
 
         // Log FormData contents
         for (let pair of imageFormData.entries()) {
-          console.log("FormData:", pair[0], pair[1]);
+
         }
 
         const imageResponse = await api.post(
@@ -356,7 +355,6 @@ const ItemForm = () => {
           }
         );
 
-        console.log("Image upload response:", imageResponse.data);
       }
 
       // Step 3: Refresh data and close dialog
@@ -618,84 +616,86 @@ const ItemForm = () => {
                 </Box>
               ),
             },
-            {
-              field: "category_id",
-              headerName: "Category",
-              flex: 1,
-              minWidth: 150,
-              align: "center",
-              headerAlign: "left",
-              type: "singleSelect",
-              valueOptions: [
-                { value: "", label: "All Categories" },
-                ...categories.map((cat) => ({
-                  value: cat.category_id,
-                  label: cat.name,
-                })),
-              ],
-              renderCell: (params) => {
-                const category = categories.find(
-                  (c) => c.category_id === params.value
-                );
-                return (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      height: "100%",
-                    }}
-                  >
-                    <Typography>{category?.category_name || "(No category)"}</Typography>
-                  </Box>
-                );
-              },
-            },
+{
+  field: "category_Id",  // Changed from category_id to category_Id (capital I)
+  headerName: "Category",
+  flex: 1,
+  minWidth: 150,
+  align: "center",
+  headerAlign: "left",
+  type: "singleSelect",
+  valueOptions: [
+    { value: "", label: "All Categories" },
+    ...categories.map((cat) => ({
+      value: cat.category_id,
+      label: cat.category_name,
+    })),
+  ],
+  renderCell: (params) => {
+    const category = categories.find(
+      (c) => c.category_id === params.value
+    );
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <Typography>{category?.category_name || "(No category)"}</Typography>
+      </Box>
+    );
+  },
+},
             {
               field: "description",
               headerName: "Description & Tags",
               flex: 2,
               minWidth: 300,
-              renderCell: (params) => (
-                <Box sx={{ py: 1 }}>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    {params.row.description}
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 0.5,
-                      alignItems: "center",
-                    }}
-                  >
-                    {params.row.tags?.map((tag) => (
-                      <TagChip
-                        key={`tag-${tag.tag_id}`}
-                        tag={tag}
-                        isActionChip={true}
-                        isUsedFor="menu-item"
-                        onToggle={() =>
-                          handleTagAction(
-                            params.row.item_id,
-                            tag.tag_id,
-                            "remove"
-                          )
-                        }
-                      />
-                    ))}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedItem(params.row);
-                        setTagDialogOpen(true);
+              renderCell: (params) => {    
+                return (
+                  <Box sx={{ py: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      {params.row.description}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 0.5,
+                        alignItems: "center",
                       }}
                     >
-                      <Plus size={16} />
-                    </IconButton>
+                      {params.row.tags?.map((tag) => (
+                        <TagChip
+                          key={`tag-${tag.tag_id}`}
+                          tag={tag}
+                          isActionChip={true}
+                          isUsedFor="menu-item"
+                          onToggle={() =>
+                            handleTagAction(
+                              params.row.item_id,
+                              tag.tag_id,
+                              "remove"
+                            )
+                          }
+                        />
+                      ))}
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedItem(params.row);
+                          setTagDialogOpen(true);
+                        }}
+                      >
+                        <Plus size={16} />
+                      </IconButton>
+                    </Box>
                   </Box>
-                </Box>
-              ),
+                );
+              },
             },
             {
               field: "actions",
