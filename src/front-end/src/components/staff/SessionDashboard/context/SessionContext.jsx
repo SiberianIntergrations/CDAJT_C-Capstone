@@ -143,17 +143,38 @@ export const SessionProvider = ({ children }) => {
   }, [hookActionError]);
 
   // Wrap each action to trigger updates after completion
-  const createSession = async (menuId, locationId) => {
+  const createSession = async (
+    menuId,
+    locationId,
+    tableId,
+    tableGroupId,
+    tableAssignmentType
+  ) => {
     try {
-      const response = await api.post("/DiningSession/Create_Dinning_Session", {
-        menu_Id: menuId,
-        location_Id: locationId,
-      });
-      // ... rest of your logic
+      if (tableAssignmentType === "table") {
+        await api.post(
+          `/DiningSession/Create_Dinning_Session?assignmentType=table`,
+          {
+            menu_Id: menuId,
+            location_Id: locationId,
+            table_Id: tableId,
+          }
+        );
+      } else if (tableAssignmentType === "tableGroup") {
+        await api.post(
+          `/DiningSession/Create_Dinning_Session?assignmentType=table_group`,
+          {
+            menu_Id: menuId,
+            location_Id: locationId,
+            tableGroup_Id: tableGroupId,
+          }
+        );
+      }
     } catch (error) {
       console.error("Error creating session:", error);
       return false;
     }
+    triggerUpdate();
   };
 
   const addTable = async (sessionId, tableId) => {

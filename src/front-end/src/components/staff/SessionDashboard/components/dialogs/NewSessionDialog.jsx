@@ -106,51 +106,28 @@ const NewSessionDialog = ({ open, onClose }) => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      // Create the session first
-      const sessionData =
-        tableAssignmentType === "table"
-          ? {
-              menu_Id: selectedMenu,
-              location_Id: selectedLocation,
-              table_Id: selectedTable,
-              tablegroup_Id: null,
-            }
-          : {
-              menu_Id: selectedMenu,
-              location_Id: selectedLocation,
-              table_Id: null,
-              tablegroup_Id: selectedTableGroup,
-            };
-      const sessionResponse = await api.post(
-        "/DiningSession/Create_Dinning_Session",
-        sessionData
-      );
+      console.log("assignment: ", `|${tableAssignmentType}|`);
 
-      if (sessionResponse.status === 200) {
-        const sessionId = sessionResponse.data.session_Id;
+      // Reset form and close
+      handleClose();
 
-        // Assign table or table group if selected
-        if (tableAssignmentType === "table" && selectedTable) {
-          await api.post(`/DiningSession/${sessionId}/tables`, {
-            table_Id: selectedTable,
-          });
-        } else if (tableAssignmentType === "tableGroup" && selectedTableGroup) {
-          await api.post(`/DiningSession/${sessionId}/table-groups`, {
-            tableGroup_Id: selectedTableGroup,
-          });
-        }
-
-        // Reset form and close
-        handleClose();
-
-        // Refresh session list if using context
-        if (createSession) {
-          createSession(); // This might need adjustment based on your context
-        }
+      // Refresh session list if using context
+      if (createSession) {
+        createSession(
+          selectedMenu,
+          selectedLocation,
+          selectedTable,
+          selectedTableGroup,
+          tableAssignmentType
+        );
       }
     } catch (error) {
       console.error("Error creating session:", error);
-      alert("Failed to create session. Please try again.");
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data ||
+        "Failed to create session. Please try again.";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }

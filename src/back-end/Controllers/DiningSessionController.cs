@@ -44,35 +44,53 @@ namespace back_end.controllers
     }
 
     /// <summary>
-    /// Creates a new dining session with a specified menu.
+    /// Creates a new dining session with a specified menu and optionally assigns a table or table group.
     /// </summary>
-    /// <param name="sessionData">The session creation data containing the menu ID</param>
+    /// <param name="sessionData">The session creation data containing the menu ID and optional table/table group</param>
+    /// <param name="assignmentType">Specifies what to assign: "table", "table_group", or "none" (default: "none")</param>
     /// <returns>
     /// An <see cref="IActionResult"/> containing the created <see cref="DiningSessionResponseDTO"/> object.
     /// Returns HTTP 200 (OK) with the created session details on success.
-    /// Returns HTTP 404 (Not Found) if the menu doesn't exist.
+    /// Returns HTTP 400 (Bad Request) if validation fails or resources don't exist.
     /// Returns HTTP 500 (Internal Server Error) if an exception occurs during creation.
     /// </returns>
     /// <response code="200">Returns the newly created dining session</response>
-    /// <response code="404">If the menu is not found</response>
+    /// <response code="400">If validation fails or resources are not found</response>
     /// <response code="500">If an internal error occurs while creating the session</response>
     /// <remarks>
-    /// Sample request:
+    /// Sample requests:
+    ///
+    ///     POST /api/diningsession/Create_Dinning_Session?assignmentType=table
+    ///     {
+    ///         "menu_Id": 123,
+    ///         "location_Id": 1,
+    ///         "table_Id": 456
+    ///     }
+    ///
+    ///     POST /api/diningsession/Create_Dinning_Session?assignmentType=table_group
+    ///     {
+    ///         "menu_Id": 123,
+    ///         "location_Id": 1,
+    ///         "tableGroup_Id": 789
+    ///     }
     ///
     ///     POST /api/diningsession/Create_Dinning_Session
     ///     {
-    ///         "menu_Id": 123
+    ///         "menu_Id": 123,
+    ///         "location_Id": 1
     ///     }
     ///
     /// Creates a new dining session with the specified menu.
     /// The session is automatically marked as started with the current UTC timestamp.
-    /// Tables and participants can be added after session creation.
+    /// Use assignmentType to control whether a table, table group, or neither is assigned during creation.
     /// </remarks>
     [HttpPost("Create_Dinning_Session")]
     [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> create_dining_session([FromBody] CreateSessionRequestDTO sessionData)
+    public async Task<IActionResult> create_dining_session(
+        [FromBody] CreateSessionRequestDTO sessionData,
+        [FromQuery] string assignmentType = "none")
     {
       try
       {
@@ -88,14 +106,95 @@ namespace back_end.controllers
           return BadRequest("Location Does not Exist");
         }
 
+        // Normalize assignment type to lowercase
+        assignmentType = assignmentType.ToLower();
+
+        int? tableId = null;
+        int? tableGroupId = null;
+        List<int> tableNumbers = new List<int>();
+
+        // Handle table assignment based on query parameter
+        if (assignmentType == "table")
+        {
+          if (!sessionData.Table_Id.HasValue)
+          {
+            return BadRequest("Table_Id is required when assignmentType is 'table'");
+          }
+
+          var table = await _context.Tables
+              .FirstOrDefaultAsync(t => t.Table_Id == sessionData.Table_Id.Value && t.is_active);
+
+          if (table == null)
+          {
+            return BadRequest($"Table: {sessionData.Table_Id} not found or inactive");
+          }
+
+          if (table.Location_Id != sessionData.Location_Id)
+          {
+            return BadRequest($"Table belongs to a different location");
+          }
+
+          var checkIfAlreadyActiveSession = await _context.DiningSessions
+              .AnyAsync(d => d.Ended_At == null && d.Table_Id == table.Table_Id);
+
+          if (checkIfAlreadyActiveSession)
+          {
+            return BadRequest($"Table ID: {table.Table_Id} is currently in another active dining session");
+          }
+
+          tableId = table.Table_Id;
+          tableNumbers.Add(table.table_number);
+        }
+        else if (assignmentType == "table_group")
+        {
+          if (!sessionData.TableGroup_Id.HasValue)
+          {
+            return BadRequest("TableGroup_Id is required when assignmentType is 'table_group'");
+          }
+
+          var tableGroup = await _context.TableGroups
+              .Include(tg => tg.Tables)
+              .FirstOrDefaultAsync(tg => tg.TableGroup_Id == sessionData.TableGroup_Id.Value && tg.Is_Active);
+
+          if (tableGroup == null)
+          {
+            return BadRequest($"Table group: {sessionData.TableGroup_Id} not found or inactive");
+          }
+
+          if (tableGroup.Location_Id != sessionData.Location_Id)
+          {
+            return BadRequest($"Table group belongs to a different location");
+          }
+
+          var tableIds = tableGroup.Tables.Select(t => t.Table_Id).ToList();
+          var checkIfTablesInActiveSession = await _context.DiningSessions
+              .AnyAsync(d => d.Ended_At == null &&
+                            (d.Table_Id.HasValue && tableIds.Contains(d.Table_Id.Value) ||
+                             d.TableGroup_Id.HasValue && d.TableGroup.Tables.Any(t => tableIds.Contains(t.Table_Id))));
+
+          if (checkIfTablesInActiveSession)
+          {
+            return BadRequest($"One or more tables in table group {tableGroup.TableGroup_Id} are currently in another active dining session");
+          }
+
+          tableGroupId = tableGroup.TableGroup_Id;
+          tableNumbers = tableGroup.Tables.Select(t => t.table_number).ToList();
+        }
+        else if (assignmentType != "none")
+        {
+          return BadRequest("Invalid assignmentType. Must be 'table', 'table_group', or 'none'");
+        }
+
         var newSession = new DiningSession
         {
           Menu_Id = sessionData.Menu_Id,
           Location_Id = sessionData.Location_Id,
-          Table_Id = sessionData.Table_Id,
-          TableGroup_Id = sessionData.TableGroup_Id,
+          Table_Id = tableId,
+          TableGroup_Id = tableGroupId,
           Started_At = DateTime.UtcNow
         };
+
+        ValidateTableAssignment(newSession);
 
         _context.Add<DiningSession>(newSession);
         await _context.SaveChangesAsync();
@@ -107,9 +206,13 @@ namespace back_end.controllers
           Started_at = newSession.Started_At,
           Ended_at = newSession.Ended_At,
           First_Order_Time = newSession.First_Order_At,
-          Table_Numbers = [],
+          Table_Numbers = tableNumbers,
           Active_Participants = 0
         });
+      }
+      catch (ValidationException vex)
+      {
+        return BadRequest(vex.Message);
       }
       catch (Exception ex)
       {
