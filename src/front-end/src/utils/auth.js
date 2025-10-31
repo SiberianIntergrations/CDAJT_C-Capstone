@@ -12,9 +12,8 @@ export const loginUser = async (email, password) => {
   const { access_token, refresh_token } = response.data || {};
   if (!access_token) {
     throw new Error("No access token returned from login");
-  };
-    setAuthTokens(access_token, refresh_token);
-  console.log("Login response data:", response.data);
+  }
+  setAuthTokens(access_token, refresh_token);
 
   return response.data;
 };
@@ -42,9 +41,9 @@ export const requestPasswordReset = async (email) => {
 };
 
 export const resetPassword = async (token, newPassword) => {
-  const response = await api.post("/auth/reset-password", { 
+  const response = await api.post("/auth/reset-password", {
     token,
-    new_password: newPassword
+    new_password: newPassword,
   });
   return response.data;
 };

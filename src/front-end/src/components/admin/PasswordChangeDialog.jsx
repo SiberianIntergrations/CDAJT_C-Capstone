@@ -43,8 +43,6 @@ const PasswordChangeDialog = ({
       }
     }
 
-    console.log("Error object:", error);
-
     return "An error occurred while resetting the password";
   };
 

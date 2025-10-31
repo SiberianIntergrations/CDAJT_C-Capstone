@@ -37,38 +37,43 @@ import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
 import { logoutUser } from "@/utils/auth";
 import api from "@/config/api";
+import storage from "@/utils/storage";
+import { LocationOn } from "@mui/icons-material";
 
 const AppBarWithTitle = ({ title }) => {
   const router = useRouter();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(
+    storage.get("branch-location")
+  );
   const [allLocations, setAllLocations] = useState([]);
 
-
   const { isAuthenticated, userRole, loading } = useAuth();
-
-
 
   useEffect(() => {
     const fetchAllLocations = async () => {
       try {
-        if(!isAuthenticated || !userRole || (userRole !== "staff" && userRole !=="admin")){
-          return
+        if (
+          !isAuthenticated ||
+          !userRole ||
+          (userRole !== "staff" && userRole !== "admin")
+        ) {
+          return;
         }
         const response = await api.get("location/");
         setAllLocations(response.data);
-        const locationResponse = await api.get("staff/get-initial-staff-location");
-        setSelectedLocation(locationResponse.data.location_Id);
-        
+        // const locationResponse = await api.get(
+        //   "staff/get-initial-staff-location"
+        // );
+        // setSelectedLocation(locationResponse.data.location_Id);
       } catch (err) {
         console.error("Error Fetching Locations", err);
       }
     };
     fetchAllLocations();
   }, [isAuthenticated, userRole, loading]);
-
 
   const handleLogout = async () => {
     await logoutUser();
@@ -82,14 +87,17 @@ const AppBarWithTitle = ({ title }) => {
 
   const handleLocationChange = async (event) => {
     const locationId = event.target.value;
-    console.log("Event: ",event.target.value)
+    console.log("Event: ", event.target.value);
     setSelectedLocation(locationId);
-    
+    storage.set("branch-location", locationId);
+    window.location.reload();
+
     try {
-      const response = await api.put(`staff/update-user-location/${locationId}`);
-      console.log("Location updated successfully:", response.data);
+      // const response = await api.put(
+      // `staff/update-user-location/${locationId}`
+      // );
     } catch (err) {
-      console.error("Error updating location:", err);
+      // console.error("Error updating location:", err);
       // Optionally revert the selection on error
       // setSelectedLocation(previousValue);
     }
@@ -139,6 +147,7 @@ const AppBarWithTitle = ({ title }) => {
               key={index}
               onClick={() => handleNavigation(item.path)}
               sx={{
+                cursor: "pointer",
                 py: 3,
                 "& .MuiListItemIcon-root": {
                   minWidth: 56,
@@ -170,6 +179,7 @@ const AppBarWithTitle = ({ title }) => {
       <Toolbar
         sx={{
           minHeight: { xs: 56, sm: 64 },
+          display: "flex",
           justifyContent: "space-between",
           px: { xs: 1, sm: 2 },
         }}
@@ -178,6 +188,7 @@ const AppBarWithTitle = ({ title }) => {
           sx={{
             display: "flex",
             alignItems: "center",
+            justifyContent: "start",
             gap: 1,
             flex: "1 1 0",
           }}
@@ -205,13 +216,12 @@ const AppBarWithTitle = ({ title }) => {
             {title}
           </Typography>
         </Box>
-            
+
         <Box
           sx={{
-            position: "absolute",
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -50%)",
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
           }}
         >
           <Image
@@ -228,48 +238,68 @@ const AppBarWithTitle = ({ title }) => {
         </Box>
 
         <Box
-          sx={{ flex: "1 1 0", display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 2 }}
+          sx={{
+            flex: "1 1 0",
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: 2,
+          }}
         >
           {/* Location Dropdown - Only visible for staff and admin */}
-          {isAuthenticated && (userRole === "staff" || userRole === "admin") && (
-            <FormControl
-              size="small"
-              sx={{
-                minWidth: { xs: 120, sm: 150 },
-                display: { xs: "none", sm: "block" },
-              }}
-            >
-              <Select
-                value={selectedLocation}
-                onChange={handleLocationChange}
-                displayEmpty
-                sx={{
-                  color: "white",
-                  ".MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(255, 255, 255, 0.5)",
-                  },
-                  "&:hover .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "rgba(255, 255, 255, 0.7)",
-                  },
-                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                    borderColor: "white",
-                  },
-                  ".MuiSvgIcon-root": {
+          {isAuthenticated &&
+            (userRole === "staff" || userRole === "admin") && (
+              <FormControl size="small">
+                <Select
+                  value={Number(selectedLocation)}
+                  onChange={handleLocationChange}
+                  renderValue={(value) => {
+                    const location = allLocations?.find(
+                      (loc) => loc.location_Id === value
+                    );
+                    return (
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <LocationOn sx={{ color: "white" }} />
+                        <Box sx={{ display: { xs: "none", md: "block" } }}>
+                          {location?.name || "Select Location"}
+                        </Box>
+                      </Box>
+                    );
+                  }}
+                  displayEmpty
+                  sx={{
                     color: "white",
-                  },
-                }}
-              >
-                <MenuItem value="" disabled>
-                  Select Location
-                </MenuItem>
-                {Array.isArray(allLocations) && allLocations.map((location) => (
-                  <MenuItem key={location.location_Id} value={location.location_Id}>
-                    {location.name}
+                    ".MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.5)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(255, 255, 255, 0.7)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "white",
+                    },
+                    ".MuiSvgIcon-root": {
+                      color: "white",
+                    },
+                  }}
+                >
+                  <MenuItem value="" disabled>
+                    Select Location
                   </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          )}
+                  {Array.isArray(allLocations) &&
+                    allLocations.map((location) => (
+                      <MenuItem
+                        key={location.location_Id}
+                        value={location.location_Id}
+                      >
+                        {location.name}
+                      </MenuItem>
+                    ))}
+                </Select>
+              </FormControl>
+            )}
 
           <Button
             color="inherit"

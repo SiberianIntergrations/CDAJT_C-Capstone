@@ -212,7 +212,6 @@ const FullMenu = () => {
 
   useEffect(() => {
     if (!sessionId || sessionId < 1) {
-      console.log("Invalid sessionId. Skipping menu fetch.");
       return;
     }
     const fetchMenu = async () => {
@@ -315,17 +314,11 @@ const FullMenu = () => {
                 (item) => item.item_id === parseInt(itemId)
               );
 
-              console.log("Menu Item: ", menuItem);
-
               if (!menuItem) {
                 throw new Error(`Menu item ${itemId} not found`);
               }
 
-              console.log("Menu Item Price: ", menuItem.price);
-              console.log("Is add on: ", menuItem.is_add_on);
-
               let newPrice = menuItem.is_add_on ? menuItem.price : 0;
-              console.log("New Price: ", newPrice);
 
               const response = await api.post(`/orders/${orderId}/items`, {
                 order_id: orderId,

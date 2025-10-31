@@ -3,7 +3,6 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import api from "@/config/api";
 
-
 const BrowsingBehavior = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +13,6 @@ const BrowsingBehavior = () => {
     const fetchData = async () => {
       const accessToken = localStorage.getItem("access_token");
 
-
       if (!accessToken) {
         setError("No token found");
         router.push("/auth/login");
@@ -22,18 +20,15 @@ const BrowsingBehavior = () => {
       }
 
       try {
-        const response = await api.get("analytics/browsing-behavior")
-        
+        const response = await api.get("analytics/browsing-behavior");
+
         setData(response.data);
-        console.log(response.data)
-      } 
-      catch (err) {
+      } catch (err) {
         console.error("Error fetching data:", err);
         if (err.response && err.response.status === 401) {
-          console.log(err.response)
-        } 
-      }
-      finally {
+          console.log(err.response);
+        }
+      } finally {
         setLoading(false);
       }
     };

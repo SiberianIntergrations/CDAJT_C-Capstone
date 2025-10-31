@@ -83,7 +83,7 @@ const MenuItemManagement = () => {
         api.get("/Menu"),
         api.get("/tag/colors"), // TODO: Need Tag Controllers
       ]);
-  
+
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setMenus(Array.isArray(menusData) ? menusData : []);
@@ -100,12 +100,7 @@ const MenuItemManagement = () => {
     }
   };
 
-  useEffect(() => {
-    // console.log("Items updated:", items);
-    // console.log("Categories updated:", categories);
-    // console.log("Menus updated:", menus);
-    // console.log("Tags updated:", tags);
-  }, [items, categories, tags, menus]);
+  useEffect(() => {}, [items, categories, tags, menus]);
 
   useEffect(() => {
     fetchData();
@@ -305,89 +300,70 @@ const MenuItemManagement = () => {
     },
   ];
 
-const ItemForm = () => {
-  const [formData, setFormData] = useState({
-    name: selectedItem?.name || "",
-    description: selectedItem?.description || "",
-    category_id: selectedItem?.category_id || "",
-  });
+  const ItemForm = () => {
+    const [formData, setFormData] = useState({
+      name: selectedItem?.name || "",
+      description: selectedItem?.description || "",
+      category_id: selectedItem?.category_id || "",
+    });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setError(null);
 
-    try {
-      let savedItem;
+      try {
+        let savedItem;
 
-      // Step 1: Save menu item basic data
-      if (selectedItem) {
-        // UPDATE existing item
-
-        savedItem = await api.put(
-          `/menuItem/${selectedItem.item_id}`,
-          formData
-        );
-      } else {
-        // CREATE new item
-
-        savedItem = await api.post("/menuItem", formData);
-      }
-
-
-
-      // Step 2: Handle image upload if there is one
-      if (imageFile) {
-        
-        const imageFormData = new FormData();
-        imageFormData.append("file", imageFile);
-
-        // Log FormData contents
-        for (let pair of imageFormData.entries()) {
-
+        // Step 1: Save menu item basic data
+        if (selectedItem) {
+          // UPDATE existing item
+          savedItem = await api.put(
+            `/menuItem/${selectedItem.item_id}`,
+            formData
+          );
+        } else {
+          // CREATE new item
+          savedItem = await api.post("/menuItem", formData);
         }
 
-        const imageResponse = await api.post(
-          `/menuItem/${savedItem.data.item_id}/image`,
-          imageFormData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
-          }
+        // Step 2: Handle image upload if there is one
+        if (imageFile) {
+          const imageFormData = new FormData();
+          imageFormData.append("file", imageFile);
+
+          await api.post(
+            `/menuItem/${savedItem.data.item_id}/image`,
+            imageFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+        }
+
+        // Step 3: Refresh data and close dialog
+        await fetchData();
+        setDialogOpen(false);
+        setImageFile(null);
+        setImagePreview("");
+        setError(null);
+
+        // Optional: Show success message
+        setSuccessMessage(
+          selectedItem
+            ? "Menu item updated successfully"
+            : "Menu item created successfully"
         );
-
+      } catch (err) {
+        console.error("Error saving item:", err);
+        console.error("Error response:", err.response);
+        setError("Failed to save menu item");
+      } finally {
+        setSubmitting(false);
       }
-
-      // Step 3: Refresh data and close dialog
-      await fetchData();
-      setDialogOpen(false);
-      setImageFile(null);
-      setError(null);
-      
-      // Optional: Show success message
-      setSuccessMessage(
-        selectedItem 
-          ? "Menu item updated successfully" 
-          : "Menu item created successfully"
-      );
-      
-    } catch (err) {
-      console.error("Error saving item:", err);
-      console.error("Error response:", err.response);
-      
-      const errorMessage = 
-        err.response?.data?.detail || 
-        err.response?.data?.message || 
-        err.response?.data ||
-        err.message || 
-        "Failed to save menu item";
-        
-      setError(errorMessage);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    };
 
     return (
       <Dialog

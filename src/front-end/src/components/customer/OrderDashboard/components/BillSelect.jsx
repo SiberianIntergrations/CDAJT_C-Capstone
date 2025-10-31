@@ -20,11 +20,11 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
   const [lastRefresh, setLastRefresh] = useState(null);
 
   // TODO: Change to polling or WebSocket for rendering bill updates
-  
+
   useEffect(() => {
     setLastRefresh(new Date().toLocaleTimeString());
   }, []);
-  
+
   useEffect(() => {
     const fetchBills = async () => {
       if (!_session_id) {
@@ -38,7 +38,6 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
 
         // api from old project: /bills/by-session/{sessionId} GET
         const response = await api.get(`/Bill/get_bills/${_session_id}`);
-        console.log("Bills response:", response.data);
 
         const billsData = Array.isArray(response.data) ? response.data : [];
         const openBills = billsData.filter((bill) => bill.status === "OPEN");

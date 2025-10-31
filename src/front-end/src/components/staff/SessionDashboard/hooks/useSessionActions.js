@@ -81,11 +81,14 @@ export const useSessionActions = (onSuccess) => {
     }
   };
 
-  const closeBill = async (_bill_id) => {
+  const closeBill = async (sessionId, billId) => {
+    console.log(sessionId, billId);
     try {
       setActionError(null);
       // api from old project: /bills/{billId}/close?session_id=${sessionId} POST
-      const response = await api.put(`/Bill/close_Bill/${_bill_id}`);
+      const response = await api.put(
+        `/Bill/close_bill/${billId}?_session_id=${sessionId}`
+      );
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(response.data?.detail || "Failed to close bill");
       }
@@ -103,9 +106,7 @@ export const useSessionActions = (onSuccess) => {
   const endSession = async (sessionId) => {
     try {
       setActionError(null);
-
-      // TODO: Update endpoint (api from old project: /dining-sessions/{sessionId}/end POST)
-      const response = await api.post(`/dining-sessions/${sessionId}/end`);
+      const response = await api.post(`/DiningSession/${sessionId}/close`);
 
       if (response.status !== 200 && response.status !== 201) {
         throw new Error(response.data?.detail || "Failed to end session");

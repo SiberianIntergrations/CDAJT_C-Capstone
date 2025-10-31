@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SendIcon from '@mui/icons-material/Send';
+import SendIcon from "@mui/icons-material/Send";
 import {
   Box,
   Button,
@@ -34,7 +34,9 @@ const ServiceRequestForm = () => {
     const getActiveSession = async () => {
       try {
         // TODO: Update endpoint (previous endpoint: /dining-sessions/participants/active-session-id)
-        const response = await api.get("/dining-sessions/participants/active-session-id");
+        const response = await api.get(
+          "/dining-sessions/participants/active-session-id"
+        );
 
         if (response && response.data) {
           setSessionId(response.data.session_id);
@@ -63,10 +65,9 @@ const ServiceRequestForm = () => {
 
     try {
       // TODO: Update endpoint (previous endpoint: /service-requests/{sessionId}) Need POST ServiceRequest/${sessionId}
-      const response = await api.post(`/service-requests/${sessionId}`,
-        { notes: message }
-      );
-      console.log("Response:", response);
+      const response = await api.post(`/service-requests/${sessionId}`, {
+        notes: message,
+      });
 
       if (response.status !== 200) {
         const data = response.data;
