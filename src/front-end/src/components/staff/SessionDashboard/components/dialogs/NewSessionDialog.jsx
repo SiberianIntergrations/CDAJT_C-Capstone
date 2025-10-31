@@ -21,11 +21,14 @@ import {
 import { X } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 import api from "@/config/api";
+import storage from "@/utils/storage";
 
 const NewSessionDialog = ({ open, onClose }) => {
   const { createSession } = useSession();
   const [selectedMenu, setSelectedMenu] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState(
+    storage.get("branch-location")
+  );
   const [tableAssignmentType, setTableAssignmentType] = useState("none"); // none, table, tableGroup
   const [selectedTable, setSelectedTable] = useState("");
   const [selectedTableGroup, setSelectedTableGroup] = useState("");
@@ -135,7 +138,7 @@ const NewSessionDialog = ({ open, onClose }) => {
 
   const handleClose = () => {
     setSelectedMenu("");
-    setSelectedLocation("");
+    setSelectedLocation(storage.get("branch-location"));
     setTableAssignmentType("none");
     setSelectedTable("");
     setSelectedTableGroup("");
