@@ -146,6 +146,7 @@ const AppBarWithTitle = ({ title }) => {
               key={index}
               onClick={() => handleNavigation(item.path)}
               sx={{
+                cursor: "pointer",
                 py: 3,
                 "& .MuiListItemIcon-root": {
                   minWidth: 56,
