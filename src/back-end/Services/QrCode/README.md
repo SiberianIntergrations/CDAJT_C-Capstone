@@ -2,7 +2,7 @@
 
 ## Overview
 
-This service provides secure, location-based QR code generation for WiFi credentials and authentication pages. All endpoints are protected with Admin/Staff authorization.
+This service provides secure, location-based QR code generation for WiFi credentials and dining session initiation (menu redirect). All endpoints are protected with Admin/Staff authorization.
 
 ## Folder Structure
 
@@ -44,10 +44,10 @@ curl -H "Authorization: Bearer {token}" \
   --output wifi_L1_T5.png
 ```
 
-### 2. Get Authentication QR Code
+### 2. Get Session QR Code
 
 ```http
-GET /api/admin/qr/auth?locationId={locationId}&table={tableNumber}
+GET /api/admin/qr/session?locationId={locationId}&table={tableNumber}
 ```
 
 **Parameters:**
@@ -55,14 +55,14 @@ GET /api/admin/qr/auth?locationId={locationId}&table={tableNumber}
 - `table` (int, required): Table number
 
 **Response:**
-- Returns authentication page QR code as PNG image
-- Filename: `auth_L{locationId}_T{table}.png`
+- Returns session start QR code as PNG image (redirects to menu)
+- Filename: `session_L{locationId}_T{table}.png`
 
 **Example:**
 ```bash
 curl -H "Authorization: Bearer {token}" \
-  "http://localhost:5264/api/admin/qr/auth?locationId=1&table=5" \
-  --output auth_L1_T5.png
+  "http://localhost:5264/api/admin/qr/session?locationId=1&table=5" \
+  --output session_L1_T5.png
 ```
 
 ### 3. Bulk Generate QR Codes
@@ -115,35 +115,30 @@ DELETE /api/admin/qr/clear?locationId={locationId}&table={tableNumber}
 
 ### Location-Based WiFi Credentials
 
-WiFi credentials are configured per location in `appsettings.json`:
+Each location can have unique WiFi credentials. The system uses a fallback mechanism:
 
+1. **First**: Checks for location-specific WiFi in `appsettings.json` under `QRCodeSettings:Locations:{locationId}:WiFi`
+2. **Fallback**: Uses default WiFi credentials if no location-specific config exists
+
+**Configuration Example:**
 ```json
 "QRCodeSettings": {
   "WiFi": {
-    "SSID": "Redsox-5G",           // Default WiFi for all locations
-    "Password": "bpjh38vw83"
+    "SSID": "DefaultWiFi",         // Fallback for all locations
+    "Password": "defaultpass"
   },
-  "AuthPageUrl": "http://192.168.1.78:3000/login",
   "Locations": {
-    "1": {                          // Location-specific override
+    "1": {
       "WiFi": {
-        "SSID": "Redsox-5G",
-        "Password": "bpjh38vw83"
-      }
-    },
-    "2": {                          // Another location
-      "WiFi": {
-        "SSID": "Restaurant-WiFi",
-        "Password": "different_password"
+        "SSID": "Location1-WiFi",  // Location 1 specific
+        "Password": "location1pass"
       }
     }
   }
 }
 ```
 
-**Fallback Logic:**
-1. First tries location-specific WiFi credentials
-2. Falls back to default WiFi credentials if location-specific not configured
+> **📖 For detailed WiFi configuration instructions, see:** [`WIFI_CONFIGURATION_GUIDE.md`](../../../../WIFI_CONFIGURATION_GUIDE.md)
 
 ### File Caching
 
@@ -151,7 +146,7 @@ Generated QR codes are automatically cached to improve performance:
 
 - **Storage Location:** `storage/qrcodes/`
 - **WiFi Filename Format:** `wifi_L{locationId}_T{table}.png`
-- **Auth Filename Format:** `auth_L{locationId}_T{table}.png`
+- **Session Filename Format:** `session_L{locationId}_T{table}.png`
 - **Cache Behavior:**
   - Checks cache before regenerating
   - Returns cached file if exists
@@ -164,12 +159,12 @@ Generated QR codes are automatically cached to improve performance:
 Each QR code includes a professional label with:
 - Location name (from database)
 - Table number
-- QR code type (WiFi or Login)
+- QR code type (WiFi or Menu)
 
 **Label Format:**
 ```
 Location Name — Table 5 — WiFi
-Location Name — Table 5 — Login
+Location Name — Table 5 — Menu
 ```
 
 ### Security Features
@@ -177,7 +172,7 @@ Location Name — Table 5 — Login
 1. **Admin/Staff Only:** All endpoints protected with `[Authorize(Roles="Admin,Staff")]`
 2. **WiFi Credentials Never Exposed:** WiFi passwords remain server-side only
 3. **No Client-Side WiFi Generation:** WiFi QR codes only generated via authenticated backend endpoints
-4. **Auth URLs Are Public:** Authentication QR codes can be scanned by anyone (they only link to login page)
+4. **Session URLs Are Public:** Session QR codes can be scanned by anyone (they start a dining session and link to menu page)
 
 ## Configuration
 
@@ -190,7 +185,7 @@ Location Name — Table 5 — Login
       "SSID": "Redsox-5G",
       "Password": "bpjh38vw83"
     },
-    "AuthPageUrl": "http://192.168.1.78:3000/login",
+    "SessionPageUrl": "http://192.168.1.78:3000/menu",
     "Locations": {
       "1": {
         "WiFi": {
@@ -232,10 +227,10 @@ if (response.IsSuccessStatusCode)
 ### JavaScript/Fetch Example
 
 ```javascript
-// Download WiFi QR code
-async function downloadWifiQR(locationId, table) {
+// Download Session QR code
+async function downloadSessionQR(locationId, table) {
   const response = await fetch(
-    `/api/admin/qr/wifi?locationId=${locationId}&table=${table}`,
+    `/api/admin/qr/session?locationId=${locationId}&table=${table}`,
     {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -248,7 +243,7 @@ async function downloadWifiQR(locationId, table) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `wifi_L${locationId}_T${table}.png`;
+    a.download = `session_L${locationId}_T${table}.png`;
     a.click();
   }
 }
@@ -293,23 +288,49 @@ WIFI:T:WPA;S:{ssid};P:{password};H:false;;
 
 When scanned with a smartphone camera, this automatically prompts to join the WiFi network.
 
-## Authentication URL Format
+## Session URL Format
 
-Authentication QR codes link to:
+Session QR codes link to:
 
 ```
-{baseUrl}/login?location={locationId}&table={tableNumber}
+{baseUrl}/start-session?locationId={locationId}&tableNumber={tableNumber}
 ```
 
 **Example:**
 ```
-http://192.168.1.78:3000/login?location=1&table=5
+http://192.168.1.78:3000/start-session?locationId=1&tableNumber=5
 ```
 
-The frontend can use these query parameters to:
-- Pre-select the location
-- Pre-populate the table number
-- Track which table the customer is sitting at
+The frontend should handle this URL by:
+1. Creating a dining session via `POST /api/diningsession/Create_Dinning_Session`
+2. Including the location ID and table number in the session creation
+3. Redirecting to the menu page after successful session creation
+
+**Frontend Implementation:**
+
+✅ **The `/start-session` page has been implemented** at `src/front-end/src/app/start-session/page.jsx`
+
+The page automatically:
+1. Extracts `locationId` and `tableNumber` from query parameters
+2. Looks up the `table_id` by querying all tables and finding the match
+3. Gets the default menu for the location
+4. Creates a dining session via `POST /api/diningsession/Create_Dinning_Session`
+5. Redirects to `/menu/full-menu?sessionId={sessionId}` after success
+
+**Flow:**
+```
+1. Customer scans QR code
+   ↓
+2. Opens: /start-session?locationId=1&tableNumber=5
+   ↓
+3. Page shows loading spinner
+   ↓
+4. Creates dining session in background
+   ↓
+5. Shows success message
+   ↓
+6. Redirects to menu (after 1.5s)
+```
 
 ## Troubleshooting
 

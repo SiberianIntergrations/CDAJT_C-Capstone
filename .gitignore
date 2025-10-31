@@ -162,5 +162,11 @@ storage/qrcodes/
 **/storage/qrcodes/
 **/wwwroot/qrcodes/
 
+# Ignore all generated QR codes and storage files
+qrcodes/*
+
+# Keep the directory structure
+!qrcodes/.gitkeep
+!.gitignore
 
 # End of https://www.toptal.com/developers/gitignore/api/windows,linux,macos,dotnetcore,nextjs,react,visualstudiocode

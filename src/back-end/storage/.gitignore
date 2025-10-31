@@ -1,6 +1,0 @@
-# Ignore all generated QR codes and storage files
-qrcodes/*
-
-# Keep the directory structure
-!qrcodes/.gitkeep
-!.gitignore

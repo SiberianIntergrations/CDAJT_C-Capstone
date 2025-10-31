@@ -25,7 +25,7 @@ import {
   Chip,
   Divider,
 } from '@mui/material';
-import { Download, QrCode, Wifi, Lock } from 'lucide-react';
+import { Download, QrCode, Wifi, Menu } from 'lucide-react';
 import { api } from '@/config/api';
 
 export default function QRCodeManagement() {
@@ -71,7 +71,7 @@ export default function QRCodeManagement() {
 
     setLoading(true);
     try {
-      const endpoint = type === 'wifi' ? '/admin/qr/wifi' : '/admin/qr/auth';
+      const endpoint = type === 'wifi' ? '/admin/qr/wifi' : '/admin/qr/session';
       const response = await api.get(endpoint, {
         params: {
           locationId: selectedLocation,
@@ -91,7 +91,7 @@ export default function QRCodeManagement() {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
-      showSnackbar(`${type === 'wifi' ? 'WiFi' : 'Authentication'} QR code downloaded successfully!`);
+      showSnackbar(`${type === 'wifi' ? 'WiFi' : 'Session'} QR code downloaded successfully!`);
     } catch (error) {
       console.error('Error downloading QR code:', error);
       showSnackbar(
@@ -111,7 +111,7 @@ export default function QRCodeManagement() {
 
     setLoading(true);
     try {
-      const endpoint = type === 'wifi' ? '/admin/qr/wifi' : '/admin/qr/auth';
+      const endpoint = type === 'wifi' ? '/admin/qr/wifi' : '/admin/qr/session';
       const response = await api.get(endpoint, {
         params: {
           locationId: selectedLocation,
@@ -126,7 +126,7 @@ export default function QRCodeManagement() {
       setPreviewDialog({
         open: true,
         url,
-        title: `${type === 'wifi' ? 'WiFi' : 'Authentication'} QR Code - Location ${selectedLocation}, Table ${tableNumber}`,
+        title: `${type === 'wifi' ? 'WiFi' : 'Session'} QR Code - Location ${selectedLocation}, Table ${tableNumber}`,
         type,
       });
     } catch (error) {
@@ -219,7 +219,7 @@ export default function QRCodeManagement() {
       </Typography>
 
       <Alert severity="info" sx={{ mb: 3 }}>
-        Generate QR codes for WiFi access and customer authentication. QR codes are cached on the
+        Generate QR codes for WiFi access and starting customer dining sessions. QR codes are cached on the
         server for faster access.
       </Alert>
 
@@ -304,12 +304,12 @@ export default function QRCodeManagement() {
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Lock size={32} style={{ marginRight: '10px', color: '#2e7d32' }} />
-                <Typography variant="h6">Authentication QR Code</Typography>
+                <Menu size={32} style={{ marginRight: '10px', color: '#2e7d32' }} />
+                <Typography variant="h6">Session QR Code</Typography>
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Generate a QR code that directs customers to the login/authentication page for
-                ordering.
+                Generate a QR code that starts a dining session and directs customers to the menu page
+                for ordering.
               </Typography>
               <Divider sx={{ my: 2 }} />
               <Typography variant="body2" sx={{ mb: 1 }}>
@@ -323,7 +323,7 @@ export default function QRCodeManagement() {
               <Button
                 variant="outlined"
                 startIcon={<QrCode size={18} />}
-                onClick={() => previewQRCode('auth')}
+                onClick={() => previewQRCode('session')}
                 disabled={loading || !selectedLocation || !tableNumber}
               >
                 Preview
@@ -331,7 +331,7 @@ export default function QRCodeManagement() {
               <Button
                 variant="contained"
                 startIcon={<Download size={18} />}
-                onClick={() => downloadQRCode('auth')}
+                onClick={() => downloadQRCode('session')}
                 disabled={loading || !selectedLocation || !tableNumber}
               >
                 Download
@@ -359,7 +359,7 @@ export default function QRCodeManagement() {
               value={bulkTableCount}
               onChange={(e) => setBulkTableCount(e.target.value)}
               inputProps={{ min: 1, max: 1000 }}
-              helperText="Generate WiFi and Auth QR codes for tables 1 to N"
+              helperText="Generate WiFi and Session QR codes for tables 1 to N"
             />
           </Grid>
           <Grid item xs={12} md={6}>
@@ -401,7 +401,7 @@ export default function QRCodeManagement() {
         <DialogTitle>
           {previewDialog.title}
           <Chip
-            label={previewDialog.type === 'wifi' ? 'WiFi' : 'Auth'}
+            label={previewDialog.type === 'wifi' ? 'WiFi' : 'Session'}
             size="small"
             color={previewDialog.type === 'wifi' ? 'primary' : 'success'}
             sx={{ ml: 2 }}

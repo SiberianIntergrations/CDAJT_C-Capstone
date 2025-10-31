@@ -1,11 +1,11 @@
 using QRCoder;
 using System.Drawing;
-using System.Drawing.Imaging;
+using SkiaSharp;
 using back_end.domain.DbContexts;
 using Microsoft.EntityFrameworkCore;
 using System.Runtime.Versioning;
 
-namespace back_end.Services.QrCode
+namespace back_end.Services
 {
     /// <summary>
     /// Service for generating QR codes for WiFi and authentication with location-based configuration
@@ -64,15 +64,15 @@ namespace back_end.Services.QrCode
         }
 
         /// <summary>
-        /// Create an authentication URL QR code bitmap
+        /// Create a session URL QR code bitmap that starts dining session
         /// </summary>
-        /// <param name="authUrl">The authentication page URL</param>
+        /// <param name="sessionUrl">The session start page URL (redirects to menu)</param>
         /// <returns>Bitmap containing the QR code</returns>
-        public Bitmap CreateAuthQr(string authUrl)
+        public Bitmap CreateSessionQr(string sessionUrl)
         {
             using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
             {
-                QRCodeData qrCodeData = qrGenerator.CreateQrCode(authUrl, QRCodeGenerator.ECCLevel.Q);
+                QRCodeData qrCodeData = qrGenerator.CreateQrCode(sessionUrl, QRCodeGenerator.ECCLevel.Q);
                 using (QRCode qrCode = new QRCode(qrCodeData))
                 {
                     // Return a new bitmap that won't be disposed
@@ -169,19 +169,20 @@ namespace back_end.Services.QrCode
         }
 
         /// <summary>
-        /// Get the authentication URL for a specific location and table
+        /// Get the session start URL for a specific location and table
         /// </summary>
         /// <param name="locationId">Location ID</param>
         /// <param name="tableNumber">Table number</param>
-        /// <returns>Authentication URL</returns>
-        public string GetAuthUrl(int locationId, int tableNumber)
+        /// <returns>Session start URL that will create a dining session with location and table</returns>
+        public string GetSessionUrl(int locationId, int tableNumber)
         {
-            var baseUrl = _configuration["QRCodeSettings:AuthPageUrl"]
+            var baseUrl = _configuration["QRCodeSettings:SessionPageUrl"]
                 ?? _configuration["Restaurant:BaseUrl"]
                 ?? "http://localhost:3000";
 
-            // You can customize the URL format as needed
-            return $"{baseUrl}/login?location={locationId}&table={tableNumber}";
+            // Customer scans QR, creates dining session with location/table, then redirects to menu
+            // The front-end should handle creating the session via POST /api/diningsession/Create_Dinning_Session
+            return $"{baseUrl}/start-session?locationId={locationId}&tableNumber={tableNumber}";
         }
 
         /// <summary>
@@ -218,12 +219,12 @@ namespace back_end.Services.QrCode
         }
 
         /// <summary>
-        /// Generate and save authentication QR code to storage
+        /// Generate and save session QR code to storage (starts dining session, redirects to menu)
         /// </summary>
         /// <param name="locationId">Location ID</param>
         /// <param name="tableNumber">Table number</param>
         /// <returns>File path of saved QR code, or null if failed</returns>
-        public async Task<string?> GenerateAndSaveAuthQr(int locationId, int tableNumber)
+        public async Task<string?> GenerateAndSaveSessionQr(int locationId, int tableNumber)
         {
             var location = await _context.Locations.FindAsync(locationId);
             if (location == null)
@@ -233,19 +234,19 @@ namespace back_end.Services.QrCode
             }
 
             var locationName = location.Name ?? $"Location{locationId}";
-            var authUrl = GetAuthUrl(locationId, tableNumber);
+            var sessionUrl = GetSessionUrl(locationId, tableNumber);
 
-            using var qrBitmap = CreateAuthQr(authUrl);
+            using var qrBitmap = CreateSessionQr(sessionUrl);
             using var labeledBitmap = RenderLabeledQr(
                 qrBitmap,
-                $"{locationName} — Table {tableNumber} — Login"
+                $"{locationName} — Table {tableNumber} — Menu"
             );
 
-            var fileName = $"auth_L{locationId}_T{tableNumber}.png";
+            var fileName = $"session_L{locationId}_T{tableNumber}.png";
             var filePath = Path.Combine(_storagePath, fileName);
 
             labeledBitmap.Save(filePath, ImageFormat.Png);
-            _logger.LogInformation($"Generated Auth QR code: {fileName}");
+            _logger.LogInformation($"Generated Session QR code: {fileName}");
 
             return filePath;
         }
