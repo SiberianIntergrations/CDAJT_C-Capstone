@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import {
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   CircularProgress,
@@ -13,7 +12,11 @@ import {
 } from "@mui/material";
 import api from "@/config/api";
 
-const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
+const BillSelect = (props) => {
+  // Accept both prop names; prefer `session_id` if provided
+  const { session_id, _session_id, value, onChange, disabled, message } = props;
+  const effectiveSessionId = session_id ?? _session_id ?? null;
+
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,9 +28,11 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
     setLastRefresh(new Date().toLocaleTimeString());
   }, []);
 
+
   useEffect(() => {
     const fetchBills = async () => {
-      if (!_session_id) {
+      if (!effectiveSessionId) {
+        setBills([]);
         setLoading(false);
         return;
       }
@@ -37,14 +42,15 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
         setError(null);
 
         // api from old project: /bills/by-session/{sessionId} GET
-        const response = await api.get(`/Bill/get_bills/${_session_id}`);
+        const response = await api.get(`/Bill/get_bills/${effectiveSessionId}`);
+        console.log("Bills response:", response.data);
 
         const billsData = Array.isArray(response.data) ? response.data : [];
-        const openBills = billsData.filter((bill) => bill.status === "OPEN");
-        setBills(openBills);
+     //   const openBills = billsData.filter((bill) => bill.status === "OPEN");
+        setBills(billsData);
       } catch (err) {
         console.error("Error fetching bills:", err);
-        setError(err.response?.data?.detail || "Failed to fetch bills");
+        setError(err?.response?.data?.detail || "Failed to fetch bills");
       } finally {
         setLoading(false);
       }
@@ -52,15 +58,19 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
 
     fetchBills();
 
+    // Poll every 90s
     const intervalId = setInterval(() => {
       fetchBills();
-      setLastRefresh(new Date());
+      setLastRefresh(new Date().toLocaleTimeString()); // store a string, not a Date
     }, 90000);
 
     return () => clearInterval(intervalId);
-  }, [_session_id]);
+  }, [effectiveSessionId]);
 
-  const isValueValid = bills.some((bill) => bill.bill_id === value);
+  // Normalize types so equality checks work even if value is "5" vs 5
+  const isValueValid = bills.some(
+    (bill) => Number(bill.bill_id) === Number(value)
+  );
 
   const formatGuestCount = (bill) => {
     const counts = [];
@@ -72,7 +82,7 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
   };
 
   const renderBillMenuItem = (bill) => (
-    <MenuItem key={bill.bill_id} value={bill.bill_id}>
+    <MenuItem key={bill.bill_id} value={Number(bill.bill_id)}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
         <Typography variant="subtitle1">
           {bill.bill_name}
@@ -107,13 +117,14 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
     <Box>
       <FormControl fullWidth disabled={disabled || loading}>
         <Select
-          value={isValueValid ? value : ""}
+          value={isValueValid ? Number(value) : ""}
           onChange={onChange}
           displayEmpty
         >
           <MenuItem value="">
-            <em>{message}</em>
+            <em>{message || "Select Bill To Place Order"}</em>
           </MenuItem>
+
           {loading ? (
             <MenuItem disabled>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -128,7 +139,9 @@ const BillSelect = ({ _session_id, value, onChange, disabled, message }) => {
           )}
         </Select>
       </FormControl>
+
       {renderError()}
+
       <Typography
         variant="caption"
         color="text.secondary"

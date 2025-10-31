@@ -30,7 +30,9 @@ const AddButton = styled(IconButton)(({ theme }) => ({
   },
 }));
 
-const StatusChip = styled(Typography)(({ theme, $statusColor }) => ({
+const StatusChip = styled(Typography, {
+  shouldForwardProp: (prop) => prop !== '$statusColor',
+})(({ theme, $statusColor }) => ({
   color: "white",
   backgroundColor: $statusColor,
   padding: `${theme.spacing(0.5)} ${theme.spacing(1)}`,
@@ -38,9 +40,12 @@ const StatusChip = styled(Typography)(({ theme, $statusColor }) => ({
   alignSelf: "flex-start",
   fontWeight: "medium",
   fontSize: "0.875rem",
+  userSelect: "none",
 }));
 
-const BillCard = styled(Card)(({ theme, $statusColor }) => ({
+const BillCard = styled(Card, {
+  shouldForwardProp: (prop) => prop !== '$statusColor',
+})(({ theme, $statusColor }) => ({
   padding: theme.spacing(3),
   display: "flex",
   flexDirection: "column",
@@ -109,7 +114,9 @@ const BillsDashboard = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [sessionId, setSessionId] = useState(null);
 
-const fetchActiveSession = async () => {
+//May only need sessions for staff or admin
+//Leaving code here now in case
+/*const fetchActiveSession = async () => {
   setLoading(true);
   setError(null);
   try {
@@ -126,25 +133,19 @@ const fetchActiveSession = async () => {
   } finally {
     setLoading(false);
   }
-};
+}; */
 
 useEffect(() => {
-  (async () => {
-    const id = await fetchActiveSession();
-    if (id) await fetchBills(id);
-  })();
+    fetchBills();
 }, []);
 
-  const fetchBills = async (sid) => {
+  const fetchBills = async () => {
     try {
       setLoading(true);
       setError(null);
-      if (!sid) {
-        setBills([]);
-        return;
-      }
-      const res = await api.get(`/Bill/get_bills/${sid}`);
-      if (res.status !== 200) throw new Error("Failed to fetch bills");
+
+      const res = await api.get(`/Bill/active/bills`);
+
       setBills(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       if (err?.response?.status === 404) {
@@ -157,6 +158,9 @@ useEffect(() => {
     }
   };
 
+  //Code that was used for sessions
+  //May be needed for staff/admin
+  /*
   useEffect(() => {
     (async () => {
       await fetchActiveSession();
@@ -166,9 +170,10 @@ useEffect(() => {
   useEffect(() => {
     if (sessionId) fetchBills(sessionId);
   }, [sessionId]);
+  */
 
   const handleBillCreated = async () => {
-    await fetchBills(sessionId);
+    await fetchBills();
     setDialogOpen(false);
   };
 

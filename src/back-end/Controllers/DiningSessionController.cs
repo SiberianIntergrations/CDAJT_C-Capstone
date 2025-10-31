@@ -830,7 +830,7 @@ namespace back_end.controllers
     /// - Session must not already be closed (Ended_At must be null)
     /// - Session must not have any open bills
     /// </remarks>
-    [HttpPost("{session_id}/close")]
+    [HttpPut("{session_id}/close")]
     [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

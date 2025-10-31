@@ -66,9 +66,9 @@ export const normalizedUserRole = (role) => {
   const roleLower = role.toLowerCase();
 
   const roleMap = {
-    admin: "admin",
-    employee: "staff",
-    customer: "customer",
+    'admin': 'admin',
+    'staff': 'staff',
+    'customer': 'customer',
   };
   const normalized = roleMap[roleLower] || "customer";
 
@@ -104,7 +104,26 @@ export const getUserEmail = (token) => {
 
 export const getUserClaims = (token) => {
   return decodeToken(token || getAccessToken());
-};
+}
+
+//Get the user's name for display purposes
+export const getUserName = (token) => {
+  const decoded = decodeToken(token || getAccessToken());
+
+  const firstName = decoded?.firstName;
+  const lastName = decoded?.lastName;
+
+  //Use MS claim as a fallback if name if not read
+  const nameClaim = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name";
+
+  //Combine the first and last names
+  if(firstName && lastName){
+    return `${firstName} ${lastName}`;
+  }
+
+  //Try the other claims if first or last names don't pass check
+  return decoded?.[nameClaim] || decoded?.name || decoded?.email || null;
+}
 
 // Check if user is authenticated
 export const isAuthenticated = () => {
