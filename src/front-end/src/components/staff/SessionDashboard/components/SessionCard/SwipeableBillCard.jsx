@@ -42,10 +42,11 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const touchStartX = useRef(null);
+  console.log("Bill", bill);
 
   const handleTouchStart = useCallback(
     (e) => {
-      if (disabled || bill.status !== "OPEN" || isClosing || showConfirm)
+      if (disabled || bill.status !== "Open" || isClosing || showConfirm)
         return;
       touchStartX.current = e.touches[0].clientX;
     },
@@ -57,7 +58,7 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
       if (
         !touchStartX.current ||
         disabled ||
-        bill.status !== "OPEN" ||
+        bill.status !== "Open" ||
         isClosing ||
         showConfirm
       )
@@ -71,7 +72,7 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
   );
 
   const handleTouchEnd = useCallback(() => {
-    if (disabled || bill.status !== "OPEN" || isClosing || showConfirm) return;
+    if (disabled || bill.status !== "Open" || isClosing || showConfirm) return;
     if (dragX <= -100) {
       setShowConfirm(true);
     }
@@ -99,7 +100,7 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
 
     try {
       setIsClosing(true);
-      await onClose(bill.bill_id);
+      await onClose(bill.bill_Id);
     } catch (error) {
       console.error("Error closing bill:", error);
     } finally {
@@ -204,14 +205,14 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
             }}
           >
             <Typography variant="body1" fontWeight="medium">
-              {bill.bill_name}
+              {bill.bill_Name}
             </Typography>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Chip
                 label={bill.status}
                 size="small"
-                color={bill.status === "OPEN" ? "primary" : "default"}
+                color={bill.status === "Open" ? "primary" : "default"}
                 sx={{
                   height: "20px",
                   "& .MuiChip-label": {
@@ -226,7 +227,7 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
             </Box>
           </Box>
 
-          {bill.status === "OPEN" && (
+          {bill.status === "Open" && (
             <Button
               variant="contained"
               size="small"
