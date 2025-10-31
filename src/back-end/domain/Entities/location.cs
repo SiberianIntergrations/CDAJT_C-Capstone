@@ -13,7 +13,7 @@ namespace back_end.domain.Entities
 
     public string Address_Primary { get; set; } = string.Empty;
 
-    public string Address_Secondary { get; set; } = string.Empty;
+    public string? Address_Secondary { get; set; } = string.Empty;
 
     public string City { get; set; } = string.Empty;
 

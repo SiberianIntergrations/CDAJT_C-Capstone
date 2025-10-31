@@ -171,7 +171,6 @@ namespace back_end.Migrations
                         .HasColumnType("longtext");
 
                     b.Property<string>("Address_Secondary")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("City")

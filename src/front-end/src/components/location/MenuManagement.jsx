@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, gridRenderContextColumnsSelector } from "@mui/x-data-grid";
 import {
   Box,
   Button,
@@ -45,6 +45,7 @@ const MenuManagement = () => {
     try {
       const response = await api.get("/Menu");
       setMenus(response.data);
+      console.log(response.data)
     } catch (err) {
       setError("Failed to fetch menus");
       console.error(err);
@@ -89,7 +90,7 @@ const MenuManagement = () => {
   const handleSubmit = async (formData) => {
     try {
       if (formMode === "create") {
-        await api.post("/Menu", formData);
+        await api.post("/Menu/createmenu", formData);
       } else {
         await api.put(`/Menu/${selectedMenu.menu_id}`,
           formData
@@ -107,6 +108,16 @@ const MenuManagement = () => {
     { field: "menu_id", headerName: "ID", width: 90 },
     { field: "name", headerName: "Name", width: 200 },
     { field: "description", headerName: "Description", width: 300 },
+    { 
+      field: "is_active",
+      headerName: "Is Active",
+      width: 100,
+      renderCell: (params) => (
+        <Typography>
+          {params.value ? "Yes" : "No"}
+        </Typography>
+      )
+    },
     {
       field: "actions",
       headerName: "Actions",

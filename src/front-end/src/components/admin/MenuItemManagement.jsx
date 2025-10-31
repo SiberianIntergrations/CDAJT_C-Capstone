@@ -66,6 +66,7 @@ const MenuItemManagement = () => {
   const [submitting, setSubmitting] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [successMessage , setSuccessMessage]= useState("")
 
   // TODO: Update APIs for menu items, categories, menu, and tags
   const fetchData = async () => {
@@ -134,7 +135,8 @@ const MenuItemManagement = () => {
 
   const handleEdit = (item) => {
     setSelectedItem(item);
-    setImagePreview(item.item_image_url || "");
+    setImagePreview(item.item_Image_Url
+ || "");
     setDialogOpen(true);
   };
 
@@ -176,7 +178,7 @@ const MenuItemManagement = () => {
 
   const columns = [
     {
-      field: "item_image_url",
+      field: "item_Image_Url",
       headerName: "Image",
       width: 100,
       renderCell: (params) =>
@@ -567,7 +569,7 @@ const ItemForm = () => {
           rows={items}
           columns={[
             {
-              field: "image_url",
+              field: "item_Image_Url",
               headerName: "Image",
               width: 100,
               renderCell: (params) =>

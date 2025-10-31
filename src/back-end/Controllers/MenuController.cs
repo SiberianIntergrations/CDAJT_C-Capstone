@@ -26,7 +26,48 @@ namespace back_end.Controllers
             _context = context;
             _logger = logger;
         }
+        
+        
+        
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("createmenu")]
+        [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Create_Menu(
+            MenuCreateDTO item_data
+        )
+        {
+            try
+            {
+                if (item_data is null)
+                {
+                    return BadRequest("Item Data not Sent");
+                }
+                var isExist = await _context.Menus.FirstOrDefaultAsync(m => m.Name == item_data.Name);
+                if (isExist != null)
+                {
+                    return Conflict("Menu Name and item Exist");
+                }
+                var newMenu = new Menu
+                {
+                    Name = item_data.Name,
+                    Description = item_data.Description,
+                    Start_time = item_data.Start_Time ?? new TimeOnly(0, 0, 1),
+                    End_time = item_data.End_Time ?? new TimeOnly(23, 59, 59),
+                    Is_active = item_data.Is_Active
+                };
+                _context.Add(newMenu);
+                await _context.SaveChangesAsync();
+                return Ok(newMenu);
 
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating menu item");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }        
 
         /// <summary>
         /// Creates a new menu item with optional tags.
@@ -160,9 +201,7 @@ namespace back_end.Controllers
         {
             try
             {
-                var menu = await _context.Menus
-                    .Where(x => x.Is_active)
-                    .ToListAsync();
+                var menu = await _context.Menus.ToListAsync();
 
                 return Ok(menu);
             }

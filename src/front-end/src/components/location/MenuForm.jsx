@@ -7,6 +7,9 @@ import {
   DialogContent,
   DialogActions,
   Stack,
+  FormControl,
+  FormControlLabel,
+  Switch
 } from "@mui/material";
 
 const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
@@ -22,11 +25,12 @@ const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [is_add_on]: value,
     }));
   };
 
   const handleSubmit = (e) => {
+    console.log("Submitting Form:", formData)
     e.preventDefault();
     onSubmit(formData);
   };
@@ -74,6 +78,20 @@ const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
             required
             InputLabelProps={{ shrink: true }}
             fullWidth
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={formData.is_active === true}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    is_active: e.target.checked,
+                  }))
+                }
+              />
+            }
+            label="Is Active Menu"
           />
         </Stack>
       </DialogContent>
