@@ -11,8 +11,7 @@ const QRScanner = ({ onScanSuccess }) => {
         { facingMode: "environment" },
         { fps: 10, qrbox: 250 },
         (decodedText, decodedResult) => {
-          console.log("Scanned result:", decodedText);
-          onScanSuccess(decodedText); 
+          onScanSuccess(decodedText);
           qrCodeReader.stop();
         },
         (error) => {

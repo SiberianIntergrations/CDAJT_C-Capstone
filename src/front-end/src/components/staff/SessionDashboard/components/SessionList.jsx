@@ -15,7 +15,7 @@ const SessionList = () => {
   const fetchSessionRequests = useCallback(async (sessionId) => {
     try {
       // TODO: ServiceRequest endpoint by session ID
-      console.log("sessionID: ", sessionId);
+
       const response = await api.get(`/ServiceRequest/by-session/${sessionId}`);
       if (response.status !== 200) return 0;
       const data = response.data;
@@ -52,7 +52,7 @@ const SessionList = () => {
   // TODO: Consider debouncing with useRef to avoid excessive calls. Look over dependencies
   const updateSessionOrder = useCallback(async () => {
     const requests = {};
-    console.log("Sessions: ", sessions);
+
     await Promise.all(
       sessions.map(async (session) => {
         requests[session.session_Id] = await fetchSessionRequests(

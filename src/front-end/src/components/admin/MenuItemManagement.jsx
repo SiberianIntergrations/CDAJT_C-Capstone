@@ -82,7 +82,7 @@ const MenuItemManagement = () => {
         api.get("/Menu"),
         api.get("/tag/colors"), // TODO: Need Tag Controllers
       ]);
-  
+
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setMenus(Array.isArray(menusData) ? menusData : []);
@@ -99,12 +99,7 @@ const MenuItemManagement = () => {
     }
   };
 
-  useEffect(() => {
-    console.log("Items updated:", items);
-    console.log("Categories updated:", categories);
-    console.log("Menus updated:", menus);
-    console.log("Tags updated:", tags);
-  }, [items, categories, tags, menus]);
+  useEffect(() => {}, [items, categories, tags, menus]);
 
   useEffect(() => {
     fetchData();
@@ -112,11 +107,10 @@ const MenuItemManagement = () => {
 
   const handleTagAction = async (itemId, tagId, action) => {
     try {
-      console.log(`Performing tag ${action} action...`);
       if (action === "add") {
-        await api.post(`/menu-items/${itemId}/tags/${tagId}`)
+        await api.post(`/menu-items/${itemId}/tags/${tagId}`);
       } else {
-        await api.delete(`/menu-items/${itemId}/tags/${tagId}`)
+        await api.delete(`/menu-items/${itemId}/tags/${tagId}`);
       }
       await fetchData();
     } catch (err) {
@@ -130,7 +124,6 @@ const MenuItemManagement = () => {
     setImageFile(null);
     setImagePreview("");
     setDialogOpen(true);
-    console.log("Opening Create Item")
   };
 
   const handleEdit = (item) => {
@@ -141,13 +134,10 @@ const MenuItemManagement = () => {
 
   const handleDelete = async (item) => {
     try {
-      console.log("Item Id: ",item)
-      const response = await api.get(
-        `/menuitem/${item.item_id}`
-      );
-      console.log("Checking item assignments (api)...");
+      // console.log("Item Id: ", item);
+      const response = await api.get(`/menuitem/${item.item_id}`);
+
       const assignments = response.data;
-      console.log("Assignments (api):", assignments);
 
       if (assignments.length > 0) {
         setError(
@@ -165,8 +155,7 @@ const MenuItemManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      console.log("Deleting item...", itemToDelete);
-      await api.delete(`/menuitem/${itemToDelete.item_id}`)
+      await api.delete(`/menuitem/${itemToDelete.item_id}`);
       await fetchData();
       setDeleteDialogOpen(false);
       setItemToDelete(null);
@@ -303,91 +292,83 @@ const MenuItemManagement = () => {
     },
   ];
 
-const ItemForm = () => {
-  const [formData, setFormData] = useState({
-    name: selectedItem?.name || "",
-    description: selectedItem?.description || "",
-    category_id: selectedItem?.category_id || "",
-  });
+  const ItemForm = () => {
+    const [formData, setFormData] = useState({
+      name: selectedItem?.name || "",
+      description: selectedItem?.description || "",
+      category_id: selectedItem?.category_id || "",
+    });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      setSubmitting(true);
+      setError(null);
 
-    try {
-      let savedItem;
+      try {
+        let savedItem;
 
-      // Step 1: Save menu item basic data
-      if (selectedItem) {
-        // UPDATE existing item
-        console.log("Updating item:", selectedItem.item_id);
-        savedItem = await api.put(
-          `/menuItem/${selectedItem.item_id}`,
-          formData
-        );
-      } else {
-        // CREATE new item
-        console.log("Creating new item");
-        savedItem = await api.post("/menuItem", formData);
-      }
+        // Step 1: Save menu item basic data
+        if (selectedItem) {
+          // UPDATE existing item
 
-      console.log("Saved item response:", savedItem.data);
+          savedItem = await api.put(
+            `/menuItem/${selectedItem.item_id}`,
+            formData
+          );
+        } else {
+          // CREATE new item
 
-      // Step 2: Handle image upload if there is one
-      if (imageFile) {
-        console.log("Uploading image for item:", savedItem.data.item_id);
-        
-        const imageFormData = new FormData();
-        imageFormData.append("file", imageFile);
-
-        // Log FormData contents
-        for (let pair of imageFormData.entries()) {
-          console.log("FormData:", pair[0], pair[1]);
+          savedItem = await api.post("/menuItem", formData);
         }
 
-        const imageResponse = await api.post(
-          `/menuItem/${savedItem.data.item_id}/image`,
-          imageFormData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-            },
+        // Step 2: Handle image upload if there is one
+        if (imageFile) {
+          const imageFormData = new FormData();
+          imageFormData.append("file", imageFile);
+
+          // Log FormData contents
+          for (let pair of imageFormData.entries()) {
           }
+
+          const imageResponse = await api.post(
+            `/menuItem/${savedItem.data.item_id}/image`,
+            imageFormData,
+            {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          );
+        }
+
+        // Step 3: Refresh data and close dialog
+        await fetchData();
+        setDialogOpen(false);
+        setImageFile(null);
+        setError(null);
+
+        // Optional: Show success message
+        setSuccessMessage(
+          selectedItem
+            ? "Menu item updated successfully"
+            : "Menu item created successfully"
         );
+      } catch (err) {
+        console.error("Error saving item:", err);
+        console.error("Error response:", err.response);
 
-        console.log("Image upload response:", imageResponse.data);
+        const errorMessage =
+          err.response?.data?.detail ||
+          err.response?.data?.message ||
+          err.response?.data ||
+          err.message ||
+          "Failed to save menu item";
+
+        setError(errorMessage);
+      } finally {
+        setSubmitting(false);
       }
-
-      // Step 3: Refresh data and close dialog
-      await fetchData();
-      setDialogOpen(false);
-      setImageFile(null);
-      setError(null);
-      
-      // Optional: Show success message
-      setSuccessMessage(
-        selectedItem 
-          ? "Menu item updated successfully" 
-          : "Menu item created successfully"
-      );
-      
-    } catch (err) {
-      console.error("Error saving item:", err);
-      console.error("Error response:", err.response);
-      
-      const errorMessage = 
-        err.response?.data?.detail || 
-        err.response?.data?.message || 
-        err.response?.data ||
-        err.message || 
-        "Failed to save menu item";
-        
-      setError(errorMessage);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    };
 
     return (
       <Dialog
@@ -645,7 +626,9 @@ const ItemForm = () => {
                       height: "100%",
                     }}
                   >
-                    <Typography>{category?.category_name || "(No category)"}</Typography>
+                    <Typography>
+                      {category?.category_name || "(No category)"}
+                    </Typography>
                   </Box>
                 );
               },

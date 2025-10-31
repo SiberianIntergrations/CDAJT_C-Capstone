@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { Line } from 'react-chartjs-2';
+import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,43 +32,35 @@ const OrderTiming = () => {
   const [error, setError] = useState(null);
   const router = useRouter();
 
-
-      useEffect(() => {
-        const fetchData = async () => {
-          const accessToken = localStorage.getItem("access_token");
-    
-    
-          if (!accessToken) {
-            setError("No token found");
-            router.push("/auth/login");
-            return;
-          }
-    
-          try {
-            const response = await api.get("analytics/order-timing")
-            
-            setData(response.data);
-            setDailyAverageTiming(response.data.dailyAverageTiming)
-            console.log(response.data)
-          } 
-          catch (err) {
-            console.error("Error fetching data:", err);
-            if (err.response && err.response.status === 401) {
-              console.log(err.response)
-            } 
-          }
-          finally {
-            setLoading(false);
-          }
-        };
-    
-        fetchData();
-      }, [router]);
-  
-
   useEffect(() => {
-    console.log("Daily Average Timing State:", dailyAverageTiming);
-  }, [dailyAverageTiming]);
+    const fetchData = async () => {
+      const accessToken = localStorage.getItem("access_token");
+
+      if (!accessToken) {
+        setError("No token found");
+        router.push("/auth/login");
+        return;
+      }
+
+      try {
+        const response = await api.get("analytics/order-timing");
+
+        setData(response.data);
+        setDailyAverageTiming(response.data.dailyAverageTiming);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        if (err.response && err.response.status === 401) {
+          // console.log(err.response);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [router]);
+
+  useEffect(() => {}, [dailyAverageTiming]);
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
@@ -82,7 +74,6 @@ const OrderTiming = () => {
     );
     return (total / filteredData.length / 60).toFixed(2);
   };
-
 
   const ChartComponent = () => {
     const chartData = {
@@ -140,7 +131,9 @@ const OrderTiming = () => {
               {dailyAverageTiming.map((item, index) => (
                 <tr key={index}>
                   <td>{item.day}</td>
-                  <td>{(item.averageTimeToFirstOrderSeconds /60 ).toFixed(2)}</td>
+                  <td>
+                    {(item.averageTimeToFirstOrderSeconds / 60).toFixed(2)}
+                  </td>
                 </tr>
               ))}
             </tbody>

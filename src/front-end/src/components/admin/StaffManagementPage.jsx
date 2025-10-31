@@ -20,7 +20,7 @@ import api from "@/config/api";
 
 const StaffManagementPage = () => {
   const [staff, setStaff] = useState([]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -39,8 +39,7 @@ const StaffManagementPage = () => {
       setLoading(true);
 
       const response = await api.get("/staff");
-      console.log(response);
-      console.log(response.statusText);
+
       if (response.status !== 200)
         throw new Error("Failed to fetch staff members");
 
@@ -73,35 +72,34 @@ const StaffManagementPage = () => {
 
   useEffect(() => {
     fetchStaff();
-    console.log(staff);
   }, []);
 
-const handleStatusChange = async (staffMember, newStatus) => {
-  try {
-    setSubmitting(true);
-    
-    const response = await api.put(`/staff/${staffMember.user_id}`, {
-      status: newStatus,
-    });
-    
-    await fetchStaff();
-    
-    setSnackbar({
-      open: true,
-      message: `Staff member ${
-        newStatus === "active" ? "activated" : "deactivated"
-      } successfully`,
-      severity: "success",
-    });
-  } catch (err) {
-    console.error("Error updating staff status:", err);
-    setError(
-      err.response?.data?.detail || "Failed to update staff member status"
-    );
-  } finally {
-    setSubmitting(false);
-  }
-};
+  const handleStatusChange = async (staffMember, newStatus) => {
+    try {
+      setSubmitting(true);
+
+      const response = await api.put(`/staff/${staffMember.user_id}`, {
+        status: newStatus,
+      });
+
+      await fetchStaff();
+
+      setSnackbar({
+        open: true,
+        message: `Staff member ${
+          newStatus === "active" ? "activated" : "deactivated"
+        } successfully`,
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Error updating staff status:", err);
+      setError(
+        err.response?.data?.detail || "Failed to update staff member status"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleCreateStaff = async (formData) => {
     try {
@@ -131,9 +129,9 @@ const handleStatusChange = async (staffMember, newStatus) => {
   const handleUpdateStaff = async (formData) => {
     try {
       setSubmitting(true);
-      console.log(formData);
 
-      const response = await api.put(`/staff/${selectedStaff.user_id}`,
+      const response = await api.put(
+        `/staff/${selectedStaff.user_id}`,
         formData
       );
 
@@ -159,9 +157,9 @@ const handleStatusChange = async (staffMember, newStatus) => {
   const handleChangePassword = async (passwordData) => {
     try {
       setSubmitting(true);
-      console.log(passwordData)
 
-      const response = await api.post(`/staff/${selectedStaff.user_id}/reset-password`,
+      const response = await api.post(
+        `/staff/${selectedStaff.user_id}/reset-password`,
         { new_password: passwordData.new_password }
       );
       if (response.status !== 200) {
@@ -219,7 +217,6 @@ const handleStatusChange = async (staffMember, newStatus) => {
         onChangePassword={(staff) => {
           setSelectedStaff(staff);
           setPasswordDialogOpen(true);
-          
         }}
       />
 

@@ -66,7 +66,7 @@ const AddButton = styled(IconButton)(({ theme }) => ({
 }));
 
 const DashboardSummary = () => {
-  const { dashboardSummary, openDialog } = useSession();
+  const { dashboardSummary, openDialog, sessions } = useSession();
   const [serviceRequests, setServiceRequests] = useState(0);
   const [isNewRequest, setIsNewRequest] = useState(false);
   const [previousCount, setPreviousCount] = useState(0);
@@ -77,8 +77,14 @@ const DashboardSummary = () => {
 
       if (response.status === 200) {
         const data = response.data;
+
+        // filter to only use service request that are for a location
+        const filtereddata = data.filter((sr) =>
+          sessions.map((s) => s.session_Id).includes(sr.session_id)
+        );
+
         setPreviousCount(serviceRequests);
-        setServiceRequests(data.length);
+        setServiceRequests(filtereddata.length);
 
         if (data.length > previousCount && previousCount !== 0) {
           setIsNewRequest(true);

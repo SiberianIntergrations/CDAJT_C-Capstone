@@ -52,7 +52,7 @@ const SessionsPage = () => {
 
       try {
         const role = getUserRole(token);
-        console.log("TOKEN: ", role);
+
         if (role !== "admin" && role !== "staff") {
           router.push("/unauthorized");
           return false;

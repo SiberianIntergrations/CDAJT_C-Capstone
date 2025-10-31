@@ -13,6 +13,7 @@ import { X } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 
 const NewBillDialog = ({ open, sessionId, onClose }) => {
+  console.log("SESSION: ", sessionId);
   const { createBill } = useSession();
   const [billData, setBillData] = useState({
     billName: "",
@@ -24,13 +25,13 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    console.log(sessionId, billData);
     if (!sessionId || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
-      console.log("Submitting bill data:", billData);
+
       const success = await createBill(sessionId, billData);
-      console.log("Bill creation result:", success);
 
       if (success) {
         setBillData({
@@ -40,7 +41,7 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
           seniorCount: 0,
           totCount: 0,
         });
-        console.log("Closing dialog with success");
+
         onClose(true);
       }
     } catch (error) {

@@ -11,10 +11,6 @@ import { useAuth } from "@/hooks/useAuth";
 //   description: "Manage menu items",
 //
 
-
-
-
-
 const MenuItemManagement = dynamic(
   () => import("@/components/admin/MenuItemManagement"),
   {
@@ -38,23 +34,21 @@ export default function MenuItemsPage() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const { isAuthenticated, userRole, loading } = useAuth();
 
-
   useEffect(() => {
     const checkAuth = () => {
       try {
         const token = getAccessToken();
-        
+
         if (!token) {
           router.push("/auth/login");
           return;
         }
 
         if (loading) {
-          console.log("Still loading auth...");
           return;
         }
-        
-        if(userRole !== "admin"){
+
+        if (userRole !== "admin") {
           router.push("/unauthorized");
           return;
         }
@@ -69,7 +63,7 @@ export default function MenuItemsPage() {
     };
 
     checkAuth();
-  }, [router,isAuthenticated,userRole,loading ]);
+  }, [router, isAuthenticated, userRole, loading]);
 
   if (isLoading || !isAuthorized) {
     return (

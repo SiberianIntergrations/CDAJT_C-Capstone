@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import api from "@/config/api";
+import storage from "@/utils/storage";
 
 export const useSessionData = (updateTrigger = 0) => {
   const [sessions, setSessions] = useState([]);
@@ -14,10 +15,11 @@ export const useSessionData = (updateTrigger = 0) => {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const response = await api.get("/Dashboard/sessions");
+      const response = await api.get(
+        `/Dashboard/sessions?locationId=${storage.get("branch-location")}`
+      );
 
-      if (response.status !== 200)
-        throw new Error("Failed to fetch sessions");
+      if (response.status !== 200) throw new Error("Failed to fetch sessions");
       const data = response.data;
       setSessions(data);
     } catch (err) {
@@ -29,8 +31,7 @@ export const useSessionData = (updateTrigger = 0) => {
   const fetchDashboardSummary = useCallback(async () => {
     try {
       const response = await api.get("/Dashboard/summary");
-      if (response.status !== 200)
-        throw new Error("Failed to fetch summary");
+      if (response.status !== 200) throw new Error("Failed to fetch summary");
       const data = response.data;
       setDashboardSummary(data);
     } catch (err) {
