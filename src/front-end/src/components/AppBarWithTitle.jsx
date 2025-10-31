@@ -38,6 +38,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { logoutUser } from "@/utils/auth";
 import api from "@/config/api";
 import storage from "@/utils/storage";
+import { LocationOn } from "@mui/icons-material";
 
 const AppBarWithTitle = ({ title }) => {
   const router = useRouter();
@@ -257,6 +258,22 @@ const AppBarWithTitle = ({ title }) => {
                 <Select
                   value={Number(selectedLocation)}
                   onChange={handleLocationChange}
+                  // renderValue={() => <LocationOn sx={{ color: "white" }} />}
+                  renderValue={(value) => {
+                    const location = allLocations?.find(
+                      (loc) => loc.location_Id === value
+                    );
+                    return (
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
+                        <LocationOn sx={{ color: "white" }} />
+                        <Box sx={{ display: { xs: "none", md: "block" } }}>
+                          {location?.name || "Select Location"}
+                        </Box>
+                      </Box>
+                    );
+                  }}
                   displayEmpty
                   sx={{
                     color: "white",
