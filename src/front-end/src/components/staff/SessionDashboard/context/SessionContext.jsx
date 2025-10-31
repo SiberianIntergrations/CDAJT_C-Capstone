@@ -76,19 +76,46 @@ export const SessionProvider = ({ children }) => {
     
     // Utilities
     clearActionError,
-  } = useSessionActions(async () => {
-    // This callback runs after successful actions
-    await Promise.all([fetchSessions(), fetchDashboardSummary()]);
+  } = useSessionActions();
+
+  useEffect(() => {
+    if (hookActionError) {
+    }
+  }, [hookActionError]);
+
+  // Wrap each action to trigger updates after completion
+  const createSession = async (
+    menuId,
+    locationId,
+    tableId,
+    tableGroupId,
+    tableAssignmentType
+  ) => {
+    try {
+      if (tableAssignmentType === "table") {
+        await api.post(
+          `/DiningSession/Create_Dinning_Session?assignmentType=table`,
+          {
+            menu_Id: menuId,
+            location_Id: locationId,
+            table_Id: tableId,
+          }
+        );
+      } else if (tableAssignmentType === "tableGroup") {
+        await api.post(
+          `/DiningSession/Create_Dinning_Session?assignmentType=table_group`,
+          {
+            menu_Id: menuId,
+            location_Id: locationId,
+            tableGroup_Id: tableGroupId,
+          }
+        );
+      }
+    } catch (error) {
+      console.error("Error creating session:", error);
+      return false;
+    }
     triggerUpdate();
-  });
-
-  // Combined loading state
-  const isLoading = dataLoading || actionLoading;
-
-  // Wrapper functions that maintain backward compatibility
-  const createSession = async (sessionData) => {
-    const result = await createDiningSession(sessionData);
-    return result !== null && result !== undefined;
   };
 
   const addTable = async (sessionId, tableId) => {
@@ -127,6 +154,7 @@ export const SessionProvider = ({ children }) => {
   };
 
   const openDialog = useCallback((dialogName, sessionId = null) => {
+    console.log("Dialog session: ", sessionId);
     setDialogState((prev) => ({
       ...prev,
       [dialogName]: true,

@@ -20,12 +20,14 @@ const BillSelect = (props) => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [lastRefresh, setLastRefresh] = useState("");
+  const [lastRefresh, setLastRefresh] = useState(null);
 
-  // Initial "last updated" stamp
+  // TODO: Change to polling or WebSocket for rendering bill updates
+
   useEffect(() => {
     setLastRefresh(new Date().toLocaleTimeString());
   }, []);
+
 
   useEffect(() => {
     const fetchBills = async () => {

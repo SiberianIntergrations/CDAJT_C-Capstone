@@ -27,8 +27,7 @@ const TagManagementPage = () => {
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem("access_token");
-      console.log("This is the token: ", token);
-      
+
       if (!token) {
         router.push("/auth/login");
         return;
@@ -36,15 +35,12 @@ const TagManagementPage = () => {
 
       // IMPORTANT: Wait for useAuth to finish loading
       if (loading) {
-        console.log("Still loading auth...");
         return;
       }
 
-      console.log("User Role:", userRole);
-      
       try {
         // Now userRole should be loaded
-        if (!userRole || userRole.toLowerCase().trim() !== "admin") {  
+        if (!userRole || userRole.toLowerCase().trim() !== "admin") {
           router.push("/unauthorized");
           return;
         }

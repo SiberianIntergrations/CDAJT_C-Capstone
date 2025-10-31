@@ -38,9 +38,7 @@ const OrderDashboard = () => {
       setLoading(true);
       const response = await api.get("/orders/?session_id=1"); // TODO: Replace with actual session ID and update the rest of endpoints
 
-      if (response.status !== 200)
-        throw new Error("Failed to fetch orders");
-      console.log("Response:", response);
+      if (response.status !== 200) throw new Error("Failed to fetch orders");
 
       // Transform the data to match the component's expected structure
       const transformedData = response.data.map((order) => ({
@@ -107,7 +105,6 @@ const OrderDashboard = () => {
     }
   };
 
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" p={4}>
@@ -144,7 +141,6 @@ const OrderDashboard = () => {
       {orders.length === 0 ? (
         <Alert severity="info">No pending orders to display</Alert>
       ) : (
-        (console.log(orders),
         orders.map((order) => (
           <Card key={order.order_id} sx={{ mb: 3, p: 2 }}>
             <Box
@@ -258,7 +254,7 @@ const OrderDashboard = () => {
               </Box>
             )}
           </Card>
-        )))
+        ))
       )}
     </Box>
   );

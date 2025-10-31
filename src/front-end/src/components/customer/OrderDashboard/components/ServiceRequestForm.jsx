@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SendIcon from '@mui/icons-material/Send';
+import SendIcon from "@mui/icons-material/Send";
 import {
   Box,
   Button,

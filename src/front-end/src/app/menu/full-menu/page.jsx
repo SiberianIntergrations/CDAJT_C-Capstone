@@ -210,55 +210,35 @@ const FullMenu = () => {
     getActiveSession();
   }, []);
 
-
-useEffect(() => {
-  //Session ID can only be 1 or above
-  if (!sessionId || sessionId < 1) {
-    console.log("Invalid sessionId. Skipping menu fetch.");
-    return;
-  }
-
-  const fetchMenu = async () => {
-    try {
-      setError(null);
-
-      const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
-
-      if (response?.status >= 200 && response.status < 300 && response.data) {
-        const raw = response.data;
-        console.log("session-menu raw =", raw);
-
-
-        const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
-        const getMenuID =
-          typeof id === "number" ? id : parseInt(String(id), 10);
-
-        if (Number.isNaN(getMenuID) || getMenuID < 1) {
-          console.warn("Menu ID is invalid:", raw);
-          setError("No menu for this session");
-          return;
-        }
-
-        setMenuId(getMenuID);
-
-        console.log("parsed menuId =", getMenuID);
-      } else {
-        console.warn("No menu found", response?.data);
-        setError("No menu found for this session");
-      }
-    } catch (err) {
-      console.error("Error fetching menu:", err);
-      const message =
-        err?.response?.data?.detail ??
-        err?.response?.data?.message ??
-        err?.message ??
-        "Error fetching menu";
-      setError(message);
+  useEffect(() => {
+    if (!sessionId || sessionId < 1) {
+      return;
     }
-  };
-
-  fetchMenu();
-}, [sessionId]);
+    const fetchMenu = async () => {
+      try {
+        setError(null);
+        // api from old project: /dining-sessions/session-menu/{sessionId} GET
+        const response = await api.get(
+          `/DiningSession/session-menu/${sessionId}`
+        );
+        if (response?.status >= 200 && response.status < 300 && response.data) {
+          setMenuId(response.data.menu_id ?? response.data);
+        } else {
+          console.warn("No menu found", response?.data);
+          setError("No menu found for this session");
+        }
+      } catch (err) {
+        console.error("Error fetching menu:", err);
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          "Error fetching menu";
+        setError(message);
+      }
+    };
+    fetchMenu();
+  }, [sessionId]);
 
 
 //When you have the menuID call to get current menu
@@ -345,17 +325,11 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                 (item) => item.item_id === parseInt(itemId)
               );
 
-              console.log("Menu Item: ", menuItem);
-
               if (!menuItem) {
                 throw new Error(`Menu item ${itemId} not found`);
               }
 
-              console.log("Menu Item Price: ", menuItem.price);
-              console.log("Is add on: ", menuItem.is_add_on);
-
               let newPrice = menuItem.is_add_on ? menuItem.price : 0;
-              console.log("New Price: ", newPrice);
 
               const response = await api.post(`/orders/${orderId}/items`, {
                 order_id: orderId,

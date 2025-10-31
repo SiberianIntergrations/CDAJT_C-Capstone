@@ -7,23 +7,14 @@ const SessionContextWrapper = ({ children }) => {
   const [localSessionId, setLocalSessionId] = useState(null);
 
   const createBill = async (sessionId, billData) => {
-    console.log(
-      "Creating bill with sessionId:",
-      sessionId,
-      "and data:",
-      billData
-    );
     try {
-      const response = await api.post(
-        `/sessions/${sessionId}/bills`,
-        {
-          bill_name: billData.billName,
-          adult_count: billData.adultCount,
-          child_count: billData.childCount,
-          senior_count: billData.seniorCount,
-          tot_count: billData.totCount,
-        }
-      );
+      const response = await api.post(`/sessions/${sessionId}/bills`, {
+        bill_name: billData.billName,
+        adult_count: billData.adultCount,
+        child_count: billData.childCount,
+        senior_count: billData.seniorCount,
+        tot_count: billData.totCount,
+      });
       return response.status === 200 || response.status === 201;
     } catch (error) {
       console.error("Error creating bill:", error);

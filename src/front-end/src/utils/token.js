@@ -44,7 +44,7 @@ export const decodeToken = (token) => {
   if (!token) return null;
   try {
     const decoded = jwtDecode(token);
-    console.log("Decoded token:", decoded);
+
     return decoded;
   } catch (error) {
     console.error("Error decoding token:", error?.message);
@@ -70,8 +70,8 @@ export const normalizedUserRole = (role) => {
     'staff': 'staff',
     'customer': 'customer',
   };
-  const normalized = roleMap[roleLower] || 'customer';
-  console.log(`Normalized role: ${role} -> ${normalized}`);
+  const normalized = roleMap[roleLower] || "customer";
+
   return normalized;
 };
 
@@ -85,7 +85,8 @@ export const getUserRole = (token) => {
 
   if (!role) {
     // Microsoft Identity Claims Format
-    const msRoleClaim = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+    const msRoleClaim =
+      "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
     role = decoded[msRoleClaim];
   }
   return normalizedUserRole(role);
@@ -94,12 +95,12 @@ export const getUserRole = (token) => {
 export const getUserId = (token) => {
   const decoded = decodeToken(token || getAccessToken());
   return decoded?.sub || decoded?.user_id || decoded?.id || null;
-}
+};
 
 export const getUserEmail = (token) => {
   const decoded = decodeToken(token || getAccessToken());
   return decoded?.email || null;
-}
+};
 
 export const getUserClaims = (token) => {
   return decodeToken(token || getAccessToken());
