@@ -1,290 +1,219 @@
+using System.Text;
 using QRCoder;
-using System.Drawing;
-using System.Drawing.Imaging;
 using SkiaSharp;
 using back_end.domain.DbContexts;
 using Microsoft.EntityFrameworkCore;
-using System.Runtime.Versioning;
 
 namespace back_end.Services
 {
     /// <summary>
-    /// Service for generating QR codes for WiFi and authentication with location-based configuration
+    /// Generates, labels, caches, and serves QR codes (WiFi + Session) using QRCoder + SkiaSharp.
+    /// Cross-platform (Linux/Windows/macOS). Stores PNGs under storage/qrcodes/.
     /// </summary>
-    [SupportedOSPlatform("windows")]
     public class QrGeneratorService
     {
-        // Made internal for controller access - not ideal but simplifies implementation
-        internal readonly ApplicationDbContext _context;
-        private readonly IConfiguration _configuration;
-        private readonly string _storagePath;
+        private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _config;
         private readonly ILogger<QrGeneratorService> _logger;
+        private readonly string _storagePath;
 
         public QrGeneratorService(
             ApplicationDbContext context,
-            IConfiguration configuration,
+            IConfiguration config,
             ILogger<QrGeneratorService> logger)
         {
             _context = context;
-            _configuration = configuration;
+            _config = config;
             _logger = logger;
 
-            // Storage path for generated QR codes
             _storagePath = Path.Combine(Directory.GetCurrentDirectory(), "storage", "qrcodes");
-
-            // Create storage directory if it doesn't exist
-            if (!Directory.Exists(_storagePath))
-            {
-                Directory.CreateDirectory(_storagePath);
-            }
+            Directory.CreateDirectory(_storagePath);
         }
 
-        /// <summary>
-        /// Create a WiFi QR code bitmap
-        /// </summary>
-        /// <param name="ssid">WiFi network name</param>
-        /// <param name="password">WiFi password</param>
-        /// <param name="hidden">Whether the network is hidden</param>
-        /// <returns>Bitmap containing the QR code</returns>
-        public Bitmap CreateWifiQr(string ssid, string password, bool hidden = false)
-        {
-            // WiFi QR format: WIFI:T:WPA;S:ssid;P:password;H:true/false;;
-            string encryptionType = "WPA"; // WPA/WPA2
-            string hiddenFlag = hidden ? "true" : "false";
-            string qrData = $"WIFI:T:{encryptionType};S:{ssid};P:{password};H:{hiddenFlag};;";
+        // ---------- Public: Controller-facing helpers ----------
 
-            using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
+        public async Task<byte[]?> GetWifiQrBytesAsync(int locationId, int table, bool useCache = true, CancellationToken ct = default)
+        {
+            if (useCache)
             {
-                QRCodeData qrCodeData = qrGenerator.CreateQrCode(qrData, QRCodeGenerator.ECCLevel.Q);
-                using (QRCode qrCode = new QRCode(qrCodeData))
-                {
-                    // Return a new bitmap that won't be disposed
-                    return new Bitmap(qrCode.GetGraphic(20));
-                }
+                var existing = GetExistingQrCodePath(locationId, table, "wifi");
+                if (existing is not null && File.Exists(existing))
+                    return await File.ReadAllBytesAsync(existing, ct);
             }
+
+            var creds = await GetLocationWifiCredentials(locationId, ct);
+            if (creds is null) return null;
+            var (ssid, password) = creds.Value;
+
+            var locationName = await GetLocationNameAsync(locationId, ct) ?? $"Location {locationId}";
+
+            var payload = new PayloadGenerator.WiFi(
+                ssid, password, PayloadGenerator.WiFi.Authentication.WPA, false).ToString();
+
+            var qrBytes = CreateQrPng(payload, QRCodeGenerator.ECCLevel.Q, pixelsPerModule: 20);
+            var labeled = AddLabelWithSkiaBelow(qrBytes, $"{locationName} — Table {table} — WiFi");
+
+            var filePath = Path.Combine(_storagePath, $"wifi_L{locationId}_T{table}.png");
+            await File.WriteAllBytesAsync(filePath, labeled, ct);
+            return labeled;
         }
 
-        /// <summary>
-        /// Create a session URL QR code bitmap that starts dining session
-        /// </summary>
-        /// <param name="sessionUrl">The session start page URL (redirects to menu)</param>
-        /// <returns>Bitmap containing the QR code</returns>
-        public Bitmap CreateSessionQr(string sessionUrl)
+        public async Task<byte[]?> GetSessionQrBytesAsync(int locationId, int table, bool useCache = true, CancellationToken ct = default)
         {
-            using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
+            if (useCache)
             {
-                QRCodeData qrCodeData = qrGenerator.CreateQrCode(sessionUrl, QRCodeGenerator.ECCLevel.Q);
-                using (QRCode qrCode = new QRCode(qrCodeData))
-                {
-                    // Return a new bitmap that won't be disposed
-                    return new Bitmap(qrCode.GetGraphic(20));
-                }
+                var existing = GetExistingQrCodePath(locationId, table, "session");
+                if (existing is not null && File.Exists(existing))
+                    return await File.ReadAllBytesAsync(existing, ct);
             }
+
+            var locationName = await GetLocationNameAsync(locationId, ct);
+            if (locationName is null) return null;
+
+            var url = GetSessionUrl(locationId, table);
+            var qrBytes = CreateQrPng(url, QRCodeGenerator.ECCLevel.Q, pixelsPerModule: 20);
+            var labeled = AddLabelWithSkiaBelow(qrBytes, $"{locationName} — Table {table} — Menu");
+
+            var filePath = Path.Combine(_storagePath, $"session_L{locationId}_T{table}.png");
+            await File.WriteAllBytesAsync(filePath, labeled, ct);
+            return labeled;
         }
 
-        /// <summary>
-        /// Render a QR code with a text label
-        /// </summary>
-        /// <param name="qrBitmap">The QR code bitmap</param>
-        /// <param name="labelText">Text to display below the QR code</param>
-        /// <returns>New bitmap with QR code and label</returns>
-        public Bitmap RenderLabeledQr(Bitmap qrBitmap, string labelText)
+        public async Task<string?> GenerateAndSaveWifiQr(int locationId, int table, CancellationToken ct = default)
         {
-            const int labelHeight = 60;
-            const int padding = 10;
+            var bytes = await GetWifiQrBytesAsync(locationId, table, useCache: false, ct);
+            if (bytes is null) return null;
 
-            // Create a new bitmap with extra height for the label
-            Bitmap labeledImage = new Bitmap(
-                qrBitmap.Width + (padding * 2),
-                qrBitmap.Height + labelHeight + (padding * 2)
-            );
-
-            using (Graphics g = Graphics.FromImage(labeledImage))
-            {
-                // Fill background with white
-                g.Clear(Color.White);
-
-                // Draw the QR code
-                g.DrawImage(qrBitmap, padding, padding);
-
-                // Draw the label
-                using (Font font = new Font("Arial", 12, FontStyle.Bold))
-                using (SolidBrush brush = new SolidBrush(Color.Black))
-                {
-                    StringFormat sf = new StringFormat
-                    {
-                        Alignment = StringAlignment.Center,
-                        LineAlignment = StringAlignment.Center
-                    };
-
-                    Rectangle labelRect = new Rectangle(
-                        0,
-                        qrBitmap.Height + padding,
-                        labeledImage.Width,
-                        labelHeight
-                    );
-
-                    g.DrawString(labelText, font, brush, labelRect, sf);
-                }
-            }
-
-            return labeledImage;
-        }
-
-        /// <summary>
-        /// Get WiFi credentials for a specific location
-        /// </summary>
-        /// <param name="locationId">Location ID</param>
-        /// <returns>Tuple containing SSID and password, or null if location not found</returns>
-        public async Task<(string ssid, string password)?> GetLocationWifiCredentials(int locationId)
-        {
-            var location = await _context.Locations.FindAsync(locationId);
-
-            if (location == null)
-            {
-                _logger.LogWarning($"Location {locationId} not found");
-                return null;
-            }
-
-            // Try to get location-specific WiFi settings from configuration
-            // Format: QRCodeSettings:Locations:{locationId}:WiFi:SSID
-            var locationSsid = _configuration[$"QRCodeSettings:Locations:{locationId}:WiFi:SSID"];
-            var locationPassword = _configuration[$"QRCodeSettings:Locations:{locationId}:WiFi:Password"];
-
-            if (!string.IsNullOrEmpty(locationSsid) && !string.IsNullOrEmpty(locationPassword))
-            {
-                return (locationSsid, locationPassword);
-            }
-
-            // Fallback to default WiFi credentials
-            var defaultSsid = _configuration["QRCodeSettings:WiFi:SSID"];
-            var defaultPassword = _configuration["QRCodeSettings:WiFi:Password"];
-
-            if (string.IsNullOrEmpty(defaultSsid) || string.IsNullOrEmpty(defaultPassword))
-            {
-                _logger.LogError("No WiFi credentials configured");
-                return null;
-            }
-
-            return (defaultSsid, defaultPassword);
-        }
-
-        /// <summary>
-        /// Get the session start URL for a specific location and table
-        /// </summary>
-        /// <param name="locationId">Location ID</param>
-        /// <param name="tableNumber">Table number</param>
-        /// <returns>Session start URL that will create a dining session with location and table</returns>
-        public string GetSessionUrl(int locationId, int tableNumber)
-        {
-            var baseUrl = _configuration["QRCodeSettings:SessionPageUrl"]
-                ?? _configuration["Restaurant:BaseUrl"]
-                ?? "http://localhost:3000";
-
-            // Customer scans QR, creates dining session with location/table, then redirects to menu
-            // The front-end should handle creating the session via POST /api/diningsession/Create_Dinning_Session
-            return $"{baseUrl}/start-session?locationId={locationId}&tableNumber={tableNumber}";
-        }
-
-        /// <summary>
-        /// Generate and save WiFi QR code to storage
-        /// </summary>
-        /// <param name="locationId">Location ID</param>
-        /// <param name="tableNumber">Table number</param>
-        /// <returns>File path of saved QR code, or null if failed</returns>
-        public async Task<string?> GenerateAndSaveWifiQr(int locationId, int tableNumber)
-        {
-            var credentials = await GetLocationWifiCredentials(locationId);
-            if (credentials == null)
-            {
-                return null;
-            }
-
-            var (ssid, password) = credentials.Value;
-            var location = await _context.Locations.FindAsync(locationId);
-            var locationName = location?.Name ?? $"Location{locationId}";
-
-            using var qrBitmap = CreateWifiQr(ssid, password, hidden: false);
-            using var labeledBitmap = RenderLabeledQr(
-                qrBitmap,
-                $"{locationName} — Table {tableNumber} — WiFi"
-            );
-
-            var fileName = $"wifi_L{locationId}_T{tableNumber}.png";
-            var filePath = Path.Combine(_storagePath, fileName);
-
-            labeledBitmap.Save(filePath, ImageFormat.Png);
-            _logger.LogInformation($"Generated WiFi QR code: {fileName}");
-
+            var filePath = Path.Combine(_storagePath, $"wifi_L{locationId}_T{table}.png");
+            if (!File.Exists(filePath)) await File.WriteAllBytesAsync(filePath, bytes, ct);
+            _logger.LogInformation("Generated WiFi QR: wifi_L{loc}_T{table}.png", locationId, table);
             return filePath;
         }
 
-        /// <summary>
-        /// Generate and save session QR code to storage (starts dining session, redirects to menu)
-        /// </summary>
-        /// <param name="locationId">Location ID</param>
-        /// <param name="tableNumber">Table number</param>
-        /// <returns>File path of saved QR code, or null if failed</returns>
-        public async Task<string?> GenerateAndSaveSessionQr(int locationId, int tableNumber)
+        public async Task<string?> GenerateAndSaveSessionQr(int locationId, int table, CancellationToken ct = default)
         {
-            var location = await _context.Locations.FindAsync(locationId);
-            if (location == null)
-            {
-                _logger.LogWarning($"Location {locationId} not found");
-                return null;
-            }
+            var bytes = await GetSessionQrBytesAsync(locationId, table, useCache: false, ct);
+            if (bytes is null) return null;
 
-            var locationName = location.Name ?? $"Location{locationId}";
-            var sessionUrl = GetSessionUrl(locationId, tableNumber);
-
-            using var qrBitmap = CreateSessionQr(sessionUrl);
-            using var labeledBitmap = RenderLabeledQr(
-                qrBitmap,
-                $"{locationName} — Table {tableNumber} — Menu"
-            );
-
-            var fileName = $"session_L{locationId}_T{tableNumber}.png";
-            var filePath = Path.Combine(_storagePath, fileName);
-
-            labeledBitmap.Save(filePath, ImageFormat.Png);
-            _logger.LogInformation($"Generated Session QR code: {fileName}");
-
+            var filePath = Path.Combine(_storagePath, $"session_L{locationId}_T{table}.png");
+            if (!File.Exists(filePath)) await File.WriteAllBytesAsync(filePath, bytes, ct);
+            _logger.LogInformation("Generated Session QR: session_L{loc}_T{table}.png", locationId, table);
             return filePath;
         }
 
-        /// <summary>
-        /// Check if QR code already exists in storage
-        /// </summary>
-        public bool QrCodeExists(int locationId, int tableNumber, string type)
+        public bool QrCodeExists(int locationId, int table, string type)
         {
-            var fileName = $"{type.ToLower()}_L{locationId}_T{tableNumber}.png";
-            var filePath = Path.Combine(_storagePath, fileName);
-            return File.Exists(filePath);
+            var path = Path.Combine(_storagePath, $"{type.ToLower()}_L{locationId}_T{table}.png");
+            return File.Exists(path);
         }
 
-        /// <summary>
-        /// Get existing QR code file path
-        /// </summary>
-        public string? GetExistingQrCodePath(int locationId, int tableNumber, string type)
+        public string? GetExistingQrCodePath(int locationId, int table, string type)
         {
-            var fileName = $"{type.ToLower()}_L{locationId}_T{tableNumber}.png";
-            var filePath = Path.Combine(_storagePath, fileName);
-            return File.Exists(filePath) ? filePath : null;
+            var path = Path.Combine(_storagePath, $"{type.ToLower()}_L{locationId}_T{table}.png");
+            return File.Exists(path) ? path : null;
         }
 
-        /// <summary>
-        /// Delete QR code from storage
-        /// </summary>
-        public void DeleteQrCode(int locationId, int tableNumber, string type)
+        public void DeleteQrCode(int locationId, int table, string type)
         {
-            var fileName = $"{type.ToLower()}_L{locationId}_T{tableNumber}.png";
-            var filePath = Path.Combine(_storagePath, fileName);
-
-            if (File.Exists(filePath))
+            var path = Path.Combine(_storagePath, $"{type.ToLower()}_L{locationId}_T{table}.png");
+            if (File.Exists(path))
             {
-                File.Delete(filePath);
-                _logger.LogInformation($"Deleted QR code: {fileName}");
+                File.Delete(path);
+                _logger.LogInformation("Deleted {type} QR: {file}", type, Path.GetFileName(path));
             }
+        }
+
+        public async Task<string?> GetLocationNameAsync(int locationId, CancellationToken ct = default)
+            => (await _context.Locations.FindAsync(new object[] { locationId }, ct))?.Name;
+
+        public async Task<(string ssid, string password)?> GetLocationWifiCredentials(int locationId, CancellationToken ct = default)
+        {
+            // confirm location exists
+            var loc = await _context.Locations.FindAsync(new object[] { locationId }, ct);
+            if (loc is null)
+            {
+                _logger.LogWarning("Location {loc} not found", locationId);
+                return null;
+            }
+
+            // location-specific overrides
+            var locSsid = _config[$"QRCodeSettings:Locations:{locationId}:WiFi:SSID"];
+            var locPwd  = _config[$"QRCodeSettings:Locations:{locationId}:WiFi:Password"];
+            if (!string.IsNullOrWhiteSpace(locSsid) && !string.IsNullOrWhiteSpace(locPwd))
+                return (locSsid!, locPwd!);
+
+            // defaults
+            var defSsid = _config["QRCodeSettings:WiFi:SSID"];
+            var defPwd  = _config["QRCodeSettings:WiFi:Password"];
+            if (string.IsNullOrWhiteSpace(defSsid) || string.IsNullOrWhiteSpace(defPwd))
+            {
+                _logger.LogError("No WiFi credentials configured (QRCodeSettings:WiFi)");
+                return null;
+            }
+            return (defSsid!, defPwd!);
+        }
+
+        public string GetSessionUrl(int locationId, int table)
+        {
+            var baseUrl = _config["QRCodeSettings:SessionPageUrl"]
+                       ?? _config["Restaurant:BaseUrl"]
+                       ?? "http://localhost:3000";
+            return $"{baseUrl}/start-session?locationId={locationId}&tableNumber={table}";
+        }
+
+        // ---------- Private: rendering ----------
+
+        private static byte[] CreateQrPng(string content, QRCodeGenerator.ECCLevel ecc, int pixelsPerModule)
+        {
+            using var gen  = new QRCodeGenerator();
+            using var data = gen.CreateQrCode(content, ecc);
+            var png = new PngByteQRCode(data);
+            return png.GetGraphic(pixelsPerModule);
+        }
+
+        /// <summary>Add a single-line label below the QR using SkiaSharp; returns PNG bytes.</summary>
+        private static byte[] AddLabelWithSkiaBelow(byte[] qrPng, string label)
+        {
+            using var qrBitmap = SKBitmap.Decode(qrPng);
+            int qrW = qrBitmap.Width;
+            int qrH = qrBitmap.Height;
+
+            int labelHeight = 60;
+
+            var info = new SKImageInfo(qrW, qrH + labelHeight);
+            using var surface = SKSurface.Create(info);
+            var canvas = surface.Canvas;
+
+            // White background
+            canvas.Clear(SKColors.White);
+
+            // Draw QR
+            canvas.DrawBitmap(qrBitmap, new SKPoint(0, 0));
+
+            using var typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold)
+                                ?? SKTypeface.Default;
+
+            using var font = new SKFont(typeface, 24); // <--- Enter Text size
+
+            using var paint = new SKPaint
+            {
+                Color = SKColors.Black,
+                IsAntialias = true
+            };
+
+            // Compute center X
+            float textX = qrW / 2f;
+
+            // Compute Y position manually
+            float textY = qrH + (labelHeight / 2f);
+
+            // Draw centered text (set alignment on paint)
+            canvas.DrawText(label, textX, textY, SKTextAlign.Center, font, paint);
+
+            // Encode PNG
+            using var img = surface.Snapshot();
+            using var data = img.Encode(SKEncodedImageFormat.Png, 100);
+            return data.ToArray();
         }
     }
 }

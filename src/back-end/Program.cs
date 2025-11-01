@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Seeders;
+using back_end.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -73,11 +74,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Seeders registration
 builder.Services.AddDatabaseSeeders();
 
-// QR Code Generation Service (Windows-only due to System.Drawing dependency)
-if (OperatingSystem.IsWindows())
-{
-    builder.Services.AddScoped<back_end.Services.QrGeneratorService>();
-}
+// QR Code Generation Service - Single cross-platform registration
+builder.Services.AddScoped<QrGeneratorService>();
 
 // JWT Auth
 builder.Services.AddAuthentication(options =>
