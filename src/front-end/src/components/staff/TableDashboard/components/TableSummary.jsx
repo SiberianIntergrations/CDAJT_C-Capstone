@@ -1,7 +1,8 @@
-import { Box, Card, Typography, IconButton } from "@mui/material";
-import { Plus } from "lucide-react";
+import { Box, Card, Typography, IconButton, Collapse } from "@mui/material";
+import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";
+import { useState } from "react";
 
 const CompactCard = styled(Card)(({ theme }) => ({
   backgroundColor: theme.palette.common.white,
@@ -11,25 +12,53 @@ const CompactCard = styled(Card)(({ theme }) => ({
   padding: theme.spacing(1.5),
 }));
 
-const AddButton = styled(IconButton)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: "white",
-  padding: theme.spacing(1),
-  minWidth: "auto",
+const AddButton = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.common.white,
+  border: `2px solid ${theme.palette.primary.main}`,
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(2),
+  cursor: "pointer",
+  transition: "all 0.2s ease-in-out",
   "&:hover": {
-    backgroundColor: theme.palette.primary.dark,
+    backgroundColor: theme.palette.primary.main,
+    color: "white",
+    "& .MuiTypography-root": {
+      color: "white",
+    },
+    "& svg": {
+      color: "white",
+    },
   },
-  "& svg": {
-    width: 20,
-    height: 20,
+}));
+
+const OptionButton = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.common.white,
+  border: `2px dashed ${theme.palette.divider}`,
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(2),
+  cursor: "pointer",
+  transition: "all 0.2s ease-in-out",
+  "&:hover": {
+    borderColor: theme.palette.primary.main,
+    backgroundColor: theme.palette.action.hover,
+    transform: "translateX(4px)",
   },
 }));
 
 const TableSummary = () => {
   const { tableSummary, openDialog } = useTable();
+  const [expanded, setExpanded] = useState(false);
+  console.log(tableSummary);
 
   return (
-    <Box className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
+        width: "100%",
+      }}
+    >
       <CompactCard>
         <Box
           sx={{
@@ -42,37 +71,70 @@ const TableSummary = () => {
           <Box sx={{ flex: 1 }}>
             <Box display="flex" alignItems="center" gap={2}>
               <Typography variant="h5" color="primary.dark">
-                Tables in Use: {tableSummary.tables_in_use}
+                Active Tables and Table Groups:
               </Typography>
-              <AddButton onClick={() => openDialog("newTable")}>
-                <Plus />
-              </AddButton>
             </Box>
           </Box>
         </Box>
       </CompactCard>
 
-      <CompactCard>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Typography variant="h5" color="secondary">
-                Table Groups
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        <AddButton onClick={() => setExpanded(!expanded)}>
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+              <Plus size={24} color="currentColor" />
+              <Typography variant="h6" color="text.primary">
+                Add New
               </Typography>
-              <AddButton onClick={() => openDialog("newTableGroup")}>
-                <Plus />
-              </AddButton>
             </Box>
+            {expanded ? (
+              <ChevronUp size={20} color="currentColor" />
+            ) : (
+              <ChevronDown size={20} color="currentColor" />
+            )}
           </Box>
-        </Box>
-      </CompactCard>
+        </AddButton>
+
+        <Collapse in={expanded}>
+          <Box
+            sx={{ display: "flex", flexDirection: "column", gap: 1.5, pl: 2 }}
+          >
+            <OptionButton onClick={() => openDialog("newTable")}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Plus size={20} />
+                <Box>
+                  <Typography variant="subtitle1" color="text.primary">
+                    Individual Table
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Create a single table
+                  </Typography>
+                </Box>
+              </Box>
+            </OptionButton>
+
+            <OptionButton onClick={() => openDialog("newTableGroup")}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Plus size={20} />
+                <Box>
+                  <Typography variant="subtitle1" color="text.primary">
+                    Table Group
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Create a group of tables
+                  </Typography>
+                </Box>
+              </Box>
+            </OptionButton>
+          </Box>
+        </Collapse>
+      </Box>
     </Box>
   );
 };
