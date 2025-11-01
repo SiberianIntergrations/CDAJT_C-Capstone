@@ -20,6 +20,7 @@ const Layout = ({ children }) => {
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
+          padding: "2rem 1rem",
         }}
       >
         {children}
