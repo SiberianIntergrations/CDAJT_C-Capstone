@@ -1,5 +1,6 @@
 using QRCoder;
 using System.Drawing;
+using System.Drawing.Imaging;
 using SkiaSharp;
 using back_end.domain.DbContexts;
 using Microsoft.EntityFrameworkCore;

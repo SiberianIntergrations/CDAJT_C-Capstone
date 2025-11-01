@@ -76,7 +76,7 @@ builder.Services.AddDatabaseSeeders();
 // QR Code Generation Service (Windows-only due to System.Drawing dependency)
 if (OperatingSystem.IsWindows())
 {
-    builder.Services.AddScoped<back_end.Services.QrCode.QrGeneratorService>();
+    builder.Services.AddScoped<back_end.Services.QrGeneratorService>();
 }
 
 // JWT Auth
