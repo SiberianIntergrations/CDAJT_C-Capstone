@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Numerics;
 using back_end.domain;
+using System.Security.Claims;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
@@ -92,7 +93,7 @@ namespace back_end.controllers
           return NotFound(new { message = "Bill or session was not found" });
         }
 
-        if (session.Ended_At == null)
+        if (session.Ended_At != null)
         {
           return BadRequest(new { message = $"Cannot create bill for session that ended {session.Ended_At}" });
         }
@@ -114,6 +115,14 @@ namespace back_end.controllers
           return BadRequest(new { message = "Bill_Name is required." });
         }
 
+        // Calculate total count
+        int totalCount = bill_data.Adult_Count + bill_data.Senior_Count + bill_data.Child_Count;
+
+        if (totalCount == 0)
+        {
+          return BadRequest(new { message = "Total guest count must be greater than zero." });
+        }
+
         var NewBill = new Billing
         {
           Session_Id = _session_id,
@@ -121,7 +130,7 @@ namespace back_end.controllers
           Senior_Count = bill_data.Senior_Count,
           Adult_Count = bill_data.Adult_Count,
           Child_Count = bill_data.Child_Count,
-          Total_Count = bill_data.Tot_Count,
+          Total_Count = totalCount, // calculated total
           Status = BillStatus.Open
         };
 

@@ -3,7 +3,6 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import api from "@/config/api";
 
-
 const TableTurnover = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +16,6 @@ const TableTurnover = () => {
       try {
         const response = await api.get("analytics/max-party-size");
         setMaxPartySize(response.data);
-        console.log("Max Party Size Response:", response.data);
       } catch (err) {
         console.error("Error fetching max party size:", err);
         setError("Failed to fetch max party size");
@@ -39,17 +37,13 @@ const TableTurnover = () => {
 
       try {
         const response = await api.get("analytics/table-turnover");
-        
+
         setData(response.data); // FIXED: Remove the duplicate line
-        console.log("Table Turnover Data:", response.data);
-      } 
-      catch (err) {
+      } catch (err) {
         console.error("Error fetching data:", err);
         if (err.response && err.response.status === 401) {
-          console.log(err.response);
-        } 
-      }
-      finally {
+        }
+      } finally {
         setLoading(false);
       }
     };

@@ -206,11 +206,14 @@ namespace back_end.controllers
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             //Add all the claims based on the user's information and their role
+            //Name and Email claims are the same - might need to investigate this further - possible bloat
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, user.User_id.ToString()),
                 new Claim(ClaimTypes.Name, user.Email),
                 new Claim(ClaimTypes.Email, user.Email),
+                new Claim("firstName", user.First_name),
+                new Claim("lastName", user.Last_name),
                 new Claim(ClaimTypes.Role, user.Role.ToString()),
                 new Claim(JwtRegisteredClaimNames.Sub, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),

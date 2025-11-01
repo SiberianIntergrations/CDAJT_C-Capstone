@@ -17,9 +17,7 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
 
   const fetchRequests = useCallback(async () => {
     try {
-      // TODO: ServiceRequest endpoint GET ${sessionId} needed (api from old project: /service-requests/by-session/{sessionId})
-      // TODO: Look over useCallback and dependencies
-      const response = await api.get(`/service-requests/by-session/${session.session_id}`);
+      const response = await api.get(`/ServiceRequest/by-session/${session.session_id}`);
       if (response.status !== 200) {
         throw new Error("Failed to fetch service requests");
       }
@@ -48,8 +46,7 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
   const handleComplete = async (requestId) => {
     try {
       setLoading(true);
-      // TODO: ServiceRequest endpoint POST complete needed (api from old project: /service-requests/{requestId}/complete)
-      const response = await api.post(`/service-requests/${requestId}/complete`);
+      const response = await api.post(`/ServiceRequest/${requestId}/complete`);
       if (response.status !== 200) {
         throw new Error("Failed to complete request");
       }
@@ -109,7 +106,7 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         {requests.map((request) => (
           <Box
-            key={request.request_id}
+            key={request.service_id}
             sx={{
               display: "flex",
               justifyContent: "space-between",
@@ -131,8 +128,12 @@ const ServiceRequests = ({ session, onRequestsUpdate }) => {
               </Box>
             </Box>
             <IconButton
+              component="span" // Added to avoid nested <button>
               size="small"
-              onClick={() => handleComplete(request.request_id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleComplete(request.service_id);
+              }}
               disabled={loading}
               sx={{
                 color: "#4caf50",

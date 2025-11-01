@@ -36,9 +36,8 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
-      console.log("Attempting login...");
       const response = await loginUser(formData.email, formData.password);
-      console.log("Login response:", response);
+
       router.push("/");
     } catch (err) {
       console.error("Login error:", err);

@@ -212,7 +212,6 @@ const FullMenu = () => {
 
   useEffect(() => {
     if (!sessionId || sessionId < 1) {
-      console.log("Invalid sessionId. Skipping menu fetch.");
       return;
     }
     const fetchMenu = async () => {
@@ -241,13 +240,12 @@ const FullMenu = () => {
     fetchMenu();
   }, [sessionId]);
 
-  useEffect(() => {
-    if (menuId && categories.length > 0) {
-      categories.forEach((category) => {
-        fetchMenuItems(category.category_id, menuId);
-      });
-    }
-  }, [menuId, categories]);
+
+//When you have the menuID call to get current menu
+useEffect(() => {
+  if (!menuId) return;
+  fetchMenuItems(null, menuId);
+}, [menuId]);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -274,28 +272,40 @@ const FullMenu = () => {
   }, []);
 
   // TODO: Update api endpoints
-  const fetchMenuItems = async (categoryId, menu_id) => {
-    if (!menu_id || menuItems[categoryId]) return;
-    try {
-      const response = await api.get(
-        `/menus/${menu_id}/items?category_id=${categoryId}`
-      );
-      if (response.status === 200) {
-        for (const item of response.data) {
-          const itemTagsResponse = await api.get(
-            `/menu-items/${item.item_id}/tags-with-colors`
-          );
-          item.tags = itemTagsResponse.data;
-        }
-        setMenuItems((prev) => ({ ...prev, [categoryId]: response.data }));
-      }
-    } catch (err) {
-      console.error(
-        `Error fetching menu items for category ${categoryId}:`,
-        err
-      );
-    }
-  };
+const fetchMenuItems = async (categoryId, menu_id) => {
+
+  //Make sure the menu ID is valid or if we already loaded the menu items
+  if (!menu_id || menuItems[categoryId]) return;
+
+  try {
+    //Call GetItemsByMenu and check if it's in an array
+    const response = await api.get(`/Menu/${menu_id}/item`);
+    const items = Array.isArray(response.data) ? response.data : [];
+
+    //Clean up the field names so it's the same everywhere on the page
+    const normalized = items.map(it => ({
+      item_id: it.item_id ?? it.itemId ?? it.Item_Id,
+      name: it.name,
+      description: it.description,
+      price: it.price,
+      is_add_on: it.is_add_on ?? it.isAddOn,
+      item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
+      category_id: it.categoryID ?? it.categoryId ?? it.category_id,
+      category: it.category,
+      tags: it.tags ?? []
+    }));
+
+    //Group the items so all each category has its own list
+    const grouped = normalized.reduce((acc, item) => {
+      (acc[item.category_id] ||= []).push(item);
+      return acc;
+    }, {});
+
+    setMenuItems(prev => ({ ...prev, ...grouped }));
+  } catch (err) {
+    console.error(`Error fetching menu items for menu ${menu_id}:`, err);
+  }
+};
 
   const handleBillChange = (event) => {
     const billId = event.target.value;
@@ -315,17 +325,11 @@ const FullMenu = () => {
                 (item) => item.item_id === parseInt(itemId)
               );
 
-              console.log("Menu Item: ", menuItem);
-
               if (!menuItem) {
                 throw new Error(`Menu item ${itemId} not found`);
               }
 
-              console.log("Menu Item Price: ", menuItem.price);
-              console.log("Is add on: ", menuItem.is_add_on);
-
               let newPrice = menuItem.is_add_on ? menuItem.price : 0;
-              console.log("New Price: ", newPrice);
 
               const response = await api.post(`/orders/${orderId}/items`, {
                 order_id: orderId,
@@ -379,7 +383,7 @@ const FullMenu = () => {
     setError(null);
 
     try {
-      const orderResponse = await api.post("/orders", {
+      const orderResponse = await api.post("/Order", {
         session_id: sessionId,
         bill_id: selectedBillId,
       });
@@ -461,7 +465,7 @@ const FullMenu = () => {
           )}
         </Box>
 
-        {selectedBillId > 0 && (
+        {/*selectedBillId > 0  && */(
           <Box sx={{ width: "100%", mb: 4 }}>
             {categories.map((category) => {
               const filteredItems = filterMenuItems(
@@ -469,16 +473,13 @@ const FullMenu = () => {
                 category.category_id
               );
 
-              const hasSelectedItems =
-                getSelectedItemsStats(category.category_id).itemCount > 0;
-              if (filteredItems.length === 0 && !hasSelectedItems) return null;
+              const stats = getSelectedItemsStats(category.category_id);
+              const visibleCount = filteredItems.length;
 
               return (
                 <Accordion
                   key={`category-${category.category_id}`}
-                  onChange={() =>
-                    menuId && fetchMenuItems(category.category_id, menuId)
-                  }
+                  onChange={() => menuId && fetchMenuItems(category.category_id, menuId)}
                   sx={{ mb: 1 }}
                 >
                   <AccordionSummary
@@ -487,27 +488,19 @@ const FullMenu = () => {
                       "&.MuiAccordionSummary-root": {
                         backgroundColor: "#f8f9fa",
                         minHeight: "48px",
-                        "&:hover": {
-                          backgroundColor: "#eeeeee",
-                        },
+                        "&:hover": { backgroundColor: "#eeeeee" },
+                        justifyContent: "center",
                       },
                     }}
                   >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        width: "100%",
-                        pr: 2,
-                      }}
-                    >
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", pr: 2 }}>
                       <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                        {category.name} (
-                        {getVisibleItemCount(category.category_id)} items)
+                        {(category.name || menuItems[category.category_id]?.[0]?.category || `Category ${category.category_id}`)}
+                        {" "}
+                        ({visibleCount} {visibleCount === 1 ? "item" : "items"})
                       </Typography>
-                      {getSelectedItemsStats(category.category_id).itemCount >
-                        0 && (
+
+                      {stats.itemCount > 0 && (
                         <Typography
                           variant="subtitle2"
                           sx={{
@@ -517,26 +510,10 @@ const FullMenu = () => {
                             py: 0.5,
                             borderRadius: 1,
                             fontWeight: "medium",
+                            textAlign: "center",
                           }}
                         >
-                          {`${
-                            getSelectedItemsStats(category.category_id)
-                              .itemCount
-                          } ${
-                            getSelectedItemsStats(category.category_id)
-                              .itemCount === 1
-                              ? "item"
-                              : "items"
-                          }, 
-                          ${
-                            getSelectedItemsStats(category.category_id)
-                              .totalQuantity
-                          } ${
-                            getSelectedItemsStats(category.category_id)
-                              .totalQuantity === 1
-                              ? "unit"
-                              : "units"
-                          }`}
+                          {`${stats.itemCount} ${stats.itemCount === 1 ? "item" : "items"}, ${stats.totalQuantity} ${stats.totalQuantity === 1 ? "unit" : "units"}`}
                         </Typography>
                       )}
                     </Box>
@@ -670,7 +647,7 @@ const FullMenu = () => {
                                     gap: 0.5,
                                   }}
                                 >
-                                  <Tags item_id={item.item_id} size="m" />
+                                  <Tags item_id={item.tags} size="m" />
                                 </Box>
 
                                 <Box

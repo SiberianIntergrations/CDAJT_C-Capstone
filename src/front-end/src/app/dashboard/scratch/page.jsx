@@ -24,13 +24,14 @@ const CreateOrderPage = () => {
     const getActiveSession = async () => {
       try {
         // api from old project: /dining-sessions/participants/active-session-id GET
-        const response = await api.get("/DiningSession/participants/active-session-id");
+        const response = await api.get(
+          "/DiningSession/participants/active-session-id"
+        );
         if (response.status !== 200) {
           throw new Error("Failed to fetch active session");
         }
 
         const data = await response.json();
-        console.log("Response data:", data);
 
         if (typeof data === "number") {
           setSessionId(data);
