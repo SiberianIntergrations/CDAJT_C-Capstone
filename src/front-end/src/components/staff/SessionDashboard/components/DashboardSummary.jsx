@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Box, Card, Typography, Badge } from "@mui/material";
+import { Box, Card, Typography, Badge, Stack } from "@mui/material";
 import { Bell, Plus } from "lucide-react";
 import { keyframes, styled } from "@mui/material/styles";
 import { useSession } from "../context/SessionContext";
@@ -103,37 +103,20 @@ const DashboardSummary = () => {
         gap: "1rem",
       }}
     >
-      <CompactCard hasRequests={serviceRequests > 0}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Typography
-                variant="h5"
-                color={serviceRequests > 0 ? "warning.dark" : "primary.dark"}
-              >
-                Active Sessions: {dashboardSummary.total_active_sessions}
-              </Typography>
-            </Box>
-          </Box>
-
-          {serviceRequests > 0 && (
-            <Badge
-              badgeContent={serviceRequests}
-              color="warning"
-              sx={{ ml: 1, mr: 1 }}
-            >
-              <StyledBell size={16} isNew={isNewRequest} />
-            </Badge>
-          )}
-        </Box>
-      </CompactCard>
+      <Stack direction="row" justifyContent="left" alignItems="center" mb={2}>
+        <Typography pr={3} variant="h4">
+          Active Sessions:
+        </Typography>
+        {serviceRequests > 0 && (
+          <Badge badgeContent={serviceRequests} color="warning">
+            <StyledBell
+              size={42}
+              isNew={isNewRequest}
+              sx={{ mr: "-15px", mt: "-10px" }}
+            />
+          </Badge>
+        )}
+      </Stack>
 
       <AddButton onClick={() => openDialog("newSession")}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>

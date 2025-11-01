@@ -1,4 +1,11 @@
-import { Box, Card, Typography, IconButton, Collapse } from "@mui/material";
+import {
+  Box,
+  Card,
+  Typography,
+  IconButton,
+  Collapse,
+  Stack,
+} from "@mui/material";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";
@@ -59,24 +66,11 @@ const TableSummary = () => {
         width: "100%",
       }}
     >
-      <CompactCard>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Typography variant="h5" color="primary.dark">
-                Active Tables and Table Groups:
-              </Typography>
-            </Box>
-          </Box>
-        </Box>
-      </CompactCard>
+      <Stack direction="row" justifyContent="left" alignItems="center" mb={2}>
+        <Typography pr={3} variant="h4">
+          Active Tables and Table Groups:
+        </Typography>
+      </Stack>
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
         <AddButton onClick={() => setExpanded(!expanded)}>
