@@ -64,7 +64,7 @@ namespace back_end.Controllers
                 {
                     return NotFound("Dining Session was not found");
                 }
-                if (!session.Ended_At.HasValue)
+                if (session.Ended_At.HasValue)
                 {
                     return BadRequest("Can not Join a ended Session");
                 }

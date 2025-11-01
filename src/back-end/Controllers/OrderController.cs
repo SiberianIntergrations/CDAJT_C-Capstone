@@ -632,6 +632,7 @@ namespace back_end.Controllers
                 var orderAll = sessionOrder.Select(o => new
                 {
                     orderId = o.Order_Id,
+                    sessionId = o.session_id,
                     customerId = o.User_Id,
                     customerName = $"{o.User.First_name} {o.User.Last_name}",
                     status = o.Status,
@@ -730,6 +731,78 @@ namespace back_end.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Can't find Order for User ID: {userId}");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        //GET: api/Order/active-session/orders
+        //Get all of the orders for the user's ACTIVE session
+        //Add an optional Bill ID parameter in-case of bill splitting
+        [Authorize]
+        [HttpGet("active-session/orders")]
+        public async Task<ActionResult<IEnumerable<object>>> GetOrdersForActiveSession([FromQuery] int? bill_id = null)
+        {
+
+            try
+            {
+                //Get the currently logged in user's ID
+                var id = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
+                if (string.IsNullOrWhiteSpace(id) || !int.TryParse(id, out var userId))
+                {
+                    return Unauthorized(new { message = $"Can't find user with ID: {id}" });
+                }
+
+                //Get the user's session that's currently active
+                var activeSessionId = await (
+                    from p in _context.SessionParticipants
+                    join ds in _context.DiningSessions on p.Session_Id equals ds.Session_Id
+                    where p.User_Id == userId
+                    && p.Left_At == null
+                    && ds.Ended_At == null
+                    orderby ds.Started_At descending
+                    select ds.Session_Id
+                ).FirstOrDefaultAsync();
+                
+                if(activeSessionId == 0)
+                {
+                     return NotFound("No active session for this user");
+                }
+
+                var orders = await _context.SessionOrders
+                                .Where(o => o.User_Id == userId && o.session_id == activeSessionId && (bill_id == null || o.Bill_Id == bill_id))
+                                .Include(o => o.DiningSession)
+                                    .ThenInclude(or => or.Menu)
+                                .Include(o => o.OrderItems)
+                                    .ThenInclude(od => od.MenuItem)
+                                .OrderByDescending(o => o.Created_At)
+                                .ToListAsync();
+
+                //Package up the user's Order and add in all the menu item's details
+                var userOrder = orders.Select(o => new
+                {
+                    orderId = o.Order_Id,
+                    SessionId = o.session_id,
+                    bill_id = o.Bill_Id,
+                    status = o.Status.ToString(),
+                    createdAt = o.Created_At,
+                    completedAt = o.Completed_At,
+                    items = o.OrderItems.Select(i => new
+                    {
+                        orderItemId = i.Order_Item_Id,
+                        itemId = i.Item_Id,
+                        name = i.MenuItem.Name,
+                        quantity = i.Quantity,
+                        price = i.Price_At_Time,
+                        status = i.Order_Item_Status.ToString()
+                    }).ToList()
+                });
+
+                return Ok(userOrder);
+            }
+
+            catch(Exception ex)
+            {
+                _logger.LogError(ex, "Can't get user's active orders");
                 return StatusCode(500, "Internal Server Error");
             }
         }
