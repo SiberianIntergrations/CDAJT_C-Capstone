@@ -8,7 +8,7 @@ const BillSection = ({ session }) => {
   const { openDialog, closeBill } = useSession();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  console.log("Bill session: ", session);
+  // console.log("Bill session: ", session);
 
   const handleCloseBill = async (billId) => {
     try {
