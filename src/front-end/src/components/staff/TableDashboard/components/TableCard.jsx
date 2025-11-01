@@ -9,7 +9,7 @@ import {
   Collapse,
   Button,
 } from "@mui/material";
-import { Edit, Trash2, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Edit, Trash2, ChevronDown, ChevronUp, Users,LocateFixed } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";
 import api from "@/config/api";
@@ -121,6 +121,12 @@ const TableCard = ({ table }) => {
               <Users size={16} />
               <Typography variant="body2" color="text.secondary">
                 {table.seat_count} seats
+              </Typography>
+            </Box>
+            <Box display = "flex" alignItems="center" gap={1}>
+              <LocateFixed size={16} />
+              <Typography variant="body2" color="text.secondary">
+                {table.location.name}
               </Typography>
             </Box>
           </Box>

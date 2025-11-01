@@ -43,7 +43,7 @@ namespace back_end.Controllers
         {
             try
             {
-                var table = await _context.Tables.ToListAsync();
+                var table = await _context.Tables.OrderBy(t => t.Location_Id).ToListAsync();
                 return Ok(table);
             }
             catch (Exception ex)

@@ -18,6 +18,7 @@ export const useTableData = () => {
       const response = await api.get("/TableEntity");
       if (response.status === 200) {
         setTables(response.data);
+
         return response.data;
       }
     } catch (err) {
@@ -32,6 +33,7 @@ export const useTableData = () => {
       const response = await api.get("/TableGroup");
       if (response.status === 200) {
         setTableGroups(response.data);
+        console.log("Table Group Data",response.data)
         return response.data;
       }
     } catch (err) {

@@ -93,6 +93,7 @@ namespace back_end.Controllers
 
         var tableGroups = await query
             .OrderBy(tg => tg.Group_Name)
+            .OrderBy(tg => tg.Location_Id)
             .ToListAsync();
 
         var response = tableGroups.Select(tg => new

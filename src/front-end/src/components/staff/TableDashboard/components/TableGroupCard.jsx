@@ -19,6 +19,7 @@ import {
   ChevronUp,
   Users,
   Plus,
+  LocateFixed 
 } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";
@@ -114,6 +115,12 @@ const TableGroupCard = ({ group }) => {
               </Box>
               <Typography variant="body2" color="text.secondary">
                 {group.table_Count || 0} tables
+              </Typography>
+            </Box>
+            <Box display = "flex" alignItems="center" gap={1}>
+              <LocateFixed size={16} />
+              <Typography variant="body2" color="text.secondary">
+                {group.location_Name}
               </Typography>
             </Box>
           </Box>

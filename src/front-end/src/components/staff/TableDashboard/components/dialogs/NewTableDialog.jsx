@@ -1,4 +1,5 @@
-import { useState } from "react";
+'use client';
+import { useState,useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,6 +9,11 @@ import {
   Button,
   Box,
   Alert,
+  FormControl,
+  FormControlLabel,
+  Select,
+  InputLabel,
+  MenuItem
 } from "@mui/material";
 import { useTable } from "../../context/TableContext";
 import api from "@/config/api";
@@ -19,10 +25,24 @@ const NewTableDialog = ({ open }) => {
     seat_count: "",
     qr_Code_Url: "",
     is_Active: true,
+    Location_Id: 0
   });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [locationList, setLocationList] = useState([]);
 
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await api.get("location");
+        setLocationList(response.data)
+      } catch (error) {
+        console.error("Error fetching locations:", error);
+      }
+    };
+
+    fetchLocations();
+  }, []);
   const handleClose = () => {
     setFormData({
       table_Number: "",
@@ -45,6 +65,7 @@ const NewTableDialog = ({ open }) => {
         Seat_Count: parseInt(formData.seat_count),
         Qr_Code_Url: formData.qr_Code_Url,
         Is_Active: formData.is_Active,
+        Location_Id: formData.location_Id
       });
       await refreshData();
       handleClose();
@@ -75,6 +96,23 @@ const NewTableDialog = ({ open }) => {
                 setFormData({ ...formData, table_Number: e.target.value })
               }
             />
+
+            <FormControl fullWidth>
+              <InputLabel>Location</InputLabel>
+              <Select 
+                value={formData.location_Id}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, location_Id: e.target.value }))
+                }
+                label="Location"
+              >
+                {locationList.map((location) => (
+                  <MenuItem key={location.location_Id} value={location.location_Id}>
+                    {location.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="Seat Count"
               type="number"
