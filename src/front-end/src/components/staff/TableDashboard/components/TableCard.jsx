@@ -18,9 +18,7 @@ const StyledCard = styled(Card, {
   shouldForwardProp: (prop) => prop !== "inUse",
 })(({ theme, inUse }) => ({
   marginBottom: theme.spacing(2),
-  backgroundColor: inUse
-    ? theme.palette.warning.light
-    : theme.palette.background.paper,
+  backgroundColor: theme.palette.background.paper,
   transition: "all 0.3s ease",
   "&:hover": {
     boxShadow: theme.shadows[4],
