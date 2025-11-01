@@ -102,7 +102,7 @@ const TableSection = ({ session }) => {
           Tables ({displayedTables.length})
         </Typography>
 
-        <Button
+        {/* <Button
           size="small"
           variant="contained"
           onClick={() => openDialog("addTable", session.session_id)}
@@ -116,7 +116,7 @@ const TableSection = ({ session }) => {
           }}
         >
           Add Table
-        </Button>
+        </Button> */}
       </Box>
 
       <Box
@@ -130,11 +130,11 @@ const TableSection = ({ session }) => {
           <Chip
             key={tableNum}
             label={`Table ${tableNum}`}
-            onDelete={
-              session.bills.length === 0
-                ? () => initiateTableRemoval(session.session_id, tableNum)
-                : undefined
-            }
+            // onDelete={
+            //   session.bills.length === 0
+            //     ? () => initiateTableRemoval(session.session_id, tableNum)
+            //     : undefined
+            // }
             size="small"
             disabled={loading}
             sx={{
