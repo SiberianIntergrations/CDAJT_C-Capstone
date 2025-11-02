@@ -63,7 +63,7 @@ const BillSection = ({ session }) => {
           }}
         >
           <Users className="w-4 h-4" />
-          Bills ({session.bills_count})
+          Bills: {session.bill_Count}
         </Typography>
 
         <Button

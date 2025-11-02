@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Box, Button } from "@mui/material";
+import { Box, Button,Typography } from "@mui/material";
 import { useSession } from "../context/SessionContext";
+import {LocateFixed} from "lucide-react";
 import SessionCard from "./SessionCard";
 import api from "@/config/api";
 
@@ -126,7 +127,8 @@ const SessionList = () => {
             }
           }}
         >
-          <SessionCard
+
+         <SessionCard
             session={session}
             onRequestUpdate={handleRequestUpdate}
             expanded={expandedSessionId === session.session_Id}

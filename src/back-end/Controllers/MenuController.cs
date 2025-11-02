@@ -201,7 +201,7 @@ namespace back_end.Controllers
         {
             try
             {
-                var menu = await _context.Menus.ToListAsync();
+                var menu = await _context.Menus.Include(m => m.MenuLocations).ToListAsync();
 
                 return Ok(menu);
             }

@@ -13,9 +13,10 @@ import {
   Alert,
   FormControl
 } from "@mui/material";
-import { Edit, Delete, Plus, AlertTriangle, Trash2 } from "lucide-react";
+import { Edit, Delete, Plus, AlertTriangle, Trash2, LocateFixed  } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import MenuForm from "@/components/location/MenuForm";
+import AddLocationsToMenu from "@/components/location/AddLocationToMenu";
 import api from "@/config/api";
 
 const MenuManagement = () => {
@@ -27,6 +28,8 @@ const MenuManagement = () => {
   const [formMode, setFormMode] = useState("create");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [menuToDelete, setMenuToDelete] = useState(null);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [locationsList, setLocationsList] = useState([]);
 
   const AddButton = styled(IconButton)(({ theme }) => ({
     backgroundColor: theme.palette.primary.main,
@@ -52,17 +55,38 @@ const MenuManagement = () => {
       console.error(err);
     } finally {
       setLoading(false);
+      
+    }
+  };
+
+
+
+  const fetchLocations = async () => {
+    try{
+      const response = await api.get("/location")
+      setLocationsList(response.data);
+    }
+    catch (error){
+      setError("Failed To get Locations")
+      console.error("Feting Error Locations:", error)
     }
   };
 
   useEffect(() => {
     fetchMenus();
+    fetchLocations();
   }, []);
+
 
   const handleCreate = () => {
     setSelectedMenu(null);
     setFormMode("create");
     setIsFormOpen(true);
+  };
+
+  const handleLocations = (menu) => {
+      setSelectedMenu(menu);
+  setLocationDialogOpen(true);
   };
 
   const handleEdit = (menu) => {
@@ -134,6 +158,9 @@ const MenuManagement = () => {
             color="error"
           >
             <Trash2 size={20} />
+          </IconButton>
+          <IconButton onClick={()=>handleLocations(params.row)} size ="small">
+            <LocateFixed size ={20} />
           </IconButton>
         </Stack>
       ),
@@ -219,6 +246,14 @@ const MenuManagement = () => {
             Delete Menu
           </Button>
         </DialogActions>
+      </Dialog>
+      <Dialog open={locationDialogOpen} onClose={() => setLocationDialogOpen(false)}>
+        <AddLocationsToMenu
+          menu={selectedMenu}
+          // onSubmit={handleLocationSubmit}
+          onClose={() => setLocationDialogOpen(false)}
+          availableLocations={locationsList}
+        />
       </Dialog>
     </Box>
   );
