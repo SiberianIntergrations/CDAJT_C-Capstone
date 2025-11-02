@@ -80,17 +80,6 @@ const BillSelect = (props) => {
   };
 
   const renderBillMenuItem = (bill) => {
-
-    console.log(
-    "Bill guest counts:",
-    bill.bill_name,
-    "Adults:", bill.adult_count,
-    "Children:", bill.child_count,
-    "Seniors:", bill.senior_count,
-    "Tots:", bill.tot_count,
-    "→ Total:",
-    bill.adult_count + bill.child_count + bill.senior_count + bill.tot_count
-  );
   return(
     <MenuItem key={bill.bill_id} value={Number(bill.bill_id)}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
