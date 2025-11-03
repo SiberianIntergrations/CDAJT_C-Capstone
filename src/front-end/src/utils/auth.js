@@ -40,9 +40,9 @@ export const requestPasswordReset = async (email) => {
 };
 
 export const resetPassword = async (token, newPassword) => {
-  const response = await api.post("/auth/reset-password", { 
+  const response = await api.post("/auth/reset-password", {
     token,
-    new_password: newPassword
+    new_password: newPassword,
   });
   return response.data;
 };

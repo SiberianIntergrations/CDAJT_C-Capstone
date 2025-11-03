@@ -70,25 +70,45 @@ export const useAuth = () => {
     // Add authChanged to dependency array to rerun effect
     }, [msalInstance, authChanged]);
 
-    // Check if user has a specific role
-    const hasRole = (role) => {
-        return userRole === role;
+    // Listen for storage changes (e.g., login/logout in other tabs)
+    const handleStorageChange = (event) => {
+      if (event.key === "access_token") {
+        checkAuth();
+      }
     };
+    window.addEventListener("storage", handleStorageChange);
 
-    // Check if user has any of the specified roles
-    const hasAnyRole = (roles) => {
-        return roles.includes(userRole);
+    // same-tab updates
+    const handleAuthChange = () => {
+      checkAuth();
     };
+    window.addEventListener(AUTH_EVENT, handleAuthChange);
 
-    return {
-        isAuthenticated,
-        userRole,
-        userId,
-        userEmail,
-        loading,
-        hasRole,
-        hasAnyRole,
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(AUTH_EVENT, handleAuthChange);
     };
+  }, []);
+
+  // Check if user has a specific role
+  const hasRole = (role) => {
+    return userRole === role;
+  };
+
+  // Check if user has any of the specified roles
+  const hasAnyRole = (roles) => {
+    return roles.includes(userRole);
+  };
+
+  return {
+    isAuthenticated,
+    userRole,
+    userId,
+    userEmail,
+    loading,
+    hasRole,
+    hasAnyRole,
+  };
 };
 
 export default useAuth;

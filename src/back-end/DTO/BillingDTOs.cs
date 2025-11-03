@@ -14,8 +14,10 @@ namespace back_end.DTO.bill
 
     [JsonPropertyName("child_count")]
     public int Child_Count { get; set; }
-    [JsonPropertyName("tot_count")]
-    public int Tot_Count { get; set; }
+
+    // Removed as Total_Count can be calculated
+    // [JsonPropertyName("tot_count")]
+    // public int Tot_Count { get; set; }
   }
 
   public class BillResponse

@@ -8,11 +8,12 @@ const BillSection = ({ session }) => {
   const { openDialog, closeBill } = useSession();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  console.log("Bill session: ", session);
 
   const handleCloseBill = async (billId) => {
     try {
       setLoading(true);
-      const success = await closeBill(session.session_id, billId);
+      const success = await closeBill(session.session_Id, billId);
       if (!success) {
         throw new Error("Failed to close bill");
       }
@@ -68,7 +69,7 @@ const BillSection = ({ session }) => {
         <Button
           size="small"
           variant="contained"
-          onClick={() => openDialog("newBill", session.session_id)}
+          onClick={() => openDialog("newBill", session.session_Id)}
           disabled={session.table_Numbers.length === 0 || loading}
           sx={{
             minWidth: 100,

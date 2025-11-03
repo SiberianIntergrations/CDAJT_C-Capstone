@@ -56,7 +56,6 @@ const InsightTextBox = ({ topItems, bottomItems, question }) => {
         } else if (error.response.status === 429) {
           console.error("Too Many Requests: You have hit the rate limit.");
           if (retryCount < 3) {
-            console.log(`Retrying... (${retryCount + 1})`);
             setTimeout(
               () => fetchInsight(retryCount + 1),
               1000 * Math.pow(2, retryCount)

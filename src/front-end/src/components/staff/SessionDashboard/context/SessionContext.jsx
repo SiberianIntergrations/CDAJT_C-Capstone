@@ -1,88 +1,3 @@
-// // File: sushi-toshi-frontend/components/staff/SessionDashboard/context/SessionContext.jsx
-// import { createContext, useContext, useState, useCallback } from 'react';
-// import { useSessionData } from '../hooks/useSessionData';
-// import { useSessionActions } from '../hooks/useSessionActions';
-
-// const SessionContext = createContext(null);
-
-// export const useSession = () => {
-//   const context = useContext(SessionContext);
-//   if (!context) {
-//     throw new Error('useSession must be used within SessionProvider');
-//   }
-//   return context;
-// };
-
-// export const SessionProvider = ({ children }) => {
-//   const [updateCounter, setUpdateCounter] = useState(0);
-//   const [dialogState, setDialogState] = useState({
-//     newSession: false,
-//     addTable: false,
-//     newBill: false,
-//     currentSessionId: null
-//   });
-
-//   const {
-//     sessions,
-//     dashboardSummary,
-//     isLoading,
-//     error,
-//     fetchSessions
-//   } = useSessionData(updateCounter);
-
-//   const {
-//     createSession,
-//     addTable,
-//     createBill,
-//     closeBill,
-//     endSession,
-//     actionError,
-//     clearActionError
-//   } = useSessionActions(() => {
-//     fetchSessions();
-//   });
-
-//   const openDialog = useCallback((dialogName, sessionId = null) => {
-//     setDialogState(prev => ({
-//       ...prev,
-//       [dialogName]: true,
-//       currentSessionId: sessionId
-//     }));
-//   }, []);
-
-//   const closeDialog = useCallback((dialogName) => {
-//     setDialogState(prev => ({
-//       ...prev,
-//       [dialogName]: false,
-//       currentSessionId: null
-//     }));
-//   }, []);
-
-//   const value = {
-//     sessions,
-//     dashboardSummary,
-//     isLoading,
-//     error,
-//     dialogState,
-//     openDialog,
-//     closeDialog,
-//     fetchSessions,
-//     createSession,
-//     addTable,
-//     createBill,
-//     closeBill,
-//     endSession,
-//     actionError,
-//     clearActionError
-//   };
-
-//   return (
-//     <SessionContext.Provider value={value}>
-//       {children}
-//     </SessionContext.Provider>
-//   );
-// };
-
 import {
   createContext,
   useContext,
@@ -92,7 +7,6 @@ import {
 } from "react";
 import { useSessionData } from "../hooks/useSessionData";
 import { useSessionActions } from "../hooks/useSessionActions";
-import api from "../../../../config/api";
 
 const SessionContext = createContext(null);
 
@@ -106,94 +20,144 @@ export const useSession = () => {
 
 export const SessionProvider = ({ children }) => {
   const [updateTrigger, setUpdateTrigger] = useState(0);
-  const [actionError, setActionError] = useState(null);
   const [dialogState, setDialogState] = useState({
     newSession: false,
     addTable: false,
+    addTableGroup: false,
     newBill: false,
     currentSessionId: null,
   });
-
-  const {
-    sessions,
-    dashboardSummary,
-    isLoading,
-    error,
-    fetchSessions,
-    fetchDashboardSummary,
-  } = useSessionData(updateTrigger);
 
   const triggerUpdate = useCallback(() => {
     setUpdateTrigger((prev) => prev + 1);
   }, []);
 
   const {
-    createSession: baseCreateSession,
-    addTable: baseAddTable,
-    createBill: baseCreateBill,
-    closeBill: baseCloseBill,
-    endSession: baseEndSession,
-    actionError: hookActionError,
-    clearActionError,
-  } = useSessionActions();
+    sessions,
+    dashboardSummary,
+    isLoading: dataLoading,
+    error,
+    fetchSessions,
+    fetchDashboardSummary,
+  } = useSessionData(updateTrigger);
 
-  useEffect(() => {
-    if (hookActionError) {
-      console.log("Action error in context:", hookActionError);
-    }
-  }, [hookActionError]);
+  // useSessionActions now handles success callbacks internally
+  const {
+    // State
+    actionError,
+    isLoading: actionLoading,
+    
+    // Dining session operations
+    createDiningSession,
+    listDiningSessions,
+    getDiningSessionDetail,
+    closeDiningSession,
+    addTableToSession,
+    addTableGroupToSession,
+    removeTableFromSession,
+    removeTableGroupFromSession,
+    getActiveSessionId,
+    getSessionMenuId,
+    
+    // Session operations
+    fetchActiveSessions,
+    fetchSessionById,
+    fetchSessionByTable,
+    
+    // Table operations
+    listEmptyTables,
+    
+    // Table group operations
+    fetchAvailableTableGroups,
+    
+    // Bill operations
+    createBill: baseCreateBill,
+    getBills,
+    closeBill: baseCloseBill,
+    
+    // Utilities
+    clearActionError,
+  } = useSessionActions(async () => {
+    // This callback runs after successful actions
+    await Promise.all([fetchSessions(), fetchDashboardSummary()]);
+    triggerUpdate();
+  });
+
+  // Combined loading state
+  const isLoading = dataLoading || actionLoading;
 
   // Wrap each action to trigger updates after completion
-  const createSession = async (menuId, locationId) => {
+  const createSession = async (
+    menuId,
+    locationId,
+    tableId,
+    tableGroupId,
+    tableAssignmentType
+  ) => {
     try {
-      const response = await api.post("/DiningSession/Create_Dinning_Session", {
-        menu_Id: menuId,
-        location_Id: locationId,
-      });
-      // ... rest of your logic
+      if (tableAssignmentType === "table") {
+        await api.post(
+          `/DiningSession/Create_Dinning_Session?assignmentType=table`,
+          {
+            menu_Id: menuId,
+            location_Id: locationId,
+            table_Id: tableId,
+          }
+        );
+      } else if (tableAssignmentType === "tableGroup") {
+        await api.post(
+          `/DiningSession/Create_Dinning_Session?assignmentType=table_group`,
+          {
+            menu_Id: menuId,
+            location_Id: locationId,
+            tableGroup_Id: tableGroupId,
+          }
+        );
+      }
     } catch (error) {
       console.error("Error creating session:", error);
       return false;
     }
+    triggerUpdate();
   };
 
   const addTable = async (sessionId, tableId) => {
-    const success = await baseAddTable(sessionId, tableId);
-    if (success) {
-      await Promise.all([fetchSessions(), fetchDashboardSummary()]);
-      triggerUpdate();
-    }
-    return success;
+    const result = await addTableToSession(sessionId, tableId);
+    return result !== null && result !== undefined;
+  };
+
+  const addTableGroup = async (sessionId, tableGroupId) => {
+    const result = await addTableGroupToSession(sessionId, tableGroupId);
+    return result !== null && result !== undefined;
+  };
+
+  const removeTable = async (sessionId, tableId) => {
+    const result = await removeTableFromSession(sessionId, tableId);
+    return result !== null && result !== undefined;
+  };
+
+  const removeTableGroup = async (sessionId, tableGroupId) => {
+    const result = await removeTableGroupFromSession(sessionId, tableGroupId);
+    return result !== null && result !== undefined;
   };
 
   const createBill = async (sessionId, billData) => {
-    const success = await baseCreateBill(sessionId, billData);
-    if (success) {
-      await Promise.all([fetchSessions(), fetchDashboardSummary()]);
-      triggerUpdate();
-    }
-    return success;
+    const result = await baseCreateBill(sessionId, billData);
+    return result !== null && result !== undefined;
   };
 
   const closeBill = async (sessionId, billId) => {
-    const success = await baseCloseBill(sessionId, billId);
-    if (success) {
-      await Promise.all([fetchSessions(), fetchDashboardSummary()]);
-      triggerUpdate();
-    }
-    return success;
+    const result = await baseCloseBill(sessionId, billId);
+    return result !== null && result !== undefined;
   };
 
   const endSession = async (sessionId) => {
-    const success = await baseEndSession(sessionId);
-    if (success) {
-      await Promise.all([fetchSessions(), fetchDashboardSummary()]);
-      triggerUpdate();
-    }
-    return success;
+    const result = await closeDiningSession(sessionId);
+    return result !== null && result !== undefined;
   };
 
   const openDialog = useCallback((dialogName, sessionId = null) => {
+    console.log("Dialog session: ", sessionId);
     setDialogState((prev) => ({
       ...prev,
       [dialogName]: true,
@@ -207,24 +171,63 @@ export const SessionProvider = ({ children }) => {
       [dialogName]: false,
       currentSessionId: null,
     }));
-  }, []);
+    clearActionError();
+  }, [clearActionError]);
 
   const value = {
+    // Data state
     sessions,
     dashboardSummary,
     isLoading,
     error,
+    actionError,
+    
+    // Dialog state
     dialogState,
     openDialog,
     closeDialog,
+    
+    // Data fetching
     fetchSessions,
     fetchDashboardSummary,
+    
+    // Dining session operations (backward compatible wrappers)
     createSession,
     addTable,
-    createBill,
-    closeBill,
+    addTableGroup,
+    removeTable,
+    removeTableGroup,
     endSession,
-    actionError: hookActionError,
+    
+    // Direct access to all useSessionActions functions
+    createDiningSession,
+    listDiningSessions,
+    getDiningSessionDetail,
+    closeDiningSession,
+    addTableToSession,
+    addTableGroupToSession,
+    removeTableFromSession,
+    removeTableGroupFromSession,
+    getActiveSessionId,
+    getSessionMenuId,
+    
+    // Session operations
+    fetchActiveSessions,
+    fetchSessionById,
+    fetchSessionByTable,
+    
+    // Table operations
+    listEmptyTables,
+    
+    // Table group operations
+    fetchAvailableTableGroups,
+    
+    // Bill operations
+    createBill,
+    getBills,
+    closeBill,
+    
+    // Utilities
     clearActionError,
     triggerUpdate,
   };

@@ -125,11 +125,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
   const touchStartX = useRef(null);
   const { endSession, actionError, clearActionError } = useSession();
 
-  console.log("SESSION: ", session);
-
   useEffect(() => {
     if (actionError) {
-      console.log("Action error in SessionCard:", actionError);
       // Optionally show error in a snackbar or other UI element
       setShowConfirm(false);
       setDragX(0);
@@ -137,7 +134,6 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
   }, [actionError]);
 
   const fetchRequests = useCallback(async () => {
-    console.log("fetching", session);
     try {
       const response = await api.get(
         `/ServiceRequest/by-session/${session.session_Id}`
@@ -145,7 +141,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
       if (response.status !== 200) throw new Error("Failed to fetch requests");
       const data = response.data;
-      console.log("data: ", data);
+
       setRequests(data);
       setIsBlinking(data.length > 0);
       onRequestUpdate(session.session_Id, data);
@@ -223,7 +219,6 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
       clearActionError(); // Clear any previous errors
       const success = await endSession(session.session_Id);
       if (!success) {
-        console.log("Session end failed, current action error:", actionError);
       }
     } catch (error) {
       console.error("Error ending session:", error);
@@ -412,7 +407,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
         <AccordionDetails>
           <Stack spacing={2}>
-            <TableSection session={session} />
+            {/* <TableSection session={session} /> */}
             <BillSection session={session} />
             <Divider />
             <Box
@@ -425,7 +420,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
             >
               <EndSessionButton
                 variant="contained"
-                disabled={!session.is_closable || isEnding}
+                // disabled={!session.is_closable || isEnding}
                 onClick={handleInitiateEnd}
                 startIcon={<AlertCircle />}
               >

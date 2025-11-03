@@ -25,11 +25,11 @@ const OrdersAccordion = () => {
   const [sessionId, setSessionId] = useState(null);
   const [selectedBillId, setSelectedBillId] = useState("");
 
-  const statusOrder = ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"];
+  const statusOrder = ["PENDING", "PROCESSING", "DELIVERED", "CANCELLED"];
   const statusColors = {
     PENDING: "#ff9800",
-    CONFIRMED: "#2196f3",
-    COMPLETED: "#4caf50",
+    PROCESSING: "#2196f3",
+    DELIVERED: "#4caf50",
     CANCELLED: "#f44336",
   };
 
@@ -62,61 +62,46 @@ const OrdersAccordion = () => {
     getActiveSession();
   }, []);
 
-  const fetchOrders = async (billId = "") => {
-    try {
-      setLoading(true);
-      setError(null);
+const fetchOrders = async (billId = "") => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      const params = {};
-      if (billId) params.bill_id = billId;
+    //If a bill is selected - include it as a param to the endpoint
+    const params = billId ? { bill_id: billId } : {};
+    const response = await api.get("/Order/active-session/orders", { params });
 
-      // api from old project: /orders/my-active-session/orders GET
-      const response = await api.get("/Order", {
-        params,
-      });
-
-      if (response.status < 200 || response.status >= 300) {
-        throw new Error("Failed to fetch orders");
-      }
-
-      const orders = response.data || [];
-      if (!orders.length) {
-        setGroupedOrders({});
-        setLoading(false);
-        return;
-      }
-
-      const orderDetailsPromises = orders.map((order) =>
-        // api from old project: /orders/{orderId}/order-items GET
-        api.get(`/Order/session/${order.sessionId}`));
-
-      const orderDetailsResponse = await Promise.all(orderDetailsPromises);
-
-      const ordersWithItems = orders.map((order, index) => ({
-        ...order,
-        items: orderDetailsResponse[index]?.data || [],
-      }));
-
-      const grouped = ordersWithItems.reduce((acc, order) => {
-        const status = (order.status || "PENDING").toUpperCase();
-        if (!acc[status]) acc[status] = [];
-        acc[status].push(order);
-        return acc;
-      }, {});
-
-      setGroupedOrders(grouped);
-      setLoading(false);
-    } catch (err) {
-      console.error("Error fetching orders:", err);
-      setError(
-        typeof err.response?.data?.detail === "string"
-          ? err.response.data.detail
-          : "Error loading orders"
-      );
+    //Check if there are no orders
+    const orders = response.data || [];
+    if (!orders.length) {
       setGroupedOrders({});
       setLoading(false);
+      return;
     }
-  };
+
+    //Sort each type of order into groups (Pending, Delivered, Processing and Cancelled)
+    const grouped = orders.reduce((acc, order) => {
+      const status = String(order.status || "PENDING").toUpperCase();
+      if (!acc[status]) acc[status] = [];
+      acc[status].push(order);
+      return acc;
+    }, {});
+
+    setGroupedOrders(grouped);
+    setLoading(false);
+  } catch (err) {
+    console.error("Error fetching orders:", err);
+    const msg =
+      typeof err?.response?.data?.message === "string"
+        ? err.response.data.message
+        : typeof err?.response?.data === "string"
+        ? err.response.data
+        : "Error loading orders";
+    setError(msg);
+    setGroupedOrders({});
+    setLoading(false);
+  }
+};
 
   const handleBillChange = (event) => {
     const billId = event.target.value;
@@ -138,7 +123,7 @@ const OrdersAccordion = () => {
 
   const renderOrderAccordion = (order, groupStatus) => (
     <Accordion
-      key={order.order_id}
+      key={order.orderId}
       sx={{
         mb: 1,
         border: groupStatus === "PENDING" ? "1px solid #ff9800" : "none",
@@ -163,7 +148,7 @@ const OrdersAccordion = () => {
           }}
         >
           <Typography>
-            Order #{order.order_id}
+            Order #{order.orderId}
             {order.items && (
               <Typography component="span" color="textSecondary" sx={{ ml: 2 }}>
                 ({order.items.length} items)
@@ -198,9 +183,9 @@ const OrdersAccordion = () => {
                     color="textSecondary"
                     align="left"
                   >
-                    {item.price_at_time === 0
+                    {item.price === 0
                       ? "Included item"
-                      : `Price: $${item.price_at_time.toFixed(2)}`}
+                      : `Price: $${item.price.toFixed(2)}`}
                   </Typography>
                 </Box>
 
