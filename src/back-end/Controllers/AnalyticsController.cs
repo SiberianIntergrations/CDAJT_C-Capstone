@@ -4,6 +4,7 @@ using back_end.DTO.Auth;
 using Microsoft.AspNetCore.Mvc;
 using back_end.DTO.Analytics;
 using Microsoft.AspNetCore.Http.Features;
+using System.Security.Claims;
 
 namespace back_end.controllers
 {
@@ -272,13 +273,20 @@ namespace back_end.controllers
         {
             try
             {
+
+                string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var user = await _context.Users.Include(u => u.Locations).FirstOrDefaultAsync(u => u.User_id == int.Parse(userId));
+                if(user is null)
+                {
+                    return BadRequest("can not get a user location");
+                }
                 var orderTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null)
+                    .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null && ds.Location_Id == user.Location_id)
                     .Select(ds => new
                     {
                         sessionId = ds.Session_Id,
                         TimeToFirstOrderSeconds = EF.Functions.DateDiffSecond(ds.Started_At, ds.First_Order_At)
-                    }).Take(25)
+                    }).Take(75)
                     .ToListAsync();
 
                 var dailyAverageTiming = await _context.DiningSessions
