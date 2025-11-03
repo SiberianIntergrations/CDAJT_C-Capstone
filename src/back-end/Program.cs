@@ -37,6 +37,7 @@ builder.Services.AddSwaggerGen(c =>
     });
     var scopes = new Dictionary<string, string>()
     { };
+    scopes.Add($"{builder.Configuration["ApiScopeUrl"]}user_impersonation", "Access application on user behalf");
     c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.OAuth2,
