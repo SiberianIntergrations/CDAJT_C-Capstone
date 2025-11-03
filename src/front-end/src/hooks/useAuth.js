@@ -17,9 +17,9 @@ export const useAuth = () => {
         if (typeof window === "undefined") return;
 
         let isMounted = true;
-        setLoading(true);
 
         const initAndCheckAuth = async () => {
+            setLoading(true); 
             await msalInstance.initialize();
             const accounts = msalInstance.getAllAccounts();
             const account = accounts && accounts.length > 0 ? accounts[0] : null;
@@ -69,26 +69,6 @@ export const useAuth = () => {
         };
     // Add authChanged to dependency array to rerun effect
     }, [msalInstance, authChanged]);
-
-    // Listen for storage changes (e.g., login/logout in other tabs)
-    const handleStorageChange = (event) => {
-      if (event.key === "access_token") {
-        checkAuth();
-      }
-    };
-    window.addEventListener("storage", handleStorageChange);
-
-    // same-tab updates
-    const handleAuthChange = () => {
-      checkAuth();
-    };
-    window.addEventListener(AUTH_EVENT, handleAuthChange);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      window.removeEventListener(AUTH_EVENT, handleAuthChange);
-    };
-  }, []);
 
   // Check if user has a specific role
   const hasRole = (role) => {
