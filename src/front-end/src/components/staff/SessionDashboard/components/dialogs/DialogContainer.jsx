@@ -5,7 +5,6 @@ import NewBillDialog from "./NewBillDialog";
 
 const DialogContainer = () => {
   const { dialogState, closeDialog } = useSession();
-  console.log(dialogState);
 
   return (
     <>

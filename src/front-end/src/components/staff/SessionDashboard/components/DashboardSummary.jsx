@@ -1,12 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Badge,
-  IconButton,
-} from "@mui/material";
+import { Box, Card, Typography, Badge, Stack } from "@mui/material";
 import { Bell, Plus } from "lucide-react";
 import { keyframes, styled } from "@mui/material/styles";
 import { useSession } from "../context/SessionContext";
@@ -35,7 +28,6 @@ const StyledBell = styled(Bell, {
   animation: isNew
     ? `${ringAnimation} 1s ease-in-out, ${pulseAnimation} 1s ease-in-out`
     : "none",
-  marginLeft: theme.spacing(1),
 }));
 
 const CompactCard = styled(Card, {
@@ -51,17 +43,17 @@ const CompactCard = styled(Card, {
   padding: theme.spacing(1.5),
 }));
 
-const AddButton = styled(IconButton)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main,
-  color: "white",
-  padding: theme.spacing(1),
-  minWidth: "auto",
+const AddButton = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.common.white,
+  border: `2px dashed ${theme.palette.divider}`,
+  borderRadius: theme.spacing(1),
+  padding: theme.spacing(2),
+  cursor: "pointer",
+  transition: "all 0.2s ease-in-out",
   "&:hover": {
-    backgroundColor: theme.palette.primary.dark,
-  },
-  "& svg": {
-    width: 20,
-    height: 20,
+    borderColor: theme.palette.primary.main,
+    backgroundColor: theme.palette.action.hover,
+    transform: "translateX(4px)",
   },
 }));
 
@@ -104,61 +96,41 @@ const DashboardSummary = () => {
 
   return (
     <Box
-      className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3"
       sx={{
         marginBottom: "20px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
       }}
     >
-      <CompactCard hasRequests={serviceRequests > 0}>
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            width: "100%",
-          }}
-        >
-          <Box sx={{ flex: 1 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                mb: 0.5,
-              }}
-            >
-              <Box display="flex" alignItems="center" gap={2}>
-                <Typography
-                  variant="h5"
-                  color={serviceRequests > 0 ? "warning.dark" : "primary.dark"}
-                >
-                  Active Sessions: {dashboardSummary.total_active_sessions}
-                </Typography>
-                <AddButton onClick={() => openDialog("newSession")}>
-                  <Plus />
-                </AddButton>
-              </Box>
-            </Box>
+      <Stack direction="row" justifyContent="left" alignItems="center" mb={2}>
+        <Typography pr={3} variant="h4">
+          Active Sessions:
+        </Typography>
+        {serviceRequests > 0 && (
+          <Badge badgeContent={serviceRequests} color="warning">
+            <StyledBell
+              size={42}
+              isNew={isNewRequest}
+              sx={{ mr: "-15px", mt: "-10px" }}
+            />
+          </Badge>
+        )}
+      </Stack>
+
+      <AddButton onClick={() => openDialog("newSession")}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <Plus size={20} />
+          <Box>
+            <Typography variant="subtitle1" color="text.primary">
+              Add New Session
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Start a new dining session
+            </Typography>
           </Box>
-
-          {serviceRequests > 0 && (
-            <Badge
-              badgeContent={serviceRequests}
-              color="warning"
-              sx={{ ml: 1, mr: 1 }}
-            >
-              <StyledBell size={16} isNew={isNewRequest} />
-            </Badge>
-          )}
         </Box>
-      </CompactCard>
-
-      {/* <CompactCard>
-        <Box sx={{ width: "100%", textAlign: "left" }}>
-          <Typography variant="h5" color="secondary">
-            Tables in Use: {dashboardSummary.total_tables_in_use}
-          </Typography>
-        </Box>
-      </CompactCard> */}
+      </AddButton>
     </Box>
   );
 };

@@ -28,7 +28,6 @@ const BillSelect = (props) => {
     setLastRefresh(new Date().toLocaleTimeString());
   }, []);
 
-
   useEffect(() => {
     const fetchBills = async () => {
       if (!effectiveSessionId) {
@@ -43,10 +42,10 @@ const BillSelect = (props) => {
 
         // api from old project: /bills/by-session/{sessionId} GET
         const response = await api.get(`/Bill/get_bills/${effectiveSessionId}`);
-        console.log("Bills response:", response.data);
+        // console.log("Bills response:", response.data);
 
         const billsData = Array.isArray(response.data) ? response.data : [];
-     //   const openBills = billsData.filter((bill) => bill.status === "OPEN");
+        //   const openBills = billsData.filter((bill) => bill.status === "OPEN");
         setBills(billsData);
       } catch (err) {
         console.error("Error fetching bills:", err);
