@@ -137,13 +137,6 @@ const NewTableDialog = ({ open }) => {
                 setFormData({ ...formData, seat_count: e.target.value })
               }
             />
-            <TextField
-              label="QR Code URL (optional)"
-              value={formData.qr_Code_Url}
-              onChange={(e) =>
-                setFormData({ ...formData, qr_Code_Url: e.target.value })
-              }
-            />
           </Box>
         </DialogContent>
         <DialogActions>

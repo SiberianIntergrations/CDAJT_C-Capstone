@@ -50,7 +50,8 @@ namespace back_end.Services
             var payload = new PayloadGenerator.WiFi(
                 ssid, password, PayloadGenerator.WiFi.Authentication.WPA, false).ToString();
 
-            var qrBytes = CreateQrPng(payload, QRCodeGenerator.ECCLevel.Q, pixelsPerModule: 20);
+            // Generate at 600x600px for 1.75" × 1.75" print at 300 DPI
+            var qrBytes = CreateQrPng(payload, QRCodeGenerator.ECCLevel.H, pixelsPerModule: 20);
             var labeled = AddLabelWithSkiaBelow(qrBytes, $"{locationName} — Table {table} — WiFi");
 
             var filePath = Path.Combine(_storagePath, $"wifi_L{locationId}_T{table}.png");
@@ -71,7 +72,8 @@ namespace back_end.Services
             if (locationName is null) return null;
 
             var url = GetSessionUrl(locationId, table);
-            var qrBytes = CreateQrPng(url, QRCodeGenerator.ECCLevel.Q, pixelsPerModule: 20);
+            // Generate at 600x600px for 1.75" × 1.75" print at 300 DPI
+            var qrBytes = CreateQrPng(url, QRCodeGenerator.ECCLevel.H, pixelsPerModule: 20);
             var labeled = AddLabelWithSkiaBelow(qrBytes, $"{locationName} — Table {table} — Menu");
 
             var filePath = Path.Combine(_storagePath, $"session_L{locationId}_T{table}.png");

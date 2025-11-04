@@ -27,13 +27,16 @@ import {
 } from '@mui/material';
 import { Download, QrCode, Wifi, Menu } from 'lucide-react';
 import { api } from '@/config/api';
+import storage from '@/utils/storage';
 
 export default function QRCodeManagement() {
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState('');
   const [tableNumber, setTableNumber] = useState('');
-  const [bulkTableCount, setBulkTableCount] = useState('');
+  const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [downloadLoading, setDownloadLoading] = useState(false);
+  const [lastGeneratedLocation, setLastGeneratedLocation] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [previewDialog, setPreviewDialog] = useState({ open: false, url: '', title: '', type: '' });
 
@@ -42,16 +45,43 @@ export default function QRCodeManagement() {
     fetchLocations();
   }, []);
 
+  // Fetch tables when location changes
+  useEffect(() => {
+    if (selectedLocation) {
+      fetchTables();
+    }
+  }, [selectedLocation]);
+
   const fetchLocations = async () => {
     try {
       const response = await api.get('/location');
       setLocations(response.data || []);
-      if (response.data && response.data.length > 0) {
+
+      // Get location from storage (set by AppBarWithTitle)
+      const storedLocationId = storage.get('branch-location');
+
+      if (storedLocationId && response.data?.some(loc => loc.location_Id === Number(storedLocationId))) {
+        // Use stored location if it exists in the list
+        setSelectedLocation(Number(storedLocationId));
+      } else if (response.data && response.data.length > 0) {
+        // Fallback to first location if no stored location
         setSelectedLocation(response.data[0].location_Id);
       }
     } catch (error) {
       console.error('Error fetching locations:', error);
       showSnackbar('Failed to fetch locations', 'error');
+    }
+  };
+
+  const fetchTables = async () => {
+    try {
+      const response = await api.get('/TableEntity', {
+        params: { locationId: selectedLocation }
+      });
+      setTables(response.data || []);
+    } catch (error) {
+      console.error('Error fetching tables:', error);
+      showSnackbar('Failed to fetch tables', 'error');
     }
   };
 
@@ -148,14 +178,13 @@ export default function QRCodeManagement() {
   };
 
   const bulkGenerateQRCodes = async () => {
-    if (!selectedLocation || !bulkTableCount) {
-      showSnackbar('Please select a location and enter the number of tables', 'warning');
+    if (!selectedLocation) {
+      showSnackbar('Please select a location', 'warning');
       return;
     }
 
-    const count = parseInt(bulkTableCount);
-    if (isNaN(count) || count < 1 || count > 1000) {
-      showSnackbar('Please enter a valid number of tables (1-1000)', 'warning');
+    if (!tables || tables.length === 0) {
+      showSnackbar('No tables found for this location. Please create tables first.', 'warning');
       return;
     }
 
@@ -164,22 +193,125 @@ export default function QRCodeManagement() {
       const response = await api.post('/admin/qr/bulk', null, {
         params: {
           locationId: selectedLocation,
-          tableCount: count,
         },
       });
 
+      setLastGeneratedLocation(selectedLocation);
       showSnackbar(
-        `Successfully generated ${response.data.filesGenerated} QR codes for ${count} tables!`,
+        `Successfully generated ${response.data.filesGenerated} QR codes for ${response.data.tableCount} tables!`,
         'success'
       );
     } catch (error) {
       console.error('Error generating bulk QR codes:', error);
-      showSnackbar(
-        error.response?.data?.message || 'Failed to generate bulk QR codes',
-        'error'
-      );
+      console.error('Error response:', error.response);
+
+      // Extract error message from various possible formats
+      let errorMessage = 'Failed to generate bulk QR codes';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.response.data.title) {
+          errorMessage = error.response.data.title;
+        }
+      }
+
+      showSnackbar(errorMessage, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const downloadAsZip = async () => {
+    if (!lastGeneratedLocation) {
+      showSnackbar('Please generate QR codes first', 'warning');
+      return;
+    }
+
+    setDownloadLoading(true);
+    try {
+      const response = await api.get('/admin/qr/bulk/download-zip', {
+        params: {
+          locationId: lastGeneratedLocation,
+        },
+        responseType: 'blob',
+      });
+
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/zip' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = `QRCodes_Location${lastGeneratedLocation}.zip`;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        if (fileNameMatch) {
+          fileName = fileNameMatch[1];
+        }
+      }
+
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showSnackbar('ZIP file downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading ZIP:', error);
+      showSnackbar('Failed to download ZIP file', 'error');
+    } finally {
+      setDownloadLoading(false);
+    }
+  };
+
+  const downloadAsPdf = async () => {
+    if (!lastGeneratedLocation) {
+      showSnackbar('Please generate QR codes first', 'warning');
+      return;
+    }
+
+    setDownloadLoading(true);
+    try {
+      const response = await api.get('/admin/qr/bulk/download-pdf', {
+        params: {
+          locationId: lastGeneratedLocation,
+        },
+        responseType: 'blob',
+      });
+
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Extract filename from Content-Disposition header or use default
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = `QRCodes_Location${lastGeneratedLocation}.pdf`;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/i);
+        if (fileNameMatch) {
+          fileName = fileNameMatch[1];
+        }
+      }
+
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      showSnackbar('PDF downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      showSnackbar('Failed to download PDF', 'error');
+    } finally {
+      setDownloadLoading(false);
     }
   };
 
@@ -223,9 +355,12 @@ export default function QRCodeManagement() {
         server for faster access.
       </Alert>
 
-      {/* Location and Table Selection */}
+      {/* Individual QR Code Generation - Location and Table Selection */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
+          Individual QR Code Generation
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           Select Location and Table
         </Typography>
         <Grid container spacing={2}>
@@ -239,7 +374,7 @@ export default function QRCodeManagement() {
               >
                 {locations.map((location) => (
                   <MenuItem key={location.location_Id} value={location.location_Id}>
-                    {location.name} - {location.city}
+                    {location.name}
                   </MenuItem>
                 ))}
               </Select>
@@ -258,9 +393,9 @@ export default function QRCodeManagement() {
         </Grid>
       </Paper>
 
-      {/* Individual QR Code Generation */}
+      {/* Individual QR Code Generation - Wifi & Session */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={12}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -300,7 +435,7 @@ export default function QRCodeManagement() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={12}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
@@ -347,34 +482,66 @@ export default function QRCodeManagement() {
           Bulk QR Code Generation
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Generate QR codes for multiple tables at once. Files will be saved on the server in the
+          Generate QR codes for all tables at the selected location. Files will be saved on the server in the
           storage/qrcodes/ directory.
         </Typography>
-        <Grid container spacing={2} alignItems="flex-end">
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Number of Tables"
-              type="number"
-              value={bulkTableCount}
-              onChange={(e) => setBulkTableCount(e.target.value)}
-              inputProps={{ min: 1, max: 1000 }}
-              helperText="Generate WiFi and Session QR codes for tables 1 to N"
-            />
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Button
-              fullWidth
-              variant="contained"
-              color="secondary"
-              onClick={bulkGenerateQRCodes}
-              disabled={loading || !selectedLocation || !bulkTableCount}
-              startIcon={loading ? <CircularProgress size={20} /> : <QrCode size={20} />}
-            >
-              Generate Bulk QR Codes
-            </Button>
-          </Grid>
-        </Grid>
+
+        {selectedLocation && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            {tables.length > 0
+              ? `${tables.length} table${tables.length === 1 ? '' : 's'} found at ${selectedLocationName}. This will generate ${tables.length * 2} QR codes (WiFi + Session for each table).`
+              : `No tables found at ${selectedLocationName}. Please create tables first.`
+            }
+          </Alert>
+        )}
+
+        <Button
+          fullWidth
+          variant="contained"
+          color="secondary"
+          onClick={bulkGenerateQRCodes}
+          disabled={loading || !selectedLocation || tables.length === 0}
+          startIcon={loading ? <CircularProgress size={20} /> : <QrCode size={20} />}
+          sx={{ mb: 2 }}
+        >
+          {loading ? 'Generating...' : `Generate QR Codes for All ${tables.length} Tables`}
+        </Button>
+
+        {lastGeneratedLocation && lastGeneratedLocation === selectedLocation && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+              Download Generated QR Codes
+            </Typography>
+            <Alert severity="info" sx={{ mb: 2 }}>
+              QR codes are generated at 600×600px. PDF format fits 16 QR codes per page (4 across × 4 down) at 1.75" × 1.75" each, optimized for 8.5" × 11" printing.
+            </Alert>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={downloadLoading ? <CircularProgress size={20} /> : <Download size={20} />}
+                  onClick={downloadAsZip}
+                  disabled={downloadLoading}
+                >
+                  Download as ZIP (Individual Files)
+                </Button>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={downloadLoading ? <CircularProgress size={20} /> : <Download size={20} />}
+                  onClick={downloadAsPdf}
+                  disabled={downloadLoading}
+                >
+                  Download as PDF (16 QR per page)
+                </Button>
+              </Grid>
+            </Grid>
+          </>
+        )}
       </Paper>
 
       {/* Cache Management */}
