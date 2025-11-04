@@ -4,6 +4,10 @@ import { X, Plus } from "lucide-react";
 import PropTypes from "prop-types";
 
 const getContrastColor = (hexColor) => {
+  // Add safety check for undefined or invalid hex color
+  if (!hexColor || typeof hexColor !== 'string' || !hexColor.startsWith('#')) {
+    return "#EBEBEB"; // Return default color if invalid
+  }
 
   const r = parseInt(hexColor.slice(1, 3), 16);
   const g = parseInt(hexColor.slice(3, 5), 16);
@@ -112,20 +116,23 @@ const TagChip = ({
     }
   };
 
-  const contrastColor = getContrastColor(tag.tag_color)
+  // Support both naming conventions: tag_color/color_code and tag_name/name
+  const tagColor = tag.tag_color || tag.color_code || '#cccccc';
+  const tagName = tag.tag_name || tag.name || 'Unnamed Tag';
+  
+  const contrastColor = getContrastColor(tagColor);
 
   const chipProps = {
-    label: tag.tag_name
-,
+    label: tagName,
     sx: {
-      backgroundColor: tag.tag_color,
+      backgroundColor: tagColor,
       color: contrastColor,
       border: `1px solid ${contrastColor}40`,
       cursor: "pointer",
       fontWeight: 500,
       "&:hover": {
         opacity: 0.9,
-        backgroundColor: tag.tag_color,
+        backgroundColor: tagColor,
       },
       "& .MuiChip-deleteIcon": {
         color: contrastColor,
@@ -165,8 +172,10 @@ const TagChip = ({
 TagChip.propTypes = {
   tag: PropTypes.shape({
     tag_id: PropTypes.number.isRequired,
-    name: PropTypes.string.isRequired,
-    color_code: PropTypes.string.isRequired,
+    tag_name: PropTypes.string,
+    name: PropTypes.string,
+    tag_color: PropTypes.string,
+    color_code: PropTypes.string,
   }).isRequired,
   isActionChip: PropTypes.bool,
   isUsedFor: PropTypes.oneOf(["tag-select", "menu-item"]),

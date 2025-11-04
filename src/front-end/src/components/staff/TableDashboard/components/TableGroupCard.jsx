@@ -19,6 +19,7 @@ import {
   ChevronUp,
   Users,
   Plus,
+  LocateFixed 
 } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";

@@ -8,6 +8,11 @@ import {
   Button,
   Box,
   Alert,
+  FormControl,
+  FormControlLabel,
+  Select,
+  InputLabel,
+  MenuItem
 } from "@mui/material";
 import { useTable } from "../../context/TableContext";
 import api from "@/config/api";
@@ -18,9 +23,13 @@ const EditTableDialog = ({ open, table }) => {
     table_Number: "",
     seat_count: "",
     qr_Code_Url: "",
+    Location: ""
   });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+
+
 
   useEffect(() => {
     if (table) {
@@ -28,8 +37,10 @@ const EditTableDialog = ({ open, table }) => {
         table_Number: table.table_number || "",
         seat_count: table.seat_count || "",
         qr_Code_Url: table.qr_Code || "",
+
       });
     }
+   
   }, [table]);
 
   const handleClose = () => {

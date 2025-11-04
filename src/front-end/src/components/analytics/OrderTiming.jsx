@@ -46,6 +46,7 @@ const OrderTiming = () => {
         const response = await api.get("analytics/order-timing");
 
         setData(response.data);
+        console.log(response.data)
         setDailyAverageTiming(response.data.dailyAverageTiming);
       } catch (err) {
         console.error("Error fetching data:", err);

@@ -96,11 +96,11 @@ const AppBarWithTitle = ({ title }) => {
     window.location.reload();
 
     try {
-      // const response = await api.put(
-      // `staff/update-user-location/${locationId}`
-      // );
+      const response = await api.put(
+      `staff/update-user-location/${locationId}`
+      );
     } catch (err) {
-      // console.error("Error updating location:", err);
+      console.error("Error updating location:", err);
       // Optionally revert the selection on error
       // setSelectedLocation(previousValue);
     }

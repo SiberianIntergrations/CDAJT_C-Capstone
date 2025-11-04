@@ -48,7 +48,7 @@ namespace back_end.Controllers
     {
       try
       {
-        var location = await _context.Locations.ToListAsync();
+        var location = await _context.Locations.OrderBy(l => l.Location_Id).ToListAsync();
         return Ok(location);
       }
       catch (Exception ex)

@@ -66,6 +66,7 @@ const MenuItemManagement = () => {
   const [submitting, setSubmitting] = useState(false);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [successMessage , setSuccessMessage]= useState("")
 
   // TODO: Update APIs for menu items, categories, menu, and tags
   const fetchData = async () => {
@@ -107,10 +108,11 @@ const MenuItemManagement = () => {
 
   const handleTagAction = async (itemId, tagId, action) => {
     try {
+      
       if (action === "add") {
-        await api.post(`/menu-items/${itemId}/tags/${tagId}`);
+        await api.post(`/menuitem/${itemId}/tags/${tagId}`)
       } else {
-        await api.delete(`/menu-items/${itemId}/tags/${tagId}`);
+        await api.delete(`/menuitem/${itemId}/tags/${tagId}`)
       }
       await fetchData();
     } catch (err) {
@@ -128,16 +130,20 @@ const MenuItemManagement = () => {
 
   const handleEdit = (item) => {
     setSelectedItem(item);
-    setImagePreview(item.item_image_url || "");
+    setImagePreview(item.item_Image_Url
+ || "");
     setDialogOpen(true);
   };
 
   const handleDelete = async (item) => {
     try {
-      // console.log("Item Id: ", item);
-      const response = await api.get(`/menuitem/${item.item_id}`);
+
+      const response = await api.get(
+        `/menuitem/${item.item_id}`
+      );
 
       const assignments = response.data;
+
 
       if (assignments.length > 0) {
         setError(
@@ -155,7 +161,8 @@ const MenuItemManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await api.delete(`/menuitem/${itemToDelete.item_id}`);
+
+      await api.delete(`/menuitem/${itemToDelete.item_id}`)
       await fetchData();
       setDeleteDialogOpen(false);
       setItemToDelete(null);
@@ -166,7 +173,7 @@ const MenuItemManagement = () => {
 
   const columns = [
     {
-      field: "item_image_url",
+      field: "item_Image_Url",
       headerName: "Image",
       width: 100,
       renderCell: (params) =>
@@ -236,7 +243,8 @@ const MenuItemManagement = () => {
               alignItems: "center",
             }}
           >
-            {params.row.tags?.map((tag) => (
+            {params.row.menuItemTags?.map((tag) => (
+
               <TagChip
                 key={`tag-${tag.tag_id}`}
                 tag={tag}
@@ -310,14 +318,12 @@ const MenuItemManagement = () => {
         // Step 1: Save menu item basic data
         if (selectedItem) {
           // UPDATE existing item
-
           savedItem = await api.put(
             `/menuItem/${selectedItem.item_id}`,
             formData
           );
         } else {
           // CREATE new item
-
           savedItem = await api.post("/menuItem", formData);
         }
 
@@ -326,11 +332,7 @@ const MenuItemManagement = () => {
           const imageFormData = new FormData();
           imageFormData.append("file", imageFile);
 
-          // Log FormData contents
-          for (let pair of imageFormData.entries()) {
-          }
-
-          const imageResponse = await api.post(
+          await api.post(
             `/menuItem/${savedItem.data.item_id}/image`,
             imageFormData,
             {
@@ -345,6 +347,7 @@ const MenuItemManagement = () => {
         await fetchData();
         setDialogOpen(false);
         setImageFile(null);
+        setImagePreview("");
         setError(null);
 
         // Optional: Show success message
@@ -356,15 +359,7 @@ const MenuItemManagement = () => {
       } catch (err) {
         console.error("Error saving item:", err);
         console.error("Error response:", err.response);
-
-        const errorMessage =
-          err.response?.data?.detail ||
-          err.response?.data?.message ||
-          err.response?.data ||
-          err.message ||
-          "Failed to save menu item";
-
-        setError(errorMessage);
+        setError("Failed to save menu item");
       } finally {
         setSubmitting(false);
       }
@@ -550,7 +545,7 @@ const MenuItemManagement = () => {
           rows={items}
           columns={[
             {
-              field: "image_url",
+              field: "item_Image_Url",
               headerName: "Image",
               width: 100,
               renderCell: (params) =>
@@ -599,86 +594,86 @@ const MenuItemManagement = () => {
                 </Box>
               ),
             },
-            {
-              field: "category_id",
-              headerName: "Category",
-              flex: 1,
-              minWidth: 150,
-              align: "center",
-              headerAlign: "left",
-              type: "singleSelect",
-              valueOptions: [
-                { value: "", label: "All Categories" },
-                ...categories.map((cat) => ({
-                  value: cat.category_id,
-                  label: cat.name,
-                })),
-              ],
-              renderCell: (params) => {
-                const category = categories.find(
-                  (c) => c.category_id === params.value
-                );
-                return (
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      height: "100%",
-                    }}
-                  >
-                    <Typography>
-                      {category?.category_name || "(No category)"}
-                    </Typography>
-                  </Box>
-                );
-              },
-            },
+{
+  field: "category_Id",  // Changed from category_id to category_Id (capital I)
+  headerName: "Category",
+  flex: 1,
+  minWidth: 150,
+  align: "center",
+  headerAlign: "left",
+  type: "singleSelect",
+  valueOptions: [
+    { value: "", label: "All Categories" },
+    ...categories.map((cat) => ({
+      value: cat.category_id,
+      label: cat.category_name,
+    })),
+  ],
+  renderCell: (params) => {
+    const category = categories.find(
+      (c) => c.category_id === params.value
+    );
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          height: "100%",
+        }}
+      >
+        <Typography>{category?.category_name || "(No category)"}</Typography>
+      </Box>
+    );
+  },
+},
             {
               field: "description",
               headerName: "Description & Tags",
               flex: 2,
               minWidth: 300,
-              renderCell: (params) => (
-                <Box sx={{ py: 1 }}>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
-                    {params.row.description}
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 0.5,
-                      alignItems: "center",
-                    }}
-                  >
-                    {params.row.tags?.map((tag) => (
-                      <TagChip
-                        key={`tag-${tag.tag_id}`}
-                        tag={tag}
-                        isActionChip={true}
-                        isUsedFor="menu-item"
-                        onToggle={() =>
-                          handleTagAction(
-                            params.row.item_id,
-                            tag.tag_id,
-                            "remove"
-                          )
-                        }
-                      />
-                    ))}
-                    <IconButton
-                      size="small"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setSelectedItem(params.row);
-                        setTagDialogOpen(true);
+              renderCell: (params) => {    
+                return (
+                  <Box sx={{ py: 1 }}>
+                    <Typography variant="body2" sx={{ mb: 1 }}>
+                      {params.row.description}
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 0.5,
+                        alignItems: "center",
                       }}
                     >
-                      <Plus size={16} />
-                    </IconButton>
+                      {params.row.tags?.map((tag) => (
+                        <TagChip
+                          key={`tag-${tag.tag_id}`}
+                          tag={tag}
+                          isActionChip={true}
+                          isUsedFor="menu-item"
+                          onToggle={() =>
+                            handleTagAction(
+                              params.row.item_id,
+                              tag.tag_id,
+                              "remove"
+                            )
+                          }
+                        />
+                      ))}
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedItem(params.row);
+                          setTagDialogOpen(true);
+                        }}
+                      >
+                        <Plus size={16} />
+                      </IconButton>
+                    </Box>
                   </Box>
-                </Box>
-              ),
+                );
+              },
             },
             {
               field: "actions",
