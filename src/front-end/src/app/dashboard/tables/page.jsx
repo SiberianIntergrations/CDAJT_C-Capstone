@@ -13,11 +13,6 @@ const ErrorMessage = styled.div`
 `;
 
 const FullPageContainer = styled.div`
-  position: fixed;
-  top: 64px;
-  left: 0;
-  right: 0;
-  bottom: 0;
   overflow-y: auto;
   background-color: #f5f5f5;
 `;

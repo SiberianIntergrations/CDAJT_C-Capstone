@@ -89,7 +89,7 @@ const AppBarWithTitle = ({ title }) => {
 
   const handleLocationChange = async (event) => {
     const locationId = event.target.value;
-    console.log("Event: ", event.target.value);
+    // console.log("Event: ", event.target.value);
     setSelectedLocation(locationId);
     storage.set("branch-location", locationId);
     window.location.reload();

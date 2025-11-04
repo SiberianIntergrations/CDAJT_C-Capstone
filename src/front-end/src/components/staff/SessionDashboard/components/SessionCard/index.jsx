@@ -411,7 +411,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
         <AccordionDetails>
           <Stack spacing={2}>
-            {/* <TableSection session={session} /> */}
+            <TableSection session={session} />
             <BillSection session={session} />
             <Divider />
             <Box

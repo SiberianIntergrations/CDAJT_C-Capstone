@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 'use client';
 import { useState,useEffect } from "react";
+=======
+import { useState, useEffect } from "react";
+>>>>>>> main
 import {
   Dialog,
   DialogTitle,
@@ -10,13 +14,22 @@ import {
   Box,
   Alert,
   FormControl,
+<<<<<<< HEAD
   FormControlLabel,
   Select,
   InputLabel,
   MenuItem
+=======
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton,
+>>>>>>> main
 } from "@mui/material";
+import { X } from "lucide-react";
 import { useTable } from "../../context/TableContext";
 import api from "@/config/api";
+import storage from "@/utils/storage";
 
 const NewTableDialog = ({ open }) => {
   const { closeDialog, refreshData } = useTable();
@@ -25,13 +38,19 @@ const NewTableDialog = ({ open }) => {
     seat_count: "",
     qr_Code_Url: "",
     is_Active: true,
+<<<<<<< HEAD
     Location_Id: 0
+=======
+    location_Id: storage.get("branch-location") || "",
+>>>>>>> main
   });
+  const [availableLocations, setAvailableLocations] = useState([]);
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [locationList, setLocationList] = useState([]);
 
   useEffect(() => {
+<<<<<<< HEAD
     const fetchLocations = async () => {
       try {
         const response = await api.get("location");
@@ -43,12 +62,30 @@ const NewTableDialog = ({ open }) => {
 
     fetchLocations();
   }, []);
+=======
+    if (open) {
+      fetchLocations();
+    }
+  }, [open]);
+
+  const fetchLocations = async () => {
+    try {
+      const response = await api.get("/Location");
+      if (response.status !== 200) throw new Error("Failed to fetch locations");
+      setAvailableLocations(response.data);
+    } catch (err) {
+      console.error("Error fetching locations:", err);
+    }
+  };
+
+>>>>>>> main
   const handleClose = () => {
     setFormData({
       table_Number: "",
       seat_count: "",
       qr_Code_Url: "",
       is_Active: true,
+      location_Id: storage.get("branch-location") || "",
     });
     setError(null);
     closeDialog();
@@ -58,14 +95,17 @@ const NewTableDialog = ({ open }) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
-
     try {
       await api.post("/TableEntity", {
         Table_Number: parseInt(formData.table_Number),
         Seat_Count: parseInt(formData.seat_count),
         Qr_Code_Url: formData.qr_Code_Url,
         Is_Active: formData.is_Active,
+<<<<<<< HEAD
         Location_Id: formData.location_Id
+=======
+        Location_Id: formData.location_Id,
+>>>>>>> main
       });
       await refreshData();
       handleClose();
@@ -79,7 +119,15 @@ const NewTableDialog = ({ open }) => {
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
-        <DialogTitle>Create New Table</DialogTitle>
+        <DialogTitle>
+          Create New Table
+          <IconButton
+            onClick={handleClose}
+            sx={{ position: "absolute", right: 8, top: 8 }}
+          >
+            <X />
+          </IconButton>
+        </DialogTitle>
         <DialogContent>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -87,6 +135,25 @@ const NewTableDialog = ({ open }) => {
             </Alert>
           )}
           <Box display="flex" flexDirection="column" gap={2} mt={1}>
+            <FormControl fullWidth required>
+              <InputLabel>Select Location</InputLabel>
+              <Select
+                value={formData.location_Id}
+                onChange={(e) =>
+                  setFormData({ ...formData, location_Id: e.target.value })
+                }
+                label="Select Location"
+              >
+                {availableLocations.map((location) => (
+                  <MenuItem
+                    key={location.location_Id}
+                    value={location.location_Id}
+                  >
+                    {location.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <TextField
               label="Table Number"
               type="number"
