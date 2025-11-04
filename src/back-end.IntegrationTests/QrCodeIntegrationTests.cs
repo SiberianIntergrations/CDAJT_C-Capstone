@@ -74,21 +74,20 @@ public class QrCodeIntegrationTests : IClassFixture<WebApplicationFactory<Progra
     }
 
     [Fact]
-    public async Task BulkGenerateQrCodes_NoAuthentication_ReturnsUnauthorized()
+    public async Task BulkGenerate_NoAuthentication_ReturnsUnauthorized()
     {
         // Arrange
         var locationId = 1;
-        var tableCount = 10;
 
-        // Act
-        var response = await _client.PostAsync($"/api/admin/qr/bulk?locationId={locationId}&tableCount={tableCount}", null);
+        // Act - Updated to match new API (no tableCount parameter)
+        var response = await _client.PostAsync($"/api/admin/qr/bulk?locationId={locationId}", null);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task ClearQrCache_NoAuthentication_ReturnsUnauthorized()
+    public async Task Clear_NoAuthentication_ReturnsUnauthorized()
     {
         // Arrange
         var locationId = 1;

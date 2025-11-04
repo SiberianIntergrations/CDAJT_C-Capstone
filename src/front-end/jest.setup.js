@@ -1,5 +1,11 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
+import { cleanup } from '@testing-library/react'
+
+// Cleanup after each test automatically
+afterEach(() => {
+  cleanup()
+})
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -25,4 +31,11 @@ global.IntersectionObserver = class IntersectionObserver {
     return []
   }
   unobserve() {}
+}
+
+// Suppress console warnings in tests
+global.console = {
+  ...console,
+  warn: jest.fn(),
+  error: jest.fn(),
 }

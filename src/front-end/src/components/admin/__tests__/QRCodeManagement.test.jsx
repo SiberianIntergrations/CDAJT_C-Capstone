@@ -8,12 +8,33 @@ jest.mock('@/config/api', () => ({
   api: {
     get: jest.fn(),
     post: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+// Mock storage utility
+jest.mock('@/utils/storage', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(() => null),
+    set: jest.fn(),
+    remove: jest.fn(),
+    clear: jest.fn(),
   },
 }));
 
 // Mock window.URL methods
 global.URL.createObjectURL = jest.fn(() => 'blob:test-url');
 global.URL.revokeObjectURL = jest.fn();
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+global.localStorage = localStorageMock;
 
 describe('QRCodeManagement Component', () => {
   const mockLocations = [
@@ -23,6 +44,7 @@ describe('QRCodeManagement Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorageMock.getItem.mockReturnValue(null);
 
     // Default mock for location fetch
     api.get.mockImplementation((url) => {
@@ -163,15 +185,23 @@ describe('QRCodeManagement Component', () => {
   });
 
   test('bulk generation sends correct API request', async () => {
+    const mockTables = [
+      { table_Id: 1, table_number: 1, Location_Id: 1 },
+      { table_Id: 2, table_number: 2, Location_Id: 1 },
+    ];
+
     api.get.mockImplementation((url) => {
       if (url === '/location') {
         return Promise.resolve({ data: mockLocations });
+      }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: mockTables });
       }
       return Promise.reject(new Error('Not found'));
     });
 
     api.post.mockResolvedValueOnce({
-      data: { filesGenerated: 20, success: true },
+      data: { filesGenerated: 4, tableCount: 2, success: true },
     });
 
     render(<QRCodeManagement />);
@@ -180,22 +210,23 @@ describe('QRCodeManagement Component', () => {
       expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
     });
 
-    // Find bulk table count input
-    const bulkInputs = screen.queryAllByLabelText(/Number of Tables/i);
-    if (bulkInputs.length > 0) {
-      fireEvent.change(bulkInputs[0], { target: { value: '10' } });
+    // Wait for tables to load
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/TableEntity', {
+        params: { locationId: 1 }
+      });
+    });
 
-      // Click bulk generate button
-      const bulkButton = screen.queryByText(/Generate Bulk QR Codes/i);
-      if (bulkButton) {
-        fireEvent.click(bulkButton);
+    // Click bulk generate button
+    const bulkButton = screen.queryByText(/Generate QR Codes for All/i);
+    if (bulkButton) {
+      fireEvent.click(bulkButton);
 
-        await waitFor(() => {
-          expect(api.post).toHaveBeenCalledWith('/admin/qr/bulk', null, {
-            params: { locationId: 1, tableCount: '10' },
-          });
+      await waitFor(() => {
+        expect(api.post).toHaveBeenCalledWith('/admin/qr/bulk', null, {
+          params: { locationId: 1 },
         });
-      }
+      });
     }
   });
 
@@ -262,6 +293,112 @@ describe('QRCodeManagement Component', () => {
 
     await waitFor(() => {
       expect(api.get).toHaveBeenCalledWith('/location');
+    });
+  });
+
+  test('displays correct PDF layout information (16 QR per page)', async () => {
+    const mockTables = [
+      { table_Id: 1, table_number: 1, Location_Id: 1 },
+    ];
+
+    api.get.mockImplementation((url) => {
+      if (url === '/location') {
+        return Promise.resolve({ data: mockLocations });
+      }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: mockTables });
+      }
+      return Promise.reject(new Error('Not found'));
+    });
+
+    api.post.mockResolvedValueOnce({
+      data: { filesGenerated: 2, tableCount: 1, success: true },
+    });
+
+    render(<QRCodeManagement />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
+    });
+
+    // Generate QR codes first
+    const bulkButton = screen.queryByText(/Generate QR Codes for All/i);
+    if (bulkButton) {
+      fireEvent.click(bulkButton);
+
+      await waitFor(() => {
+        // Check that the PDF information is displayed correctly
+        expect(screen.getByText(/16 QR codes per page \(4 across × 4 down\)/i)).toBeInTheDocument();
+        expect(screen.getByText(/1\.75" × 1\.75"/i)).toBeInTheDocument();
+      });
+    }
+  });
+
+  test('PDF download button shows correct text', async () => {
+    const mockTables = [
+      { table_Id: 1, table_number: 1, Location_Id: 1 },
+    ];
+
+    api.get.mockImplementation((url) => {
+      if (url === '/location') {
+        return Promise.resolve({ data: mockLocations });
+      }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: mockTables });
+      }
+      return Promise.reject(new Error('Not found'));
+    });
+
+    api.post.mockResolvedValueOnce({
+      data: { filesGenerated: 2, tableCount: 1, success: true },
+    });
+
+    render(<QRCodeManagement />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
+    });
+
+    // Generate QR codes
+    const bulkButton = screen.queryByText(/Generate QR Codes for All/i);
+    if (bulkButton) {
+      fireEvent.click(bulkButton);
+
+      await waitFor(() => {
+        // Check PDF button text
+        const pdfButton = screen.queryByText(/Download as PDF \(16 QR per page\)/i);
+        expect(pdfButton).toBeInTheDocument();
+      });
+    }
+  });
+
+  test('fetches tables when location is selected', async () => {
+    const mockTables = [
+      { table_Id: 1, table_number: 1, Location_Id: 1 },
+      { table_Id: 2, table_number: 2, Location_Id: 1 },
+    ];
+
+    api.get.mockImplementation((url, config) => {
+      if (url === '/location') {
+        return Promise.resolve({ data: mockLocations });
+      }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: mockTables });
+      }
+      return Promise.reject(new Error('Not found'));
+    });
+
+    render(<QRCodeManagement />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
+    });
+
+    // Tables should be fetched for default location
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/TableEntity', {
+        params: { locationId: 1 }
+      });
     });
   });
 });

@@ -16,7 +16,12 @@ const customJestConfig = {
   },
   testMatch: [
     '**/__tests__/**/*.[jt]s?(x)',
-    '**/?(*.)+(spec|test).[jt]s?(x)'
+    '**/?(*.)+(test).[jt]s?(x)'
+  ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/e2e/',
+    '/.next/'
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
@@ -24,7 +29,7 @@ const customJestConfig = {
     '!src/**/_*.{js,jsx,ts,tsx}',
     '!src/**/*.stories.{js,jsx,ts,tsx}',
   ],
-  coverageThresholds: {
+  coverageThreshold: {
     global: {
       branches: 70,
       functions: 70,

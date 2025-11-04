@@ -47,12 +47,12 @@ public class AuthControllerTests : IDisposable
 
         var user = new User
         {
-            User_Id = 1,
+            User_id = 1,
             Email = "test@example.com",
             Password_hash = hashedPassword,
             First_name = "Test",
             Last_name = "User",
-            Role = UserRole.Customer,
+            Role = UserRoles.Customer,
             Status = UserStatus.Active,
             Is_email_confirmed = true
         };
@@ -107,12 +107,12 @@ public class AuthControllerTests : IDisposable
 
         var user = new User
         {
-            User_Id = 1,
+            User_id = 1,
             Email = "test@example.com",
             Password_hash = hashedPassword,
             First_name = "Test",
             Last_name = "User",
-            Role = UserRole.Customer,
+            Role = UserRoles.Customer,
             Status = UserStatus.Active
         };
 
@@ -141,12 +141,12 @@ public class AuthControllerTests : IDisposable
 
         var user = new User
         {
-            User_Id = 1,
+            User_id = 1,
             Email = "inactive@example.com",
             Password_hash = hashedPassword,
             First_name = "Inactive",
             Last_name = "User",
-            Role = UserRole.Customer,
+            Role = UserRoles.Customer,
             Status = UserStatus.Inactive
         };
 
@@ -176,12 +176,12 @@ public class AuthControllerTests : IDisposable
 
         var user = new User
         {
-            User_Id = 1,
+            User_id = 1,
             Email = "test@example.com",
             Password_hash = hashedPassword,
             First_name = "Test",
             Last_name = "User",
-            Role = UserRole.Customer,
+            Role = UserRoles.Customer,
             Status = UserStatus.Active,
             Last_Interaction_at = initialTime
         };
@@ -233,12 +233,12 @@ public class AuthControllerTests : IDisposable
         // Arrange
         var existingUser = new User
         {
-            User_Id = 1,
+            User_id = 1,
             Email = "existing@example.com",
             Password_hash = BCryptNet.HashPassword("password"),
             First_name = "Existing",
             Last_name = "User",
-            Role = UserRole.Customer,
+            Role = UserRoles.Customer,
             Status = UserStatus.Active
         };
 

@@ -1,7 +1,9 @@
 using Xunit;
+using Moq;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using back_end.Controllers;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
@@ -12,6 +14,7 @@ public class LocationControllerTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly LocationController _controller;
+    private readonly Mock<ILogger<LocationController>> _mockLogger;
 
     public LocationControllerTests()
     {
@@ -20,7 +23,8 @@ public class LocationControllerTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _controller = new LocationController(_context);
+        _mockLogger = new Mock<ILogger<LocationController>>();
+        _controller = new LocationController(_context, _mockLogger.Object);
 
         SeedTestData();
     }
@@ -59,7 +63,7 @@ public class LocationControllerTests : IDisposable
     public async Task GetAllLocations_ReturnsAllLocations()
     {
         // Act
-        var result = await _controller.GetLocations();
+        var result = await _controller.GetAllLocations();
 
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
@@ -72,41 +76,30 @@ public class LocationControllerTests : IDisposable
         locations.Should().Contain(l => l.Name == "West End");
     }
 
+    // Note: GetLocation method doesn't exist in LocationController
+    /*
     [Fact]
     public async Task GetLocationById_ValidId_ReturnsLocation()
     {
-        // Act
-        var result = await _controller.GetLocation(1);
-
-        // Assert
-        result.Result.Should().BeOfType<OkObjectResult>();
-        var okResult = result.Result as OkObjectResult;
-        var location = okResult!.Value as Locations;
-
-        location.Should().NotBeNull();
-        location!.Location_Id.Should().Be(1);
-        location.Name.Should().Be("Downtown");
+        // LocationController doesn't have a GetLocation method by ID
     }
 
     [Fact]
     public async Task GetLocationById_InvalidId_ReturnsNotFound()
     {
-        // Act
-        var result = await _controller.GetLocation(999);
-
-        // Assert
-        result.Result.Should().BeOfType<NotFoundObjectResult>();
+        // LocationController doesn't have a GetLocation method by ID
     }
+    */
 
     [Fact]
-    public async Task GetLocations_EmptyDatabase_ReturnsEmptyList()
+    public async Task GetAllLocations_EmptyDatabase_ReturnsEmptyList()
     {
         // Arrange
         _context.Locations.RemoveRange(_context.Locations);
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetLocations();
+        var result = await _controller.GetAllLocations();
 
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();
@@ -118,10 +111,10 @@ public class LocationControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetLocations_ReturnsLocationsInCorrectOrder()
+    public async Task GetAllLocations_ReturnsLocationsInCorrectOrder()
     {
         // Act
-        var result = await _controller.GetLocations();
+        var result = await _controller.GetAllLocations();
 
         // Assert
         result.Result.Should().BeOfType<OkObjectResult>();

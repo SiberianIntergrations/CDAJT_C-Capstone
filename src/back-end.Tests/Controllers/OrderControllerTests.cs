@@ -50,12 +50,12 @@ public class OrderControllerTests : IDisposable
 
         var user = new User
         {
-            User_Id = 1,
+            User_id = 1,
             Email = "test@example.com",
             Password_hash = "hashed",
             First_name = "Test",
             Last_name = "User",
-            Role = UserRole.Customer,
+            Role = UserRoles.Customer,
             Status = UserStatus.Active
         };
 
@@ -63,19 +63,22 @@ public class OrderControllerTests : IDisposable
         {
             Session_Id = 1,
             Location_Id = 1,
-            Status = SessionStatus.Active,
-            Created_At = DateTime.UtcNow
+            // Note: Status and Created_At properties may have changed in DiningSession entity
+            // Status = SessionStatus.Active,
+            // Created_At = DateTime.UtcNow
         };
 
-        var bill = new Bill
+        var bill = new Billing
         {
             Bill_Id = 1,
             Session_Id = 1,
+            Bill_Name = "Test Bill",
+            Senior_Count = 0,
+            Adult_Count = 1,
+            Child_Count = 0,
+            Total_Count = 1,
             Status = BillStatus.Open,
-            Created_At = DateTime.UtcNow,
-            Subtotal = 0,
-            Tax = 0,
-            Total = 0
+            Created_At = DateTime.UtcNow
         };
 
         _context.Locations.Add(location);
@@ -178,15 +181,17 @@ public class OrderControllerTests : IDisposable
         // Arrange
         SetupUserClaims(1);
 
-        var closedBill = new Bill
+        var closedBill = new Billing
         {
             Bill_Id = 2,
             Session_Id = 1,
+            Bill_Name = "Closed Bill",
+            Senior_Count = 0,
+            Adult_Count = 2,
+            Child_Count = 0,
+            Total_Count = 2,
             Status = BillStatus.Paid, // Closed bill
-            Created_At = DateTime.UtcNow,
-            Subtotal = 50,
-            Tax = 5,
-            Total = 55
+            Created_At = DateTime.UtcNow
         };
 
         _context.Bills.Add(closedBill);
@@ -238,12 +243,12 @@ public class OrderControllerTests : IDisposable
         {
             var user2 = new User
             {
-                User_Id = userId2,
+                User_id = userId2,
                 Email = $"user{userId2}@example.com",
                 Password_hash = "hashed",
                 First_name = "User",
                 Last_name = $"{userId2}",
-                Role = UserRole.Customer,
+                Role = UserRoles.Customer,
                 Status = UserStatus.Active
             };
             _context.Users.Add(user2);

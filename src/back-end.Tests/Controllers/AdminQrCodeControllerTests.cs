@@ -34,7 +34,7 @@ public class AdminQrCodeControllerTests : IDisposable
         _mockControllerLogger = new Mock<ILogger<AdminQrCodeController>>();
 
         _qrService = new QrGeneratorService(_context, _mockConfig.Object, _mockServiceLogger.Object);
-        _controller = new AdminQrCodeController(_qrService, _mockControllerLogger.Object);
+        _controller = new AdminQrCodeController(_qrService, _context, _mockControllerLogger.Object);
 
         // Seed test data
         SeedTestData();
@@ -54,6 +54,12 @@ public class AdminQrCodeControllerTests : IDisposable
         };
 
         _context.Locations.Add(location);
+
+        // Add some tables for bulk generation tests
+        _context.Tables.Add(new TableEntity { Table_Id = 1, table_number = 1, Location_Id = 1 });
+        _context.Tables.Add(new TableEntity { Table_Id = 2, table_number = 2, Location_Id = 1 });
+        _context.Tables.Add(new TableEntity { Table_Id = 3, table_number = 3, Location_Id = 1 });
+
         _context.SaveChanges();
     }
 
@@ -70,7 +76,7 @@ public class AdminQrCodeControllerTests : IDisposable
             .Returns("TestPassword123");
 
         // Act
-        var result = await _controller.GetWifiQr(locationId, table);
+        var result = await _controller.GetWifiQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<FileContentResult>();
@@ -93,7 +99,7 @@ public class AdminQrCodeControllerTests : IDisposable
             .Returns((string?)null);
 
         // Act
-        var result = await _controller.GetWifiQr(locationId, table);
+        var result = await _controller.GetWifiQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
@@ -109,7 +115,7 @@ public class AdminQrCodeControllerTests : IDisposable
         var table = 0;
 
         // Act
-        var result = await _controller.GetWifiQr(locationId, table);
+        var result = await _controller.GetWifiQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -123,7 +129,7 @@ public class AdminQrCodeControllerTests : IDisposable
         var table = 5;
 
         // Act
-        var result = await _controller.GetWifiQr(locationId, table);
+        var result = await _controller.GetWifiQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -140,7 +146,7 @@ public class AdminQrCodeControllerTests : IDisposable
             .Returns("http://localhost:3000");
 
         // Act
-        var result = await _controller.GetSessionQr(locationId, table);
+        var result = await _controller.GetSessionQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<FileContentResult>();
@@ -158,7 +164,7 @@ public class AdminQrCodeControllerTests : IDisposable
         var table = 5;
 
         // Act
-        var result = await _controller.GetSessionQr(locationId, table);
+        var result = await _controller.GetSessionQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
@@ -172,18 +178,17 @@ public class AdminQrCodeControllerTests : IDisposable
         var table = -1;
 
         // Act
-        var result = await _controller.GetSessionQr(locationId, table);
+        var result = await _controller.GetSessionQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
     [Fact]
-    public async Task BulkGenerateQrCodes_ValidRequest_ReturnsSuccessResponse()
+    public async Task BulkGenerate_ValidRequest_ReturnsSuccessResponse()
     {
         // Arrange
         var locationId = 1;
-        var tableCount = 10;
 
         _mockConfig.Setup(c => c[$"QRCodeSettings:Locations:{locationId}:WiFi:SSID"])
             .Returns("TestWiFi");
@@ -193,68 +198,61 @@ public class AdminQrCodeControllerTests : IDisposable
             .Returns("http://localhost:3000");
 
         // Act
-        var result = await _controller.BulkGenerateQrCodes(locationId, tableCount);
+        var result = await _controller.BulkGenerate(locationId, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
         var okResult = result as OkObjectResult;
         okResult!.Value.Should().NotBeNull();
 
-        var value = okResult.Value as dynamic;
+        // Verify the response contains expected data
+        dynamic value = okResult.Value!;
         Assert.NotNull(value);
+        // Should have generated QR codes for 3 tables (WiFi + Session = 6 files)
     }
 
     [Fact]
-    public async Task BulkGenerateQrCodes_InvalidLocation_ReturnsNotFound()
+    public async Task BulkGenerate_InvalidLocation_ReturnsNotFound()
     {
         // Arrange
         var locationId = 999;
-        var tableCount = 10;
 
         // Act
-        var result = await _controller.BulkGenerateQrCodes(locationId, tableCount);
+        var result = await _controller.BulkGenerate(locationId, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<NotFoundObjectResult>();
     }
 
     [Fact]
-    public async Task BulkGenerateQrCodes_InvalidTableCount_ReturnsBadRequest()
+    public async Task BulkGenerate_NoTables_ReturnsBadRequest()
     {
         // Arrange
         var locationId = 1;
-        var tableCount = 0;
+
+        // Remove all tables for this location
+        var tables = _context.Tables.Where(t => t.Location_Id == locationId).ToList();
+        _context.Tables.RemoveRange(tables);
+        _context.SaveChanges();
 
         // Act
-        var result = await _controller.BulkGenerateQrCodes(locationId, tableCount);
+        var result = await _controller.BulkGenerate(locationId, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
+        var badRequestResult = result as BadRequestObjectResult;
+        badRequestResult!.Value.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task BulkGenerateQrCodes_ExcessiveTableCount_ReturnsBadRequest()
-    {
-        // Arrange
-        var locationId = 1;
-        var tableCount = 1001; // Over the 1000 limit
-
-        // Act
-        var result = await _controller.BulkGenerateQrCodes(locationId, tableCount);
-
-        // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
-    }
-
-    [Fact]
-    public void ClearQrCache_ValidRequest_ReturnsSuccess()
+    public void Clear_ValidRequest_ReturnsSuccess()
     {
         // Arrange
         var locationId = 1;
         var table = 5;
 
         // Act
-        var result = _controller.ClearQrCache(locationId, table);
+        var result = _controller.Clear(locationId, table);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -275,8 +273,8 @@ public class AdminQrCodeControllerTests : IDisposable
             .Returns("TestPassword123");
 
         // Act - Make two requests
-        var result1 = await _controller.GetWifiQr(locationId, table);
-        var result2 = await _controller.GetWifiQr(locationId, table);
+        var result1 = await _controller.GetWifiQr(locationId, table, CancellationToken.None);
+        var result2 = await _controller.GetWifiQr(locationId, table, CancellationToken.None);
 
         // Assert - Both should return file results
         result1.Should().BeOfType<FileContentResult>();
@@ -301,7 +299,7 @@ public class AdminQrCodeControllerTests : IDisposable
             .Returns("TestPassword123");
 
         // Act
-        var result = await _controller.GetWifiQr(locationId, table);
+        var result = await _controller.GetWifiQr(locationId, table, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<FileContentResult>();

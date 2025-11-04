@@ -2,6 +2,8 @@ using Xunit;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
 using back_end.Controllers;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
@@ -12,6 +14,7 @@ public class MenuControllerTests : IDisposable
 {
     private readonly ApplicationDbContext _context;
     private readonly MenuController _controller;
+    private readonly Mock<ILogger<MenuController>> _mockLogger;
 
     public MenuControllerTests()
     {
@@ -20,7 +23,8 @@ public class MenuControllerTests : IDisposable
             .Options;
 
         _context = new ApplicationDbContext(options);
-        _controller = new MenuController(_context);
+        _mockLogger = new Mock<ILogger<MenuController>>();
+        _controller = new MenuController(_context, _mockLogger.Object);
 
         SeedTestData();
     }
@@ -40,16 +44,19 @@ public class MenuControllerTests : IDisposable
 
         var menu = new Menu
         {
-            Menu_Id = 1,
-            Menu_Name = "Main Menu",
-            Description = "Main menu for testing"
+            Menu_id = 1,
+            Name = "Main Menu",
+            Description = "Main menu for testing",
+            Start_time = new TimeOnly(8, 0),
+            End_time = new TimeOnly(22, 0),
+            Is_active = true
         };
 
         var category = new Category
         {
-            Category_Id = 1,
-            Category_Name = "Appetizers",
-            Display_Order = 1
+            Category_id = 1,
+            Category_name = "Appetizers",
+            Description = "Starters and appetizers"
         };
 
         _context.Locations.Add(location);
@@ -59,60 +66,60 @@ public class MenuControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetAllMenus_ReturnsAllMenus()
+    public async Task GetAllMenu_ReturnsAllMenus()
     {
         // Act
-        var result = await _controller.GetAllMenus();
+        var result = await _controller.GetAllMenu();
 
         // Assert
-        result.Should().BeOfType<OkObjectResult>();
-        var okResult = result as OkObjectResult;
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
         var menus = okResult!.Value as List<Menu>;
 
         menus.Should().NotBeNull();
         menus!.Should().HaveCount(1);
-        menus[0].Menu_Name.Should().Be("Main Menu");
+        menus[0].Name.Should().Be("Main Menu");
     }
 
     [Fact]
-    public async Task GetMenuById_ValidId_ReturnsMenu()
+    public async Task GetMenuByID_ValidId_ReturnsMenu()
     {
         // Act
-        var result = await _controller.GetMenuById(1);
+        var result = await _controller.GetMenuByID(1);
 
         // Assert
-        result.Should().BeOfType<OkObjectResult>();
-        var okResult = result as OkObjectResult;
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
         var menu = okResult!.Value as Menu;
 
         menu.Should().NotBeNull();
-        menu!.Menu_Id.Should().Be(1);
-        menu.Menu_Name.Should().Be("Main Menu");
+        menu!.Menu_id.Should().Be(1);
+        menu.Name.Should().Be("Main Menu");
     }
 
     [Fact]
-    public async Task GetMenuById_InvalidId_ReturnsNotFound()
+    public async Task GetMenuByID_InvalidId_ReturnsNotFound()
     {
         // Act
-        var result = await _controller.GetMenuById(999);
+        var result = await _controller.GetMenuByID(999);
 
         // Assert
-        result.Should().BeOfType<NotFoundObjectResult>();
+        result.Result.Should().BeOfType<NotFoundObjectResult>();
     }
 
     [Fact]
-    public async Task GetAllMenus_EmptyDatabase_ReturnsEmptyList()
+    public async Task GetAllMenu_EmptyDatabase_ReturnsEmptyList()
     {
         // Arrange
         _context.Menus.RemoveRange(_context.Menus);
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _controller.GetAllMenus();
+        var result = await _controller.GetAllMenu();
 
         // Assert
-        result.Should().BeOfType<OkObjectResult>();
-        var okResult = result as OkObjectResult;
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = result.Result as OkObjectResult;
         var menus = okResult!.Value as List<Menu>;
 
         menus.Should().NotBeNull();
