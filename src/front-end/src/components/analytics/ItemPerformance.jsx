@@ -111,11 +111,11 @@ const ItemPerformance = () => {
         </Grid>
       </Grid>
 
-      <InsightTextBox
+      {/* <InsightTextBox
         topItems={top5Items}
         bottomItems={least5Items}
         question="This is a buffet japanese sushi restaurant, based on top 5 and bottom 5 items, Is there anything the restaurant can improve? maybe a SWOT analysis"
-      />
+      /> */}
 
       <table>
         <thead>
