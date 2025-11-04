@@ -42,7 +42,7 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
   const touchStartX = useRef(null);
-  console.log("Bill", bill);
+  // console.log("Bill", bill);
 
   const handleTouchStart = useCallback(
     (e) => {
