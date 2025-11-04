@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import api from "@/config/api";
+import storage from "@/utils/storage";
 
 export const useTableData = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -15,7 +16,9 @@ export const useTableData = () => {
 
   const fetchTables = useCallback(async () => {
     try {
-      const response = await api.get("/TableEntity");
+      const response = await api.get(
+        `/TableEntity?locationId=${storage.get("branch-location")}`
+      );
       if (response.status === 200) {
         setTables(response.data);
         return response.data;
@@ -29,7 +32,9 @@ export const useTableData = () => {
 
   const fetchTableGroups = useCallback(async () => {
     try {
-      const response = await api.get("/TableGroup");
+      const response = await api.get(
+        `/TableGroup?locationId=${storage.get("branch-location")}`
+      );
       if (response.status === 200) {
         setTableGroups(response.data);
         return response.data;

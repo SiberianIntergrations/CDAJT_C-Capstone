@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useSessionData } from "../hooks/useSessionData";
 import { useSessionActions } from "../hooks/useSessionActions";
+import api from "@/config/api";
 
 const SessionContext = createContext(null);
 
@@ -46,7 +47,7 @@ export const SessionProvider = ({ children }) => {
     // State
     actionError,
     isLoading: actionLoading,
-    
+
     // Dining session operations
     createDiningSession,
     listDiningSessions,
@@ -58,23 +59,23 @@ export const SessionProvider = ({ children }) => {
     removeTableGroupFromSession,
     getActiveSessionId,
     getSessionMenuId,
-    
+
     // Session operations
     fetchActiveSessions,
     fetchSessionById,
     fetchSessionByTable,
-    
+
     // Table operations
     listEmptyTables,
-    
+
     // Table group operations
     fetchAvailableTableGroups,
-    
+
     // Bill operations
     createBill: baseCreateBill,
     getBills,
     closeBill: baseCloseBill,
-    
+
     // Utilities
     clearActionError,
   } = useSessionActions(async () => {
@@ -165,14 +166,17 @@ export const SessionProvider = ({ children }) => {
     }));
   }, []);
 
-  const closeDialog = useCallback((dialogName) => {
-    setDialogState((prev) => ({
-      ...prev,
-      [dialogName]: false,
-      currentSessionId: null,
-    }));
-    clearActionError();
-  }, [clearActionError]);
+  const closeDialog = useCallback(
+    (dialogName) => {
+      setDialogState((prev) => ({
+        ...prev,
+        [dialogName]: false,
+        currentSessionId: null,
+      }));
+      clearActionError();
+    },
+    [clearActionError]
+  );
 
   const value = {
     // Data state
@@ -181,16 +185,16 @@ export const SessionProvider = ({ children }) => {
     isLoading,
     error,
     actionError,
-    
+
     // Dialog state
     dialogState,
     openDialog,
     closeDialog,
-    
+
     // Data fetching
     fetchSessions,
     fetchDashboardSummary,
-    
+
     // Dining session operations (backward compatible wrappers)
     createSession,
     addTable,
@@ -198,7 +202,7 @@ export const SessionProvider = ({ children }) => {
     removeTable,
     removeTableGroup,
     endSession,
-    
+
     // Direct access to all useSessionActions functions
     createDiningSession,
     listDiningSessions,
@@ -210,23 +214,23 @@ export const SessionProvider = ({ children }) => {
     removeTableGroupFromSession,
     getActiveSessionId,
     getSessionMenuId,
-    
+
     // Session operations
     fetchActiveSessions,
     fetchSessionById,
     fetchSessionByTable,
-    
+
     // Table operations
     listEmptyTables,
-    
+
     // Table group operations
     fetchAvailableTableGroups,
-    
+
     // Bill operations
     createBill,
     getBills,
     closeBill,
-    
+
     // Utilities
     clearActionError,
     triggerUpdate,

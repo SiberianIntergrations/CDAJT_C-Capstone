@@ -109,8 +109,6 @@ const NewSessionDialog = ({ open, onClose }) => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      console.log("assignment: ", `|${tableAssignmentType}|`);
-
       // Reset form and close
       handleClose();
 
