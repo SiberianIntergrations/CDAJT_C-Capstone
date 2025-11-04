@@ -15,7 +15,6 @@ namespace back_end.DTO.LocationDTOs
         [MinLength(1)]
         public string Address_One { get; set; } = string.Empty;
         [MaxLength(75)]
-        [MinLength(1)]
         public string Address_Two { get; set; } = string.Empty;
         [MaxLength(50)]
         [MinLength(1)]

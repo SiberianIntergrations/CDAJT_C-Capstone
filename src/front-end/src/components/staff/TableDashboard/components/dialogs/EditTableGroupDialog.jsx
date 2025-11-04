@@ -8,6 +8,11 @@ import {
   Button,
   Box,
   Alert,
+  FormControl,
+  FormControlLabel,
+  Select,
+  InputLabel,
+  MenuItem
 } from "@mui/material";
 import { useTable } from "../../context/TableContext";
 import api from "@/config/api";
@@ -19,6 +24,7 @@ const EditTableGroupDialog = ({ open, group }) => {
   });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+    const [locationList, setLocationList] = useState([]);
 
   useEffect(() => {
     if (group) {
@@ -71,6 +77,22 @@ const EditTableGroupDialog = ({ open, group }) => {
               }
             />
           </Box>
+          {/* <FormControl fullWidth>
+          <InputLabel>Location</InputLabel>
+          <Select 
+            value={formData.location_Id}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, location_Id: e.target.value }))
+            }
+            label="Location"
+          >
+            {locationList.map((location) => (
+              <MenuItem key={location.location_Id} value={location.location_Id}>
+                {location.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl> */}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>

@@ -387,6 +387,10 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
                     icon={<Bell size={16} />}
                   />
                 )}
+              
+                <Typography variant="h6">
+                  {session.location_Name}
+                </Typography>
               </Box>
               <Chip
                 size="small"

@@ -85,7 +85,7 @@ const AddTableToGroupDialog = ({ open, group }) => {
                   >
                     {availableTables.map((table) => (
                       <MenuItem key={table.table_Id} value={table.table_Id}>
-                        Table {table.table_number} ({table.seat_count} seats)
+                      Location: {table.location.name} || Table: {table.table_number} || Seats: ({table.seat_count}  )
                       </MenuItem>
                     ))}
                   </Select>

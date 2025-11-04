@@ -285,7 +285,7 @@ const MenuAssignmentDialog = ({
                   setFormData((prev) => ({ ...prev, price: e.target.value }))
                 }
                 required
-                disabled={formData.is_add_on}
+                disabled={!formData.is_add_on}
                 inputProps={{ step: "0.01", min: "0" }}
                 sx={{ flex: 1 }}
               />
@@ -314,7 +314,7 @@ const MenuAssignmentDialog = ({
                     setFormData((prev) => ({
                       ...prev,
                       is_add_on: e.target.checked,
-                      price: e.target.checked ? "0" : prev.price,
+                      price: e.target.checked ?  prev.price : "0" ,
                     }))
                   }
                 />

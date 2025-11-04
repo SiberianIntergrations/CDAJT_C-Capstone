@@ -203,17 +203,34 @@ namespace back_end.Controllers
             try
             {
                 var allItems = await _context.MenuItems
-                .Include(mi => mi.MenuItemTags)
-                .OrderBy(mi => mi.Category_id)      // Group by category first
-                .ThenBy(mi => mi.Name)              // Then sort by name within each category
-                .ToListAsync();
-                return Ok(allItems);
+                    .Include(mi => mi.MenuItemTags)
+                        .ThenInclude(mit => mit.Tag)
+                    .OrderBy(mi => mi.Category_id)
+                    .ThenBy(mi => mi.Name)
+                    .ToListAsync();
+                
+                var result = allItems.Select(item => new MenuItemResponseDTO
+                {
+                    Item_Id = item.item_id,
+                    Name = item.Name,
+                    Description = item.Description,
+                    Category_Id = item.Category_id,
+                    Item_Image_Url = item.image_url,
+                    Status = item.Status,
 
-
+                    Tags = item.MenuItemTags.Select(mit => new FullTagResponseDTO
+                    {
+                        Tag_Id = mit.Tag.tag_id,
+                        Name = mit.Tag.tag_name,
+                        Color_Code = mit.Tag.tag_color
+                    }).ToList()
+                }).ToList();
+                    
+                return Ok(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving active session");
+                _logger.LogError(ex, "Error retrieving menu items");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
@@ -359,83 +376,100 @@ namespace back_end.Controllers
         /// Supported formats: JPEG, PNG, WebP
         /// The image will be saved to the front-end public directory and the URL will be stored in the database.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
-        [HttpPost("{item_id:int}/image")]
-        [RequestSizeLimit(5 * 1024 * 1024)]
-        [Consumes("multipart/form-data")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Upload_Item_Image(
-            int item_id,
-            IFormFile file,
-            CancellationToken ct)
+[Authorize(Roles = "Admin,Staff")]
+[HttpPost("{item_id:int}/image")]
+[RequestSizeLimit(5 * 1024 * 1024)]
+[Consumes("multipart/form-data")]
+[ProducesResponseType(StatusCodes.Status200OK)]
+[ProducesResponseType(StatusCodes.Status400BadRequest)]
+[ProducesResponseType(StatusCodes.Status404NotFound)]
+[ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
+[ProducesResponseType(StatusCodes.Status500InternalServerError)]
+public async Task<IActionResult> Upload_Item_Image(
+    int item_id,
+    IFormFile file,
+    CancellationToken ct)
+{
+    try
+    {
+        // 1) Fetch item
+        var item = await _context.MenuItems
+            .FirstOrDefaultAsync(mi => mi.item_id == item_id, ct);
+        if (item is null) return NotFound("Menu item not found.");
+
+        // 2) Basic file checks
+        if (file is null || file.Length == 0)
+            return BadRequest("No file uploaded.");
+
+        const long MAX_BYTES = 5 * 1024 * 1024;
+        if (file.Length > MAX_BYTES)
+            return StatusCode(StatusCodes.Status413PayloadTooLarge, "File too large.");
+
+        // 3) Get file extension
+        var originalFileName = Path.GetFileName(file.FileName);
+        var extension = Path.GetExtension(originalFileName);
+        if (string.IsNullOrWhiteSpace(extension))
+            return BadRequest("File must have an extension.");
+
+        // 4) Create new filename: ItemName_Date.ext
+        var safeItemName = string.Join("_", item.Name.Split(Path.GetInvalidFileNameChars()));
+        var dateStamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var newFileName = $"{safeItemName}_{dateStamp}{extension}";
+
+        // 5) Setup public folder path
+        var backendRoot = _env.ContentRootPath;
+        var publicRoot = Path.GetFullPath(
+            Path.Combine(backendRoot, "..", "front-end", "public")
+        );
+        var targetFolder = Path.Combine(publicRoot, "menu-items");
+        
+        if (!Directory.Exists(targetFolder))
+            Directory.CreateDirectory(targetFolder);
+
+        // 6) Delete old image if it exists
+        if (!string.IsNullOrEmpty(item.image_url))
         {
-            try
+            var oldImageRelativePath = item.image_url.TrimStart('/');
+            var oldImageFullPath = Path.Combine(publicRoot, oldImageRelativePath);
+            
+            if (System.IO.File.Exists(oldImageFullPath))
             {
-                // 1) Fetch item
-                var item = await _context.MenuItems
-                    .FirstOrDefaultAsync(mi => mi.item_id == item_id, ct);
-                if (item is null) return NotFound("Menu item not found.");
-
-                // 2) Basic file checks
-                if (file is null || file.Length == 0)
-                    return BadRequest("No file uploaded.");
-
-                const long MAX_BYTES = 5 * 1024 * 1024;
-                if (file.Length > MAX_BYTES)
-                    return StatusCode(StatusCodes.Status413PayloadTooLarge, "File too large.");
-
-                var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                try
                 {
-                    "image/jpeg", "image/png", "image/webp"
-                };
-                if (!allowed.Contains(file.ContentType))
-                    return BadRequest("Unsupported image type. Use JPEG/PNG/WEBP.");
-
-                // 3) Build file name + extension
-                var ext = file.ContentType switch
-                {
-                    "image/jpeg" => ".jpg",
-                    "image/png" => ".png",
-                    "image/webp" => ".webp",
-                    _ => ".bin"
-                };
-                var fileName = $"item_{item_id}_{Guid.NewGuid():N}{ext}";
-
-                // 4) Resolve target folder (front-end/public/menu-items)
-                var backendRoot = _env.ContentRootPath;
-                var frontEndFolder = Path.GetFullPath(
-                    Path.Combine(backendRoot, "..", "front-end", "public", "menu-items")
-                );
-
-                if (!Directory.Exists(frontEndFolder))
-                    Directory.CreateDirectory(frontEndFolder);
-
-                // 5) Save file to disk - THIS WAS MISSING!
-                var savePath = Path.Combine(frontEndFolder, fileName);
-                
-                using (var stream = new FileStream(savePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream, ct);
+                    System.IO.File.Delete(oldImageFullPath);
+                    _logger.LogInformation("Deleted old image: {OldImage}", oldImageFullPath);
                 }
-
-                // 6) Persist and return a public URL
-                var publicUrl = $"/menu-items/{fileName}".Replace("\\", "/");
-                item.image_url = publicUrl;
-
-                await _context.SaveChangesAsync(ct);
-
-                return Ok(new { item_id, image_url = publicUrl });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error Saving the File selected");
-                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to delete old image: {OldImage}", oldImageFullPath);
+                    // Continue even if deletion fails
+                }
             }
         }
+
+        // 7) Save uploaded file with new name
+        var filePath = Path.Combine(targetFolder, newFileName);
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream, ct);
+        }
+
+        // 8) Assign URL
+        var publicUrl = $"/menu-items/{newFileName}";
+        item.image_url = publicUrl;
+
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Image uploaded successfully for item {ItemId}: {ImageUrl}", item_id, publicUrl);
+
+        return Ok(new { item_id, image_url = publicUrl });
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Error Saving the File selected");
+        return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+    }
+}
 
 
          /// <summary>
@@ -487,7 +521,7 @@ namespace back_end.Controllers
                 var frontEndFolder = Path.GetFullPath(
                     Path.Combine(backendRoot, "..", "front-end", "public", "menu-items")
                 );
-
+                
                 string fileName = Path.GetFileName(item.image_url);
                 var ImagePath = Path.Combine(frontEndFolder, fileName);
                 if (!System.IO.File.Exists(ImagePath))
@@ -622,10 +656,10 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
-        
-        
 
-        
+
+
+
         /// <summary>
         /// Retrieves all tags with their color codes associated with a specific menu item.
         /// </summary>
@@ -652,7 +686,7 @@ namespace back_end.Controllers
         [ProducesResponseType(typeof(IEnumerable<FullTagResponseDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> Add_Tag_To_Menu (
+        public async Task<IActionResult> Add_Tag_To_Menu(
             int item_id,
             int tag_id
         )
@@ -669,7 +703,7 @@ namespace back_end.Controllers
                 {
                     return NotFound("Item Tag Was not found");
                 }
-                if(menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
+                if (menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
                 {
                     return Conflict("Can not Assign tag to same Menu Item");
                 }
@@ -689,7 +723,56 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }          
-       
+ 
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPost("{item_id}/tags/{tag_id}")]
+        [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AddTagToMenuItem (
+            int item_id,
+            int tag_id
+        )
+        {
+            try
+            {
+                var item = await _context.MenuItems.Include(m => m.MenuItemTags).ThenInclude(mit => mit.Tag).FirstOrDefaultAsync(m => m.item_id == item_id);
+                if (item is null)
+                {
+                    return NotFound("Item you were searching for was not found.");
+                }
+                var tag = await _context.Tags.FirstOrDefaultAsync(t => t.tag_id == tag_id);
+                if (tag is null)
+                {
+                    return BadRequest("Error happened in fetching tags");
+                }
+
+                // prevent assigning the same tag twice
+                if (item.MenuItemTags.Any(mt => mt.Tag_id == tag.tag_id))
+                {
+                    return Conflict("Tag already assigned to this menu item");
+                }
+
+                // add association and save
+                item.MenuItemTags.Add(new MenuItemTag
+                {
+                    Menu_item_id = item.item_id,
+                    Tag_id = tag.tag_id,
+                    Tag = tag
+                });
+
+                await _context.SaveChangesAsync();
+                return Ok(item);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
+            }
+        }           
+
         /// <summary>
         /// Removes a tag from a menu item.
         /// </summary>
@@ -737,16 +820,16 @@ namespace back_end.Controllers
                 {
                     return NotFound("Item Tag Was not found");
                 }
-                if(!menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
+                if (!menu_item.MenuItemTags.Any(mt => mt.Tag_id == returnedTag.tag_id))
                 {
                     return Conflict("Item does not exist on menu");
                 }
-                menu_item.MenuItemTags.Remove(new MenuItemTag
+                var itemToRemote = menu_item.MenuItemTags.FirstOrDefault(mi => mi.Tag_id == tag_id);
+                if (itemToRemote is null)
                 {
-                    Menu_item_id = menu_item.item_id,
-                    Tag_id = returnedTag.tag_id,
-                    Tag = returnedTag
-                });
+                    return Conflict("Item does not have this tag");
+                }
+                menu_item.MenuItemTags.Remove(itemToRemote);
                 await _context.SaveChangesAsync();
                 return Ok(menu_item);
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid, gridRenderContextColumnsSelector } from "@mui/x-data-grid";
 import {
   Box,
   Button,
@@ -11,10 +11,12 @@ import {
   Typography,
   Stack,
   Alert,
+  FormControl
 } from "@mui/material";
-import { Edit, Delete, Plus, AlertTriangle, Trash2 } from "lucide-react";
+import { Edit, Delete, Plus, AlertTriangle, Trash2, LocateFixed  } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import MenuForm from "@/components/location/MenuForm";
+import AddLocationsToMenu from "@/components/location/AddLocationToMenu";
 import api from "@/config/api";
 
 const MenuManagement = () => {
@@ -26,6 +28,8 @@ const MenuManagement = () => {
   const [formMode, setFormMode] = useState("create");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [menuToDelete, setMenuToDelete] = useState(null);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [locationsList, setLocationsList] = useState([]);
 
   const AddButton = styled(IconButton)(({ theme }) => ({
     backgroundColor: theme.palette.primary.main,
@@ -45,22 +49,44 @@ const MenuManagement = () => {
     try {
       const response = await api.get("/Menu");
       setMenus(response.data);
+      console.log(response.data)
     } catch (err) {
       setError("Failed to fetch menus");
       console.error(err);
     } finally {
       setLoading(false);
+      
+    }
+  };
+
+
+
+  const fetchLocations = async () => {
+    try{
+      const response = await api.get("/location")
+      setLocationsList(response.data);
+    }
+    catch (error){
+      setError("Failed To get Locations")
+      console.error("Feting Error Locations:", error)
     }
   };
 
   useEffect(() => {
     fetchMenus();
+    fetchLocations();
   }, []);
+
 
   const handleCreate = () => {
     setSelectedMenu(null);
     setFormMode("create");
     setIsFormOpen(true);
+  };
+
+  const handleLocations = (menu) => {
+      setSelectedMenu(menu);
+  setLocationDialogOpen(true);
   };
 
   const handleEdit = (menu) => {
@@ -89,7 +115,7 @@ const MenuManagement = () => {
   const handleSubmit = async (formData) => {
     try {
       if (formMode === "create") {
-        await api.post("/Menu", formData);
+        await api.post("/Menu/createmenu", formData);
       } else {
         await api.put(`/Menu/${selectedMenu.menu_id}`,
           formData
@@ -107,6 +133,16 @@ const MenuManagement = () => {
     { field: "menu_id", headerName: "ID", width: 90 },
     { field: "name", headerName: "Name", width: 200 },
     { field: "description", headerName: "Description", width: 300 },
+    { 
+      field: "is_active",
+      headerName: "Is Active",
+      width: 100,
+      renderCell: (params) => (
+        <Typography>
+          {params.value ? "Yes" : "No"}
+        </Typography>
+      )
+    },
     {
       field: "actions",
       headerName: "Actions",
@@ -122,6 +158,9 @@ const MenuManagement = () => {
             color="error"
           >
             <Trash2 size={20} />
+          </IconButton>
+          <IconButton onClick={()=>handleLocations(params.row)} size ="small">
+            <LocateFixed size ={20} />
           </IconButton>
         </Stack>
       ),
@@ -207,6 +246,14 @@ const MenuManagement = () => {
             Delete Menu
           </Button>
         </DialogActions>
+      </Dialog>
+      <Dialog open={locationDialogOpen} onClose={() => setLocationDialogOpen(false)}>
+        <AddLocationsToMenu
+          menu={selectedMenu}
+          // onSubmit={handleLocationSubmit}
+          onClose={() => setLocationDialogOpen(false)}
+          availableLocations={locationsList}
+        />
       </Dialog>
     </Box>
   );

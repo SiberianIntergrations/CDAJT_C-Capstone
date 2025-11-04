@@ -115,7 +115,10 @@ namespace back_end.Controllers
           query = query.Where(t => t.Location_Id == locationId.Value);
         }
 
-        var tables = await query.ToListAsync();
+        var tables = await query
+        .OrderBy(q => q.Location_Id)      // Group by location
+        .ThenBy(q => q.table_number)      // Then sort by table number within location
+        .ToListAsync();
         return Ok(tables);
       }
       catch (Exception ex)

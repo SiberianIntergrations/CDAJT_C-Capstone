@@ -18,7 +18,7 @@ namespace back_end.DTO.MenuDTO{
         [JsonPropertyName("end_time")]
         public TimeOnly? End_Time { get; set; }
         [JsonPropertyName("is_active")]
-        public bool Is_Active { get; set; }
+        public bool Is_Active { get; set; } = true;
 
     }
 
