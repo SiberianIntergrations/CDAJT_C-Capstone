@@ -162,96 +162,6 @@ const TableGroupCard = ({ group }) => {
   };
 
   return (
-<<<<<<< HEAD
-    <StyledCard>
-      <CardContent>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="flex-start"
-        >
-          <Box flex={1}>
-            <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <Typography variant="h6">{group.group_Name}</Typography>
-              <Chip
-                label={group.is_Active ? "Active" : "Inactive"}
-                color={group.is_Active ? "success" : "default"}
-                size="small"
-              />
-            </Box>
-
-            <Box display="flex" alignItems="center" gap={2}>
-              <Box display="flex" alignItems="center" gap={1}>
-                <Users size={16} />
-                <Typography variant="body2" color="text.secondary">
-                  {totalSeats} total seats
-                </Typography>
-              </Box>
-              <Typography variant="body2" color="text.secondary">
-                {group.table_Count || 0} tables
-              </Typography>
-            </Box>
-            <Box display = "flex" alignItems="center" gap={1}>
-              <LocateFixed size={16} />
-              <Typography variant="body2" color="text.secondary">
-                {group.location_Name}
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box display="flex" gap={1}>
-            <IconButton
-              size="small"
-              onClick={() => openDialog("editTableGroup", group)}
-            >
-              <Edit size={18} />
-            </IconButton>
-            <IconButton
-              size="small"
-              onClick={() => openDialog("addTableToGroup", group)}
-            >
-              <Plus size={18} />
-            </IconButton>
-            <IconButton size="small" onClick={handleDelete} color="error">
-              <Trash2 size={18} />
-            </IconButton>
-            <IconButton size="small" onClick={() => setExpanded(!expanded)}>
-              {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </IconButton>
-          </Box>
-        </Box>
-
-        <Collapse in={expanded}>
-          <Box mt={2}>
-            {group.tables && group.tables.length > 0 ? (
-              <List dense>
-                {group.tables.map((table) => (
-                  <ListItem
-                    key={table.table_Id}
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        size="small"
-                        onClick={() => handleRemoveTable(table.table_Id)}
-                      >
-                        <Trash2 size={16} />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText
-                      primary={`Table ${table.table_number}`}
-                      secondary={`${table.seat_count} seats`}
-                    />
-                  </ListItem>
-                ))}
-              </List>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No tables in this group
-              </Typography>
-            )}
-
-=======
     <CardWrapper>
       {confirmAction && (
         <ConfirmOverlay show={confirmAction}>
@@ -266,7 +176,6 @@ const TableGroupCard = ({ group }) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
->>>>>>> main
             <Button
               variant="outlined"
               onClick={handleCancel}

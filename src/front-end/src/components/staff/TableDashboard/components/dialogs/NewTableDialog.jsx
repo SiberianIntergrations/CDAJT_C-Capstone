@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-'use client';
-import { useState,useEffect } from "react";
-=======
 import { useState, useEffect } from "react";
->>>>>>> main
 import {
   Dialog,
   DialogTitle,
@@ -14,17 +9,10 @@ import {
   Box,
   Alert,
   FormControl,
-<<<<<<< HEAD
-  FormControlLabel,
-  Select,
-  InputLabel,
-  MenuItem
-=======
   InputLabel,
   Select,
   MenuItem,
   IconButton,
->>>>>>> main
 } from "@mui/material";
 import { X } from "lucide-react";
 import { useTable } from "../../context/TableContext";
@@ -38,11 +26,7 @@ const NewTableDialog = ({ open }) => {
     seat_count: "",
     qr_Code_Url: "",
     is_Active: true,
-<<<<<<< HEAD
-    Location_Id: 0
-=======
     location_Id: storage.get("branch-location") || "",
->>>>>>> main
   });
   const [availableLocations, setAvailableLocations] = useState([]);
   const [error, setError] = useState(null);
@@ -50,19 +34,6 @@ const NewTableDialog = ({ open }) => {
   const [locationList, setLocationList] = useState([]);
 
   useEffect(() => {
-<<<<<<< HEAD
-    const fetchLocations = async () => {
-      try {
-        const response = await api.get("location");
-        setLocationList(response.data)
-      } catch (error) {
-        console.error("Error fetching locations:", error);
-      }
-    };
-
-    fetchLocations();
-  }, []);
-=======
     if (open) {
       fetchLocations();
     }
@@ -78,7 +49,6 @@ const NewTableDialog = ({ open }) => {
     }
   };
 
->>>>>>> main
   const handleClose = () => {
     setFormData({
       table_Number: "",
@@ -101,11 +71,7 @@ const NewTableDialog = ({ open }) => {
         Seat_Count: parseInt(formData.seat_count),
         Qr_Code_Url: formData.qr_Code_Url,
         Is_Active: formData.is_Active,
-<<<<<<< HEAD
-        Location_Id: formData.location_Id
-=======
         Location_Id: formData.location_Id,
->>>>>>> main
       });
       await refreshData();
       handleClose();

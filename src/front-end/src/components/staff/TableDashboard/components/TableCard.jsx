@@ -162,81 +162,6 @@ const TableCard = ({ table }) => {
   };
 
   return (
-<<<<<<< HEAD
-    <StyledCard inUse={!table.is_active || table.tableGroup_Id}>
-      <CardContent>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="flex-start"
-        >
-          <Box flex={1}>
-            <Box display="flex" alignItems="center" gap={1} mb={1}>
-              <Typography variant="h6">Table {table.table_number}</Typography>
-              <Chip
-                label={table.is_active ? "Active" : "Inactive"}
-                color={table.is_active ? "success" : "default"}
-                size="small"
-              />
-              {table.tableGroup_Id && (
-                <Chip label="In Group" color="info" size="small" />
-              )}
-            </Box>
-
-            <Box display="flex" alignItems="center" gap={1}>
-              <Users size={16} />
-              <Typography variant="body2" color="text.secondary">
-                {table.seat_count} seats
-              </Typography>
-            </Box>
-            <Box display = "flex" alignItems="center" gap={1}>
-              <LocateFixed size={16} />
-              <Typography variant="body2" color="text.secondary">
-                {table.location.name}
-              </Typography>
-            </Box>
-          </Box>
-
-          <Box display="flex" gap={1}>
-            <IconButton
-              size="small"
-              onClick={() => openDialog("editTable", table)}
-            >
-              <Edit size={18} />
-            </IconButton>
-            <IconButton size="small" onClick={handleDelete} color="error">
-              <Trash2 size={18} />
-            </IconButton>
-            <IconButton size="small" onClick={() => setExpanded(!expanded)}>
-              {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-            </IconButton>
-          </Box>
-        </Box>
-
-        <Collapse in={expanded}>
-          <Box mt={2} display="flex" flexDirection="column" gap={1}>
-            {table.qr_Code && (
-              <Typography variant="body2">QR Code: {table.qr_Code}</Typography>
-            )}
-
-            {table.tableGroup && (
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Group: {table.tableGroup.group_Name}
-                </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="warning"
-                  onClick={handleRemoveFromGroup}
-                  sx={{ mt: 1 }}
-                >
-                  Remove from Group
-                </Button>
-              </Box>
-            )}
-
-=======
     <CardWrapper>
       {confirmAction && (
         <ConfirmOverlay show={confirmAction}>
@@ -251,7 +176,6 @@ const TableCard = ({ table }) => {
             }}
             onClick={(e) => e.stopPropagation()}
           >
->>>>>>> main
             <Button
               variant="outlined"
               onClick={handleCancel}
