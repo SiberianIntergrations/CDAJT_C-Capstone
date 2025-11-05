@@ -549,13 +549,13 @@ namespace back_end.Controllers
                 {
                     var oi = new OrderItems
                     {
-                        Order_Key         = order_id,
-                        Menu_Id           = dto.Menu_Id,
-                        Item_Id           = dto.Item_Id,
-                        Quantity          = dto.Quantity,
-                        Price_At_Time     = dto.Price_At_Time,
+                        Order_Key = order_id,
+                        Menu_Id = dto.Menu_Id,
+                        Item_Id = dto.Item_Id,
+                        Quantity = dto.Quantity,
+                        Price_At_Time = dto.Price_At_Time,
                         Order_Item_Status = dto.Status == 0 ? OrderStatus.Pending : dto.Status,
-                        Completed_At      = null
+                        Completed_At = null
                     };
 
                     _context.OrderItems.Add(oi);
@@ -568,12 +568,12 @@ namespace back_end.Controllers
                 var response = created.Select(i => new OrderItemInsertResponse
                 {
                     Order_Item_Id = i.Order_Item_Id,
-                    Order_Id      = i.Order_Key,
-                    Menu_Id       = i.Menu_Id,
-                    Item_Id       = i.Item_Id,
-                    Quantity      = i.Quantity,
+                    Order_Id = i.Order_Key,
+                    Menu_Id  = i.Menu_Id,
+                    Item_Id  = i.Item_Id,
+                    Quantity = i.Quantity,
                     Price_At_Time = i.Price_At_Time,
-                    Status        = i.Order_Item_Status
+                    Status = i.Order_Item_Status
                 }).ToList();
 
                 return Ok(response);
