@@ -427,6 +427,10 @@ const fetchMenuItems = async (categoryId, menu_id) => {
       setOrderSuccess(true);
 
       setTimeout(() => {
+        window.location.href = "/dashboard/orders";
+      }, 2000);
+
+      setTimeout(() => {
         setOrderSuccess(false);
       }, 3000);
     } catch (error) {

@@ -14,6 +14,7 @@ import { useSession } from "../../context/SessionContext";
 
 const NewBillDialog = ({ open, sessionId, onClose }) => {
   const { createBill } = useSession();
+  console.log("createBill inside NewBillDialog:", typeof createBill);
   const [billData, setBillData] = useState({
     billName: "",
     adultCount: 0,
@@ -23,12 +24,14 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  console.log("Before submit: sessionId =", sessionId, "isSubmitting =", isSubmitting);
   const handleSubmit = async () => {
     if (!sessionId || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
       console.log("Submitting bill data:", billData);
+      console.log("handleSubmit called with sessionId:", sessionId, "billData:", billData);
       const success = await createBill(sessionId, billData);
       console.log("Bill creation result:", success);
 
@@ -149,9 +152,12 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
       <DialogActions>
         <Button onClick={handleCancel}>Cancel</Button>
         <Button
-          onClick={handleSubmit}
+        onClick={() => {
+            console.log("Create Bill button clicked");
+            handleSubmit();
+          }}
           variant="contained"
-          disabled={!isValid()}
+          disabled={!isValid() || isSubmitting}
         >
           Create Bill
         </Button>

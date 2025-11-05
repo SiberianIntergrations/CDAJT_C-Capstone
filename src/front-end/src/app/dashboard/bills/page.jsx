@@ -65,21 +65,15 @@ const BillCard = styled(Card, {
 
 const SessionContextWrapper = ({ children }) => {
   const createBill = async (sessionId, billData) => {
-    try {
-      const res = await api.post(`/Bill/create_bill/${sessionId}`,
-        {
-          bill_name: billData.billName,
-          adult_count: parseInt(billData.adultCount),
-          child_count: parseInt(billData.childCount),
-          senior_count: parseInt(billData.seniorCount),
-          tot_count: parseInt(billData.totCount),
-        }
-      );
-      if (res.status !== 200) throw new Error("Failed to create bill");
-      return true;
-    } catch {
-      return false;
-    }
+  const res = await api.post(`/Bill/create_Bill/${sessionId}`, {
+    bill_name: billData.billName,
+    adult_count: Number(billData.adultCount),
+    child_count: Number(billData.childCount),
+    senior_count: Number(billData.seniorCount),
+    tot_count: Number(billData.totCount),
+  });
+  if (res.status !== 200 && res.status !== 201) throw new Error("Failed");
+    return true;
   };
 
   return (
@@ -157,6 +151,20 @@ useEffect(() => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const loadSessionId = async () => {
+      try {
+        const res = await api.get("/DiningSession/participants/active-session-id");
+
+        setSessionId(res.data?.session_id ?? null);
+      } catch (e) {
+        setSessionId(null);
+        setError("No active session found");
+      }
+    };
+    loadSessionId();
+  }, []);
 
   //Code that was used for sessions
   //May be needed for staff/admin
@@ -279,9 +287,7 @@ useEffect(() => {
         )}
 
         <SessionContextWrapper>
-          <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-            <NewBillDialog open={dialogOpen} sessionId={sessionId} onClose={handleBillCreated} />
-          </Dialog>
+          <NewBillDialog open={dialogOpen} sessionId={sessionId} onClose={handleBillCreated} />
         </SessionContextWrapper>
       </Box>
     </Container>

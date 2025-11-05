@@ -219,6 +219,8 @@ export const SessionProvider = ({ children }) => {
     triggerUpdate
   };
 
+console.log("SessionProvider initialized – createBill:", typeof createBill);
+
   return (
     <SessionContext.Provider value={value}>
       {children}
