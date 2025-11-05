@@ -122,51 +122,24 @@ const StaffList = ({
       type: "actions",
       width: 140,
       getActions: (params) => [
-        <Tooltip title="Edit Account" key="edit">
+        <Tooltip title="Edit in Entra" key="edit">
           <GridActionsCellItem
             icon={<Edit size={20} />}
             label="Edit"
             onClick={() => onEdit(params.row)}
           />
         </Tooltip>,
-        <Tooltip title="Change Password" key="changePassword">
+        <Tooltip title="Reset Password in Entra" key="changePassword">
           <GridActionsCellItem
             icon={<Key size={20} />}
             label="Change Password"
             onClick={() => onChangePassword(params.row)}
           />
         </Tooltip>,
-        <Tooltip
-          title={
-            params.row.status === "active"
-              ? "Deactivate Account"
-              : "Activate Account"
-          }
-          key="statusChange"
-        >
-          <GridActionsCellItem
-            icon={
-              params.row.status.toLowerCase === "active" ? (
-                <UserMinus size={20} />
-              ) : (
-                <UserCheck size={20} />
-              )
-            }
-            label="Change Status"
-            onClick={() =>
-              onStatusChange(
-                params.row,
-                params.row.status.toLowerCase() === "active" ? "inactive" : "active",
-
-              )
-            }
-            disabled={params.row.email === currentUser}
-            sx={{
-              color:
-                params.row.status === "active" ? "error.main" : "success.main",
-            }}
-          />
-        </Tooltip>,
+        // Optionally remove or disable status change
+        // <Tooltip title="Status change managed in Entra" key="statusChange">
+        //   <span />
+        // </Tooltip>,
       ],
     },
   ];
