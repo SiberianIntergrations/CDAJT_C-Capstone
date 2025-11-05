@@ -4,44 +4,32 @@ import { useRouter } from "next/navigation";
 import { Box, CircularProgress } from "@mui/material";
 import LocationManagement from "@/components/location/LocationManagement";
 import MenuManagement from "@/components/location/MenuManagement";
-
-// export const metadata = {
-//   title: "Location Management | Sushi Toshi",
-//   description: "Manage restaurant locations",
-//
+import { useAuth } from "@/hooks/useAuth";
 
 const LocationPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const { isAuthenticated, userRole, loading } = useAuth();
 
-  // TODO: Fix role-based access control. Currently commented out for testing purposes.
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
+    if (loading) {
+      setIsLoading(true);
+      return;
+    }
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+    if (userRole !== "admin") {
+      router.push("/unauthorized");
+      return;
+    }
+    setIsAuthorized(true);
+    setIsLoading(false);
+  }, [router, isAuthenticated, userRole, loading]);
 
-      try {
-        // const tokenData = JSON.parse(atob(token.split(".")[1]));
-        // if (tokenData.role !== "admin") {
-        //   router.push("/unauthorized");
-        //   return;
-        // }
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-        return;
-      }
-
-      setIsLoading(false);
-    };
-
-    checkAuth();
-  }, [router]);
-
-  if (isLoading) {
+  if (isLoading || !isAuthorized) {
     return (
       <Box
         display="flex"

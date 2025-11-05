@@ -37,7 +37,7 @@ import {
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import { logoutUser } from "@/utils/auth";
+import { logoutUser, loginUser } from "@/utils/auth";
 import api from "@/config/api";
 import storage from "@/utils/storage";
 import { LocationOn } from "@mui/icons-material";
@@ -51,17 +51,12 @@ const AppBarWithTitle = ({ title }) => {
     storage.get("branch-location")
   );
   const [allLocations, setAllLocations] = useState([]);
-
   const { isAuthenticated, userRole, loading } = useAuth();
 
   useEffect(() => {
     const fetchAllLocations = async () => {
       try {
-        if (
-          !isAuthenticated ||
-          !userRole ||
-          (userRole !== "staff" && userRole !== "admin")
-        ) {
+        if (!isAuthenticated || !userRole || (userRole !== "staff" && userRole !== "admin")) {
           return;
         }
         const response = await api.get("location/");
@@ -77,9 +72,32 @@ const AppBarWithTitle = ({ title }) => {
     fetchAllLocations();
   }, [isAuthenticated, userRole, loading]);
 
+  useEffect(() => {
+    // Listen for MSAL account changes and force rerender
+    const handleAuthEvent = () => {
+      // This will cause useAuth to rerun and update component
+      // No need to set local state, just force update by calling setState
+      // But since useAuth uses useState, this will update automatically
+      // So just force update by calling setState on a dummy state
+      setDrawerOpen(false); // This is enough to trigger rerender if needed
+    };
+    window.addEventListener("msal:accountChanged", handleAuthEvent);
+    window.addEventListener("auth:changed", handleAuthEvent);
+    return () => {
+      window.removeEventListener("msal:accountChanged", handleAuthEvent);
+      window.removeEventListener("auth:changed", handleAuthEvent);
+    };
+  }, []);
+
   const handleLogout = async () => {
     await logoutUser();
     setDrawerOpen(false);
+    window.dispatchEvent(new Event("auth:changed"));
+  };
+
+  const handleLogin = async () => {
+    await loginUser();
+    window.dispatchEvent(new Event("auth:changed"));
   };
 
   const handleNavigation = (path) => {
@@ -307,7 +325,7 @@ const AppBarWithTitle = ({ title }) => {
             onClick={
               isAuthenticated
                 ? handleLogout
-                : () => handleNavigation("/auth/login")
+                : handleLogin
             }
             startIcon={isAuthenticated ? <LogOut /> : <LogIn />}
             sx={{
