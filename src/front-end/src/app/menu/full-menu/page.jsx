@@ -188,11 +188,10 @@ const FullMenu = () => {
     );
   };
 
-  useEffect(() => {
+useEffect(() => {
     const getActiveSession = async () => {
       try {
         setError(null);
-        // api from old project: /dining-sessions/participants/active-session-id GET
         const response = await api.get(
           "/DiningSession/participants/active-session-id"
         );
@@ -210,36 +209,55 @@ const FullMenu = () => {
     getActiveSession();
   }, []);
 
-  useEffect(() => {
-    if (!sessionId || sessionId < 1) {
-      return;
-    }
-    const fetchMenu = async () => {
-      try {
-        setError(null);
-        // api from old project: /dining-sessions/session-menu/{sessionId} GET
-        const response = await api.get(
-          `/DiningSession/session-menu/${sessionId}`
-        );
-        if (response?.status >= 200 && response.status < 300 && response.data) {
-          setMenuId(response.data.menu_id ?? response.data);
-        } else {
-          console.warn("No menu found", response?.data);
-          setError("No menu found for this session");
-        }
-      } catch (err) {
-        console.error("Error fetching menu:", err);
-        const message =
-          err?.response?.data?.detail ??
-          err?.response?.data?.message ??
-          err?.message ??
-          "Error fetching menu";
-        setError(message);
-      }
-    };
-    fetchMenu();
-  }, [sessionId]);
 
+useEffect(() => {
+  //Session ID can only be 1 or above
+  if (!sessionId || sessionId < 1) {
+    console.log("Invalid sessionId. Skipping menu fetch.");
+    return;
+  }
+
+  const fetchMenu = async () => {
+    try {
+      setError(null);
+
+      const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
+
+      if (response?.status >= 200 && response.status < 300 && response.data) {
+        const raw = response.data;
+        console.log("session-menu raw =", raw);
+
+
+        const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
+        const getMenuID =
+          typeof id === "number" ? id : parseInt(String(id), 10);
+
+        if (Number.isNaN(getMenuID) || getMenuID < 1) {
+          console.warn("Menu ID is invalid:", raw);
+          setError("No menu for this session");
+          return;
+        }
+
+        setMenuId(getMenuID);
+
+        console.log("parsed menuId =", getMenuID);
+      } else {
+        console.warn("No menu found", response?.data);
+        setError("No menu found for this session");
+      }
+    } catch (err) {
+      console.error("Error fetching menu:", err);
+      const message =
+        err?.response?.data?.detail ??
+        err?.response?.data?.message ??
+        err?.message ??
+        "Error fetching menu";
+      setError(message);
+    }
+  };
+
+  fetchMenu();
+}, [sessionId]);
 
 //When you have the menuID call to get current menu
 useEffect(() => {
@@ -247,31 +265,27 @@ useEffect(() => {
   fetchMenuItems(null, menuId);
 }, [menuId]);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setError(null);
-        const response = await api.get("/Category");
-        const data = response.data;
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else {
-          console.error("Categories data is not an array");
-        }
-      } catch (err) {
+useEffect(() => {
+  const fetchCategories = async () => {
+    try {
+      setError(null);
+      const response = await api.get("/Category");
+      const data = Array.isArray(response.data) ? response.data : [];
+      setCategories(
+        data.map(c => ({
+          category_id: c.category_id ?? c.Category_id,
+          name: c.name ?? c.Category_name,
+        }))
+      );
+    }catch (err) {
         console.error("Error fetching categories:", err);
-        const message =
-          err?.response?.data?.detail ??
-          err?.response?.data?.message ??
-          err?.message ??
-          "Error fetching categories";
+        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
         setError(message);
       }
     };
     fetchCategories();
   }, []);
 
-  // TODO: Update api endpoints
 const fetchMenuItems = async (categoryId, menu_id) => {
 
   //Make sure the menu ID is valid or if we already loaded the menu items
@@ -308,61 +322,122 @@ const fetchMenuItems = async (categoryId, menu_id) => {
 };
 
   const handleBillChange = (event) => {
-    const billId = event.target.value;
+    const billId = Number(event.target.value);
     setSelectedBillId(billId);
   };
 
+  // This function creates multiple calls to add order items - one per item
+  // const createOrderItems = async (orderId) => {
+  //   const orderItemPromises = Object.entries(quantities).flatMap(
+  //     ([categoryId, items]) =>
+  //       Object.entries(items)
+  //         .filter(([_, quantity]) => quantity > 0)
+  //         .map(([itemId, quantity]) => {
+  //           try {
+  //             const menuItem = menuItems[categoryId]?.find(
+  //               (item) => item.item_id === parseInt(itemId)
+  //             );
+
+  //             if (!menuItem) {
+  //               throw new Error(`Menu item ${itemId} not found`);
+  //             }
+  //             let price_at_time = menuItem.is_add_on ? Number(menuItem.price) || 0 : 0;
+
+  //             return{
+  //               //order_id: Number(orderId),
+  //               menu_id: Number(menuId),
+  //               item_id: Number(itemId),
+  //               quantity: Number(quantity),
+  //               price_at_time,
+  //               status: 0,
+  //             };
+  //           }
+  //           catch (error) {
+  //             console.error(`Failed to add item ${itemId}: ${error.message}`);
+  //             return null;
+  //         }
+  //       })
+  //   );
+  //         const payload = orderItemPromises.filter(Boolean);
+
+  //         if(orderItemPromises == 0){
+  //           return [];
+  //         }
+
+  //         console.log("POST", `/Order/${orderId}/items`, payload, "Array?", Array.isArray(payload));
+  //             const response = await api.post(`/Order/${orderId}/items`, payload);
+             
+  //             if (response.status !== 200 && response.status !== 201) {
+  //               throw new Error(`Failed to add item ${itemId}`);
+  //             }
+  //             return response.data;
+
+  // };
+
+  // This function creates all order items in a single API call
   const createOrderItems = async (orderId) => {
-    const errors = [];
+    try {
+      // Build array of order items from quantities state
+      const orderItems = [];
+      
+      Object.entries(quantities).forEach(([categoryId, items]) => {
+        Object.entries(items).forEach(([itemId, quantity]) => {
+          if (quantity > 0) {
+            const menuItem = menuItems[categoryId]?.find(
+              (item) => item.item_id === parseInt(itemId)
+            );
 
-    const orderItemPromises = Object.entries(quantities).flatMap(
-      ([categoryId, items]) =>
-        Object.entries(items)
-          .filter(([_, quantity]) => quantity > 0)
-          .map(async ([itemId, quantity]) => {
-            try {
-              const menuItem = menuItems[categoryId]?.find(
-                (item) => item.item_id === parseInt(itemId)
-              );
-
-              if (!menuItem) {
-                throw new Error(`Menu item ${itemId} not found`);
-              }
-
-              let newPrice = menuItem.is_add_on ? menuItem.price : 0;
-
-              const response = await api.post(`/orders/${orderId}/items`, {
-                order_id: orderId,
-                menu_id: menuId,
-                item_id: parseInt(itemId),
-                quantity: quantity,
-                price_at_time: newPrice,
-                status: "pending",
-              });
-              if (response.status !== 200 && response.status !== 201) {
-                throw new Error(`Failed to add item ${itemId}`);
-              }
-              return response.data;
-            } catch (error) {
-              errors.push(`Failed to add item ${itemId}: ${error.message}`);
-              return null;
+            if (!menuItem) {
+              console.error(`Menu item ${itemId} not found in category ${categoryId}`);
+              return;
             }
-          })
-    );
 
-    const results = await Promise.all(orderItemPromises);
+            // Calculate price - only charge for add-ons
+            const price_at_time = menuItem.is_add_on 
+              ? Number(menuItem.price) || 0 
+              : 0;
 
-    if (errors.length > 0) {
-      throw new Error(`Some items failed to be added: ${errors.join(", ")}`);
+            orderItems.push({
+              menu_id: Number(menuId),
+              item_id: Number(itemId),
+              quantity: Number(quantity),
+              price_at_time,
+              // Status is automatically set to 0 (Pending) on backend
+            });
+          }
+        });
+      });
+
+      if (orderItems.length === 0) {
+        throw new Error("No items to add to order");
+      }
+
+      console.log("Adding order items:", orderItems);
+
+      // Send all items in one request
+      const response = await api.post(`/Order/${orderId}/items`, orderItems);
+
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error("Failed to add items to order");
+      }
+
+      console.log("Order items added successfully:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating order items:", error);
+      throw new Error(
+        error.response?.data?.message || 
+        error.message || 
+        "Failed to add items to order"
+      );
     }
-
-    return results.filter(Boolean);
   };
 
-  const getVisibleItemCount = (categoryId) => {
-    const filteredItems = filterMenuItems(menuItems[categoryId], categoryId);
-    return filteredItems?.length || 0;
-  };
+  // Commented out - it wasn't being used.
+  // const getVisibleItemCount = (categoryId) => {
+  //   const filteredItems = filterMenuItems(menuItems[categoryId], categoryId);
+  //   return filteredItems?.length || 0;
+  // };
 
   const handleConfirmOrder = async () => {
     if (!selectedBillId || !sessionId || !menuId) {
@@ -383,19 +458,47 @@ const fetchMenuItems = async (categoryId, menu_id) => {
     setError(null);
 
     try {
+      // Step 1: Create Order
+      console.log("Creating order for session:", sessionId, "bill:", selectedBillId);
+
       const orderResponse = await api.post("/Order", {
         session_id: sessionId,
         bill_id: selectedBillId,
       });
+
       if (orderResponse.status !== 200 && orderResponse.status !== 201) {
         throw new Error("Failed to create order");
       }
 
-      const newOrderId = orderResponse.data.order_id;
+      // Step 2: Parse the order ID from response
+      const newOrderId = Number(
+        orderResponse.data?.order_id ??
+        orderResponse.data?.orderId ??
+        orderResponse.data?.Order_Id ??
+        orderResponse.data?.order_Id ??
+        orderResponse.data?.OrderID
+      );
+
+      if (!newOrderId || newOrderId < 1) {
+        console.error("Invalid order ID in response:", orderResponse.data);
+        setError("Couldn't read new order id from server response.");
+        setIsSubmitting(false);
+        return;
+      }
+      console.log("New order created with ID:", newOrderId);
+
+      // Step 3: Add items to the order
       await createOrderItems(newOrderId);
 
+      // Step 4: Clear quantities and show sucess message
       setQuantities({});
       setOrderSuccess(true);
+      setError(null);
+
+      // Step 5: Redirect to orders page after a short delay
+      setTimeout(() => {
+        window.location.href = "/dashboard/orders";
+      }, 2000);
 
       setTimeout(() => {
         setOrderSuccess(false);
@@ -418,6 +521,20 @@ const fetchMenuItems = async (categoryId, menu_id) => {
         >
           All You Can Eat Menu
         </Typography>
+
+        {/* Error Alert */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        {/* Success Alert */}
+        {orderSuccess && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Order placed successfully! Redirecting to your orders...
+          </Alert>
+        )}
 
         <Box sx={{ width: "100%" }} mb={3}>
           {sessionId ? (
@@ -465,7 +582,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
           )}
         </Box>
 
-        {/*selectedBillId > 0  && */(
+        {selectedBillId  && (
           <Box sx={{ width: "100%", mb: 4 }}>
             {categories.map((category) => {
               const filteredItems = filterMenuItems(
@@ -475,6 +592,11 @@ const fetchMenuItems = async (categoryId, menu_id) => {
 
               const stats = getSelectedItemsStats(category.category_id);
               const visibleCount = filteredItems.length;
+
+              // Skip categories with no visible items
+              if (visibleCount === 0 && stats.itemCount === 0) {
+                return null;
+              }
 
               return (
                 <Accordion
@@ -726,6 +848,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
               </Alert>
             )}
 
+            {/* Order Summary */}
             {getTotalStats().itemCount > 0 && (
               <Paper elevation={2} sx={{ mb: 3, overflow: "hidden" }}>
                 <Box sx={{ p: 2 }}>
@@ -739,6 +862,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
               </Paper>
             )}
 
+            {/* Confirm Order Button */}
             <Button
               variant="contained"
               fullWidth
