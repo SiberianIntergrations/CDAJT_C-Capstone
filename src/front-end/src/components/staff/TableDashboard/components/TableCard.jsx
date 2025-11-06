@@ -9,7 +9,14 @@ import {
   Collapse,
   Button,
 } from "@mui/material";
-import { Edit, Trash2, ChevronDown, ChevronUp, Users,LocateFixed } from "lucide-react";
+import {
+  Edit,
+  Trash2,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  LocateFixed,
+} from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";
 import api from "@/config/api";
@@ -162,152 +169,160 @@ const TableCard = ({ table }) => {
   };
 
   return (
-    <CardWrapper>
-      {confirmAction && (
-        <ConfirmOverlay show={confirmAction}>
-          <Box
-            sx={{
-              px: 3,
-              width: "100%",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 2,
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Button
-              variant="outlined"
-              onClick={handleCancel}
-              disabled={isProcessing}
+    table.tableGroup_Id === null && (
+      <CardWrapper>
+        {confirmAction && (
+          <ConfirmOverlay show={confirmAction}>
+            <Box
               sx={{
-                borderColor: "white",
-                color: "white",
-                "&:hover": {
-                  borderColor: "white",
-                  backgroundColor: "rgba(255, 255, 255, 0.1)",
-                },
+                px: 3,
+                width: "100%",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 2,
               }}
+              onClick={(e) => e.stopPropagation()}
             >
-              Cancel
-            </Button>
-            <Typography
-              sx={{
-                textAlign: "center",
-                color: "white",
-                flexGrow: 1,
-              }}
-            >
-              {getConfirmMessage()}
-            </Typography>
-            <Button
-              variant="contained"
-              onClick={handleConfirm}
-              disabled={isProcessing}
-              sx={{
-                bgcolor: "white",
-                color: "#C01E2E",
-                "&:hover": {
-                  bgcolor: "rgba(255, 255, 255, 0.9)",
-                },
-              }}
-            >
-              {isProcessing ? "Processing..." : "Confirm"}
-            </Button>
-          </Box>
-        </ConfirmOverlay>
-      )}
-
-      <StyledCard
-        inUse={!table.is_active || table.tableGroup_Id}
-        dimmed={!!confirmAction}
-      >
-        <CardContent>
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="flex-start"
-          >
-            <Box flex={1}>
-              <Box display="flex" alignItems="center" gap={1} mb={1}>
-                <Typography variant="h6">Table {table.table_number}</Typography>
-                <Chip
-                  label={table.is_active ? "Active" : "Inactive"}
-                  color={table.is_active ? "success" : "default"}
-                  size="small"
-                />
-                {table.tableGroup_Id && (
-                  <Chip label="In Group" color="info" size="small" />
-                )}
-              </Box>
-
-              <Box display="flex" alignItems="center" gap={1}>
-                <Users size={16} />
-                <Typography variant="body2" color="text.secondary">
-                  {table.seat_count} seats
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box display="flex" gap={1}>
-              <IconButton
-                size="small"
-                onClick={() => openDialog("editTable", table)}
-              >
-                <Edit size={18} />
-              </IconButton>
-              <IconButton
-                size="small"
-                onClick={handleDeleteClick}
-                color="error"
-              >
-                <Trash2 size={18} />
-              </IconButton>
-              <IconButton size="small" onClick={() => setExpanded(!expanded)}>
-                {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-              </IconButton>
-            </Box>
-          </Box>
-
-          <Collapse in={expanded}>
-            <Box mt={2} display="flex" flexDirection="column" gap={1}>
-              {table.qr_Code && (
-                <Typography variant="body2">
-                  QR Code: {table.qr_Code}
-                </Typography>
-              )}
-
-              {table.tableGroup && (
-                <Box>
-                  <Typography variant="body2" color="text.secondary">
-                    Group: {table.tableGroup.group_Name}
-                  </Typography>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    color="warning"
-                    onClick={handleRemoveFromGroupClick}
-                    sx={{ mt: 1 }}
-                  >
-                    Remove from Group
-                  </Button>
-                </Box>
-              )}
-
               <Button
                 variant="outlined"
-                size="small"
-                onClick={handleToggleStatus}
-                disabled={isCheckingSession}
-                sx={{ mt: 1 }}
+                onClick={handleCancel}
+                disabled={isProcessing}
+                sx={{
+                  borderColor: "white",
+                  color: "white",
+                  "&:hover": {
+                    borderColor: "white",
+                    backgroundColor: "rgba(255, 255, 255, 0.1)",
+                  },
+                }}
               >
-                {table.is_active ? "Deactivate" : "Activate"}
+                Cancel
+              </Button>
+              <Typography
+                sx={{
+                  textAlign: "center",
+                  color: "white",
+                  flexGrow: 1,
+                }}
+              >
+                {getConfirmMessage()}
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={handleConfirm}
+                disabled={isProcessing}
+                sx={{
+                  bgcolor: "white",
+                  color: "#C01E2E",
+                  "&:hover": {
+                    bgcolor: "rgba(255, 255, 255, 0.9)",
+                  },
+                }}
+              >
+                {isProcessing ? "Processing..." : "Confirm"}
               </Button>
             </Box>
-          </Collapse>
-        </CardContent>
-      </StyledCard>
-    </CardWrapper>
+          </ConfirmOverlay>
+        )}
+
+        <StyledCard
+          inUse={!table.is_active || table.tableGroup_Id}
+          dimmed={!!confirmAction}
+        >
+          <CardContent>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="flex-start"
+            >
+              <Box flex={1}>
+                <Box display="flex" alignItems="center" gap={1} mb={1}>
+                  <Typography variant="h6">
+                    Table {table.table_number}
+                  </Typography>
+                  <Chip
+                    label={table.is_active ? "Active" : "Inactive"}
+                    color={table.is_active ? "success" : "default"}
+                    size="small"
+                  />
+                  {table.tableGroup_Id && (
+                    <Chip label="In Group" color="info" size="small" />
+                  )}
+                </Box>
+
+                <Box display="flex" alignItems="center" gap={1}>
+                  <Users size={16} />
+                  <Typography variant="body2" color="text.secondary">
+                    {table.seat_count} seats
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box display="flex" gap={1}>
+                <IconButton
+                  size="small"
+                  onClick={() => openDialog("editTable", table)}
+                >
+                  <Edit size={18} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  onClick={handleDeleteClick}
+                  color="error"
+                >
+                  <Trash2 size={18} />
+                </IconButton>
+                <IconButton size="small" onClick={() => setExpanded(!expanded)}>
+                  {expanded ? (
+                    <ChevronUp size={18} />
+                  ) : (
+                    <ChevronDown size={18} />
+                  )}
+                </IconButton>
+              </Box>
+            </Box>
+
+            <Collapse in={expanded}>
+              <Box mt={2} display="flex" flexDirection="column" gap={1}>
+                {table.qr_Code && (
+                  <Typography variant="body2">
+                    QR Code: {table.qr_Code}
+                  </Typography>
+                )}
+
+                {table.tableGroup && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Group: {table.tableGroup.group_Name}
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="warning"
+                      onClick={handleRemoveFromGroupClick}
+                      sx={{ mt: 1 }}
+                    >
+                      Remove from Group
+                    </Button>
+                  </Box>
+                )}
+
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={handleToggleStatus}
+                  disabled={isCheckingSession}
+                  sx={{ mt: 1 }}
+                >
+                  {table.is_active ? "Deactivate" : "Activate"}
+                </Button>
+              </Box>
+            </Collapse>
+          </CardContent>
+        </StyledCard>
+      </CardWrapper>
+    )
   );
 };
 
