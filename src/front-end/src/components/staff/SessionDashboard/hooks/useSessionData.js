@@ -19,12 +19,20 @@ export const useSessionData = (updateTrigger = 0) => {
         `/Dashboard/sessions?locationId=${storage.get("branch-location")}`
       );
 
-      if (response.status !== 200) throw new Error("Failed to fetch sessions");
+      if (response.status === 204) {
+        setError("No active dining sessions found.");
+        throw new Error("No active dining sessions found.");
+      }
+
+      if (response.status !== 200) {
+        setError("Failed to fetch sessions");
+        throw new Error("Failed to fetch sessions");
+      }
       const data = response.data;
       setSessions(data);
     } catch (err) {
-      setError("Failed to load sessions");
       console.error(err);
+      console.log(err);
     }
   }, []);
 
