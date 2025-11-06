@@ -92,7 +92,7 @@ const BillSection = ({ session }) => {
       >
         {session.bills.map((bill) => (
           <SwipeableBillCard
-            key={bill.bill_id}
+            key={bill.bill_Id}
             bill={bill}
             onClose={handleCloseBill}
             disabled={loading}
