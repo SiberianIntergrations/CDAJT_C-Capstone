@@ -6,14 +6,13 @@ import {
   Stack,
   Divider,
   Box,
-  Chip,
   Typography,
   IconButton,
   Button,
   Snackbar,
   Alert,
 } from "@mui/material";
-import { ChevronDown, Bell, Check, AlertCircle } from "lucide-react";
+import { ChevronDown, Check, AlertCircle } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";

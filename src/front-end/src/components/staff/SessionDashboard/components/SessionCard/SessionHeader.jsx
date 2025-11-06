@@ -123,6 +123,12 @@ const SessionHeader = ({ session, requests = [] }) => {
         </Box>
       </Box>
 
+      {/* Location Row */}
+      <Box sx={{ mb: 1 }}>
+        <Typography variant="body2" color="text.secondary">{session?.location_Name}
+        </Typography>
+      </Box>
+
       {/* Timestamp Row */}
       <Box sx={{ mb: 1 }}>
         <Typography variant="body2" color="text.secondary">
