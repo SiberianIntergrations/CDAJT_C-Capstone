@@ -48,8 +48,13 @@ const BillSelect = (props) => {
         //   const openBills = billsData.filter((bill) => bill.status === "OPEN");
         setBills(billsData);
       } catch (err) {
-        console.error("Error fetching bills:", err);
-        setError(err?.response?.data?.detail || "Failed to fetch bills");
+        if (err?.response?.status === 404) {
+        setBills([]);
+        setError(null); // Don't show error for empty bills
+        } else {
+          console.error("Error fetching bills:", err);
+          setError(err?.response?.data?.detail || "Failed to fetch bills");
+        }
       } finally {
         setLoading(false);
       }

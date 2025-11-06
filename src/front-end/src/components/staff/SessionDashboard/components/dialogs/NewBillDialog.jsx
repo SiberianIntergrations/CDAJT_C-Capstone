@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -7,6 +7,9 @@ import {
   Button,
   Box,
   TextField,
+  Alert,
+  CircularProgress,
+  Typography,
   IconButton,
 } from "@mui/material";
 import { X } from "lucide-react";
@@ -14,145 +17,185 @@ import { useSession } from "../../context/SessionContext";
 
 const NewBillDialog = ({ open, sessionId, onClose }) => {
   const { createBill } = useSession();
-  const [billData, setBillData] = useState({
+  const [formData, setFormData] = useState({
     billName: "",
     adultCount: 0,
     childCount: 0,
     seniorCount: 0,
-    totCount: 0,
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleSubmit = async () => {
-    if (!sessionId || isSubmitting) return;
+  const totalGuests = formData.adultCount + formData.childCount + formData.seniorCount;
 
-    try {
-      setIsSubmitting(true);
-
-      const success = await createBill(sessionId, billData);
-
-      if (success) {
-        setBillData({
-          billName: "",
-          adultCount: 0,
-          childCount: 0,
-          seniorCount: 0,
-          totCount: 0,
-        });
-
-        onClose(true);
-      }
-    } catch (error) {
-      console.error("Error in handleSubmit:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  const handleFieldChange = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
-  const handleCancel = () => {
-    setBillData({
+  const handleSubmit = useCallback(async () => {
+    if (!formData.billName.trim()) {
+      setError("Bill name is required.");
+      return;
+    }
+
+    if (totalGuests === 0) {
+      setError("Please add at least one guest");
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+
+    try {
+     const billData = {
+        billName: formData.billName.trim(),
+        adultCount: formData.adultCount,
+        childCount: formData.childCount,
+        seniorCount: formData.seniorCount,
+      };
+
+      console.log("Submitting bill data:", billData);
+      const success = await createBill(sessionId, billData);
+      console.log("Bill creation result:", success);
+
+      if (success) {
+        handleClose();
+      } else {
+        setError("Failed to create bill. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error creating bill:", error);
+      setError(
+        error.response?.data?.message || 
+        "An unexpected error occurred while creating your Bill."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [formData, createBill, sessionId]);
+
+  const handleClose = useCallback(() => {
+    if (isLoading) return;
+
+    // Reset form to initial state
+    setFormData({
       billName: "",
       adultCount: 0,
       childCount: 0,
       seniorCount: 0,
-      totCount: 0,
     });
-    onClose(false);
-  };
+    setError(null);
+    onClose();
+  }, [isLoading, onClose]);
 
-  const isValid = () => {
-    return Boolean(
-      billData.billName &&
-        (billData.adultCount > 0 ||
-          billData.childCount > 0 ||
-          billData.seniorCount > 0 ||
-          billData.totCount > 0)
-    );
-  };
+  const isSubmitDisabled = !formData.billName.trim() || totalGuests === 0 || isLoading;
 
   return (
-    <Dialog open={open} onClose={handleCancel} fullWidth>
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
       <DialogTitle>
         Create New Bill
         <IconButton
-          onClick={onClose}
+          onClick={handleClose}
           sx={{ position: "absolute", right: 8, top: 8 }}
         >
           <X />
         </IconButton>
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2}}>
+          Create a bill for your table.
+        </Typography>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        <Box component="form" sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
           <TextField
+            autoFocus
             label="Bill Name"
-            value={billData.billName}
-            onChange={(e) =>
-              setBillData((prev) => ({ ...prev, billName: e.target.value }))
-            }
+            value={formData.billName}
+            onChange={(e) => handleFieldChange("billName", e.target.value)}
             fullWidth
             placeholder="e.g., Table 1 - Party of 4"
+            error={!formData.billName.trim() && formData.billName !== ""}
+            disabled={isLoading}
           />
 
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
             <TextField
               label="Adults"
               type="number"
-              value={billData.adultCount}
-              onChange={(e) =>
-                setBillData((prev) => ({
-                  ...prev,
-                  adultCount: parseInt(e.target.value) || 0,
-                }))
-              }
-              InputProps={{ inputProps: { min: 0 } }}
+              value={formData.adultCount}
+              onChange={(e) => handleFieldChange("adultCount", Math.max(0, Math.min(50, parseInt(e.target.value) || 0)))}
+              slotProps={{
+                input: {
+                  inputProps: {
+                    min: 0,
+                    max: 50,
+                    inputMode: "numeric", // Numeric keyboard shows on mobile
+                    pattern: "[0-9]*"
+                  }
+                }
+              }}
+              disabled={isLoading}
             />
             <TextField
               label="Children"
               type="number"
-              value={billData.childCount}
-              onChange={(e) =>
-                setBillData((prev) => ({
-                  ...prev,
-                  childCount: parseInt(e.target.value) || 0,
-                }))
-              }
-              InputProps={{ inputProps: { min: 0 } }}
+              value={formData.childCount}
+              onChange={(e) => handleFieldChange("childCount", Math.max(0, Math.min(50, parseInt(e.target.value) || 0)))}
+              slotProps={{
+                input: {
+                  inputProps: {
+                    min: 0,
+                    max: 50,
+                    inputMode: "numeric", // Numeric keyboard shows on mobile
+                    pattern: "[0-9]*"
+                  }
+                }
+              }}
+              disabled={isLoading}
             />
             <TextField
               label="Seniors"
               type="number"
-              value={billData.seniorCount}
-              onChange={(e) =>
-                setBillData((prev) => ({
-                  ...prev,
-                  seniorCount: parseInt(e.target.value) || 0,
-                }))
-              }
-              InputProps={{ inputProps: { min: 0 } }}
+              value={formData.seniorCount}
+              onChange={(e) => handleFieldChange("seniorCount", Math.max(0, Math.min(50, parseInt(e.target.value) || 0)))}
+              slotProps={{
+                input: {
+                  inputProps: {
+                    min: 0,
+                    max: 50,
+                    inputMode: "numeric", // Numeric keyboard shows on mobile
+                    pattern: "[0-9]*"
+                  }
+                }
+              }}
+              disabled={isLoading}
             />
-            <TextField
-              label="Tots"
-              type="number"
-              value={billData.totCount}
-              onChange={(e) =>
-                setBillData((prev) => ({
-                  ...prev,
-                  totCount: parseInt(e.target.value) || 0,
-                }))
-              }
-              InputProps={{ inputProps: { min: 0 } }}
-            />
+          </Box>
+
+          {/* Total Guests Summary */}
+          <Box sx={{ mt: 2, p:2, bgcolor: "background.paper", borderRadius: 1, border: 1, borderColor: "divider", textAlign: "center" }}
+          >
+            <Typography variant="subtitle1" sx={{ fontWeight: "600" }}>Total Guests: {totalGuests}</Typography>
           </Box>
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={handleCancel}>Cancel</Button>
+      
+      <DialogActions sx={{ px: 3, py: 2 }}>
+        <Button onClick={handleClose} disabled={isLoading}>Cancel</Button>
         <Button
           onClick={handleSubmit}
           variant="contained"
-          disabled={!isValid()}
+          disabled={isSubmitDisabled}
+          startIcon={isLoading && <CircularProgress size={16}/>}
         >
-          Create Bill
+          {isLoading ? "Creating..." : "Create Bill"}
         </Button>
       </DialogActions>
     </Dialog>

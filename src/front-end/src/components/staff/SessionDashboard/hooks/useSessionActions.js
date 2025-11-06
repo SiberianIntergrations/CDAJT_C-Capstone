@@ -254,7 +254,6 @@ export const useSessionActions = (onSuccess) => {
         adult_count: parseInt(billData.adultCount),
         child_count: parseInt(billData.childCount),
         senior_count: parseInt(billData.seniorCount),
-        tot_count: parseInt(billData.totCount),
       };
 
       if (!payload.bill_name) throw new Error("Bill name is required");
