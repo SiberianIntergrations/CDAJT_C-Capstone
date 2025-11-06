@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -19,7 +19,7 @@ import {
   ChevronUp,
   Users,
   Plus,
-  LocateFixed 
+  LocateFixed,
 } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import { useTable } from "../context/TableContext";
@@ -66,6 +66,23 @@ const TableGroupCard = ({ group }) => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [targetTableId, setTargetTableId] = useState(null);
+  const [isInUse, setIsInUse] = useState(false);
+
+  useEffect(() => {
+    const checkInSession = async () => {
+      try {
+        const response = await api.get(
+          `/TableGroup/${group.tableGroup_Id}/active-session`
+        );
+        setIsInUse(!response.data.success);
+        // await refreshData();
+      } catch (error) {
+        console.error(error);
+        setActionError("Session check failed");
+      }
+    };
+    checkInSession();
+  }, []);
 
   const totalSeats =
     group.tables?.reduce((sum, t) => sum + t.seat_count, 0) || 0;
@@ -233,6 +250,9 @@ const TableGroupCard = ({ group }) => {
                   color={group.is_Active ? "success" : "default"}
                   size="small"
                 />
+                {isInUse && (
+                  <Chip label="In Session" color="error" size="small" />
+                )}
               </Box>
 
               <Box display="flex" alignItems="center" gap={2}>
@@ -312,6 +332,7 @@ const TableGroupCard = ({ group }) => {
                 onClick={handleToggleStatus}
                 sx={{ mt: 1 }}
                 fullWidth
+                disabled={isInUse}
               >
                 {group.is_Active ? "Deactivate" : "Activate"}
               </Button>
