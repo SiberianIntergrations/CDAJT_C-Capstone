@@ -19,6 +19,7 @@ const ServiceRequestForm = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+  const [userId, setUserId] = useState(null);
 
   const commonRequests = [
     "Need water refill",
@@ -30,62 +31,57 @@ const ServiceRequestForm = () => {
     "Ready for bill",
   ];
 
+  //Find the current user's dining session right when the page loads
   useEffect(() => {
-    const getActiveSession = async () => {
-      try {
-        // TODO: Update endpoint (previous endpoint: /dining-sessions/participants/active-session-id)
-        const response = await api.get("/dining-sessions/participants/active-session-id");
+      const getActiveSession = async () => {
+        try {
+          const response = await api.get("/DiningSession/participants/active-session-id");
 
-        if (response && response.data) {
-          setSessionId(response.data.session_id);
-        } else {
-          setError("No active session found");
+          if (response?.data?.session_id) {
+            setSessionId(response.data.session_id);
+          } else {
+            setError("No active session found");
+          }
+        } catch (err) {
+          console.error("Error fetching session:", err);
+          if (err.response?.data?.message) {
+            setError(err.response.data.message);
+          } else {
+            setError("Unexpected error occurred");
+          }
         }
+      };
+
+      getActiveSession();
+    }, []);
+
+    //Send the service request to the staff
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!message.trim() || !sessionId) return;
+
+      setIsSubmitting(true);
+      setError("");
+      setSuccess(false);
+
+      try {
+        const response = await api.post(`/ServiceRequest/${sessionId}`, { notes: message });
+
+        if (response.status !== 200 && response.status !== 201) {
+          throw new Error(response.data?.message || "Failed to submit request");
+        }
+
+        setSuccess(true);
+        setMessage("");
+        setTimeout(() => setSuccess(false), 3000);
+
       } catch (err) {
-        console.error("Error fetching session:", err);
-        if (err.response && err.response.data) {
-          setError(err.response.data.detail || "Error fetching session");
-        } else {
-          setError("Unexpected error occurred");
-        }
+        console.error("Service request error:", err);
+        setError(err.response?.data?.message || err.message);
+      } finally {
+        setIsSubmitting(false);
       }
     };
-
-    getActiveSession();
-  }, []);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!message.trim() || !sessionId) return;
-    setIsSubmitting(true);
-    setError("");
-    setSuccess(false);
-
-    try {
-      // TODO: Update endpoint (previous endpoint: /service-requests/{sessionId}) Need POST ServiceRequest/${sessionId}
-      const response = await api.post(`/service-requests/${sessionId}`,
-        { notes: message }
-      );
-      console.log("Response:", response);
-
-      if (response.status !== 200) {
-        const data = response.data;
-        let errorMessage = "Failed to submit request";
-        if (data && typeof data === "object" && data.detail) {
-          errorMessage = data.detail;
-        }
-        throw new Error(errorMessage);
-      }
-
-      setSuccess(true);
-      setMessage("");
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <Box maxWidth="sm" mx="auto" sx={{ pt: 3 }}>

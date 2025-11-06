@@ -34,32 +34,53 @@ namespace back_end.Controllers
         {
             try
             {
-                var session = await _context.DiningSessions.Include(t => t.Tables).FirstOrDefaultAsync(ds => ds.Session_Id == session_id && ds.Ended_At == null);
+                var session = await _context.DiningSessions
+                    .Include(t => t.Tables)
+                    .FirstOrDefaultAsync(ds => ds.Session_Id == session_id && ds.Ended_At == null);
+
                 if (session is null)
                 {
                     return NotFound("The Session Id was Not found");
                 }
+
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.User_id == int.Parse(userId));
                 if (user is null)
                 {
                     return BadRequest("Issue in processing your request");
                 }
-                var participant = _context.SessionParticipants.FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Id == user.User_id && sp.Left_At == null);
+
+                var participant = await _context.SessionParticipants
+                    .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Id == user.User_id && sp.Left_At == null);
+
                 if (participant is null)
                 {
                     return BadRequest("Issue in Processing your request for session");
                 }
+
+                //Locate table that's connected to this session
+                var tableId = await _context.SessionTables
+                    .Where(st => st.Session_Id == session_id)
+                    .Select(st => st.Table_Id)
+                    .FirstOrDefaultAsync();
+
+                if (tableId == 0)
+                {
+                    return BadRequest("No table is assigned to this session.");
+                }
+
                 var serviceRequest = new ServiceRequest
                 {
                     Session_Id = session.Session_Id,
-                    Table_Id = session.Tables.FirstOrDefault()?.Table_Id ?? 0,
+                    Table_Id = tableId,
                     Request_By = user.User_id,
                     Notes = request_data.Notes,
                     Status = ServiceRequestStatus.Pending
                 };
+
                 _context.ServiceRequests.Add(serviceRequest);
                 await _context.SaveChangesAsync();
+
                 return Ok(new ServiceRequestResponseDTO
                 {
                     Request_Id = serviceRequest.request_id,
@@ -69,15 +90,14 @@ namespace back_end.Controllers
                     Status = serviceRequest.Status,
                     Notes = serviceRequest.Notes,
                     Created_At = serviceRequest.Created_At,
-                    Table_Number = serviceRequest.Table.Table_Id,
-                });               
+                    Table_Number = serviceRequest.Table_Id
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
+                _logger.LogError(ex, "Error Creating Service Request");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
-
         }
 
         [Authorize(Roles = "Admin,Staff")]
