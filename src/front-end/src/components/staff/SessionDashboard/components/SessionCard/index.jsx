@@ -87,6 +87,7 @@ const ServiceRequest = ({ request, onComplete }) => (
   >
     <Typography variant="body2">{request.notes}</Typography>
     <IconButton
+      component="span"
       size="small"
       onClick={(e) => {
         e.stopPropagation();
@@ -182,10 +183,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
   const handleComplete = async (requestId) => {
     try {
-      // previously used /service-requests/{requestId}/complete
-      // TODO: Endpoint to mark a service request as complete
       const response = await api.post(
-        `/service-requests/${requestId}/complete`
+        `/ServiceRequest/${requestId}/complete`
       );
 
       if (response.status !== 200)
