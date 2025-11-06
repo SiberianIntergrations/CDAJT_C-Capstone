@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -57,11 +57,28 @@ const StyledCard = styled(Card, {
 }));
 
 const TableCard = ({ table }) => {
+  // console.log(table);
   const { openDialog, refreshData, setActionError } = useTable();
   const [expanded, setExpanded] = useState(false);
   const [isCheckingSession, setIsCheckingSession] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isInUse, setIsInUse] = useState(false);
+
+  useEffect(() => {
+    const checkInSession = async () => {
+      try {
+        const response = await api.post(
+          `/TableEntity/${table.table_Id}/active-session`
+        );
+        setIsInUse(!response.data.success);
+        // await refreshData();
+      } catch (error) {
+        setActionError("Session check failed");
+      }
+    };
+    checkInSession();
+  }, []);
 
   const checkIfInUse = async () => {
     setIsCheckingSession(true);
@@ -246,8 +263,8 @@ const TableCard = ({ table }) => {
                     color={table.is_active ? "success" : "default"}
                     size="small"
                   />
-                  {table.tableGroup_Id && (
-                    <Chip label="In Group" color="info" size="small" />
+                  {isInUse && (
+                    <Chip label="In Session" color="error" size="small" />
                   )}
                 </Box>
 
@@ -312,7 +329,7 @@ const TableCard = ({ table }) => {
                   variant="outlined"
                   size="small"
                   onClick={handleToggleStatus}
-                  disabled={isCheckingSession}
+                  disabled={isInUse}
                   sx={{ mt: 1 }}
                 >
                   {table.is_active ? "Deactivate" : "Activate"}
