@@ -285,6 +285,7 @@ const TableGroupCard = ({ group }) => {
                 size="small"
                 onClick={handleDeleteClick}
                 color="error"
+                disabled={isInUse}
               >
                 <Trash2 size={18} />
               </IconButton>
