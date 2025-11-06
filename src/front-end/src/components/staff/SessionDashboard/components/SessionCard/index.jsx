@@ -17,6 +17,7 @@ import { ChevronDown, Bell, Check, AlertCircle } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";
+import SessionHeader from "./SessionHeader";
 import { useSession } from "../../context/SessionContext";
 import api from "@/config/api";
 
@@ -148,6 +149,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
       onRequestUpdate(session.session_Id, data);
     } catch (error) {
       console.error("Error fetching requests:", error);
+      setRequests([]); // Clear requests on error
     }
   }, [session.session_Id, onRequestUpdate]);
 
@@ -216,13 +218,16 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
     try {
       setIsEnding(true);
       clearActionError(); // Clear any previous errors
-      const success = await endSession(session.session_Id);
-      if (!success) {
+      const result = await endSession(session.session_Id);
+      if (result) {
+        console.log("Session ended successfully", result); // For debugging
       }
     } catch (error) {
       console.error("Error ending session:", error);
     } finally {
       setIsEnding(false);
+      setShowConfirm(false);
+      setDragX(0);
     }
   };
 
@@ -366,38 +371,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
           id={`session-${session.session_Id}-header`}
         >
           <Box sx={{ width: "100%" }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                mb: 1,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Typography variant="h6">
-                  Session #{session.session_Id}
-                </Typography>
-                {requests.length > 0 && (
-                  <Chip
-                    size="small"
-                    color="warning"
-                    label={requests.length}
-                    icon={<Bell size={16} />}
-                  />
-                )}
-              
-                <Typography variant="h6">
-                  {session.location_Name}
-                </Typography>
-              </Box>
-              <Chip
-                size="small"
-                label={session.is_closable ? "Ready to Close" : "Active"}
-                color={session.is_closable ? "success" : "primary"}
-              />
-            </Box>
-
+            <SessionHeader session={session} requests={requests} />
             {requests.map((request) => (
               <ServiceRequest
                 key={request.request_id}
