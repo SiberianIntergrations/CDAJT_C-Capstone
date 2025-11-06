@@ -29,7 +29,7 @@ const NewSessionDialog = ({ open, onClose }) => {
   const [selectedLocation, setSelectedLocation] = useState(
     storage.get("branch-location")
   );
-  const [tableAssignmentType, setTableAssignmentType] = useState("none"); // none, table, tableGroup
+  const [tableAssignmentType, setTableAssignmentType] = useState("table");
   const [selectedTable, setSelectedTable] = useState("");
   const [selectedTableGroup, setSelectedTableGroup] = useState("");
 
@@ -137,7 +137,7 @@ const NewSessionDialog = ({ open, onClose }) => {
   const handleClose = () => {
     setSelectedMenu("");
     setSelectedLocation(storage.get("branch-location"));
-    setTableAssignmentType("none");
+    setTableAssignmentType("table");
     setSelectedTable("");
     setSelectedTableGroup("");
     onClose();
