@@ -166,7 +166,7 @@ namespace back_end.Controllers
     /// The service request status will be updated to 'Completed' and the completion timestamp will be set.
     /// The current authenticated user will be assigned as the user who completed the request.
     /// </remarks>
-    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     [HttpPost("{request_id}/complete")]
     public async Task<IActionResult> CompleteServiceRequest(int request_id)
     {
@@ -222,7 +222,7 @@ namespace back_end.Controllers
     /// This endpoint requires Admin or Staff role authorization.
     /// Only returns service requests with 'Pending' status.
     /// </remarks>
-    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     [HttpGet("by-session/{session_id}")]
     public async Task<IActionResult> GetSessionServiceRequest(int session_id)
     {
@@ -296,7 +296,7 @@ namespace back_end.Controllers
 
     //GET api/servicerequest/pending
     //Get all pending service requests
-    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize(Roles = "Admin,Staff")]
     [HttpGet("pending")]
     public async Task<ActionResult<IEnumerable<ServiceRequestResponseDTO>>> GetAllPendingServiceRequests()
     {
