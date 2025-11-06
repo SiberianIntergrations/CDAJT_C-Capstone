@@ -92,6 +92,22 @@ namespace back_end.DTO.OrdersDTOs
         public OrderStatus Status { get; set; }
     }
 
+    public class OrderItemQuantityUpdateDTO
+    {
+        [JsonPropertyName("item_id")]
+        public int Item_Id { get; set; }
+
+        [JsonPropertyName("quantity")]
+        [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
+        public int Quantity { get; set; }
+    }
+
+    public class BulkQuantityUpdateDTO
+    {
+        [JsonPropertyName("items")]
+        public List<OrderItemQuantityUpdateDTO> Items { get; set; } = new();
+    }
+
     public class OrderResponseDTO
     {
         public int Order_Id { get; set; }
