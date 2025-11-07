@@ -55,9 +55,7 @@ namespace back_end.Controllers
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<SessionOrder>>> CreateOrder(
-            OrderCreateDTO order_data
-        )
+        public async Task<ActionResult<IEnumerable<SessionOrder>>> CreateOrder(OrderCreateDTO order_data)
         {
             try
             {
@@ -91,7 +89,6 @@ namespace back_end.Controllers
                     User_Id = newOrder.User_Id ?? 0,
                     Status = newOrder.Status,
                     Created_At = newOrder.Created_At,
-                    OrderItems = new List<OrderItemResponseDTO>()
                 });
             }
             catch (Exception ex)
@@ -102,291 +99,7 @@ namespace back_end.Controllers
         }
 
         /// <summary>
-        /// Adds items to an existing order
-        /// </summary>
-        [Authorize]
-        [HttpPost("{order_id}/items")]
-        [ProducesResponseType(typeof(List<OrderItemResponseDTO>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> AddOrderItems(
-            int order_id,
-            [FromBody] List<OrderItemCreateDTO> items
-        )
-        {
-            try
-            {
-                var order = await _context.SessionOrders
-                    .Include(o => o.OrderItems)
-                    .FirstOrDefaultAsync(o => o.Order_Id == order_id);
-
-                if (order is null)
-                {
-                    return NotFound("Order not found");
-                }
-
-                if (order.Status != OrderStatus.Pending)
-                {
-                    return BadRequest("Can only add items to pending orders");
-                }
-
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                if (order.User_Id != userId)
-                {
-                    return BadRequest("You can only add items to your own orders");
-                }
-
-                var addedItems = new List<OrderItems>();
-
-                foreach (var itemDto in items)
-                {
-                    var menuItem = await _context.MenuItems.FirstOrDefaultAsync(mi => mi.item_id == itemDto.Item_Id);
-                    if (menuItem == null)
-                    {
-                        return NotFound($"Menu item {itemDto.Item_Id} not found");
-                    }
-
-                    var orderItem = new OrderItems
-                    {
-                        Order_Key = order_id,
-                        Menu_Id = itemDto.Menu_Id,
-                        Item_Id = itemDto.Item_Id,
-                        Quantity = itemDto.Quantity,
-                        Price_At_Time = itemDto.Price_At_Time,
-                        Order_Item_Status = OrderStatus.Pending
-                    };
-
-                    _context.OrderItems.Add(orderItem);
-                    addedItems.Add(orderItem);
-                }
-
-                await _context.SaveChangesAsync();
-
-                var response = addedItems.Select(item => new OrderItemResponseDTO
-                {
-                    Order_Item_Id = item.Order_Item_Id,
-                    Order_Id = item.Order_Key,
-                    Menu_Id = item.Menu_Id,
-                    Item_Id = item.Item_Id,
-                    Quantity = item.Quantity,
-                    Price_At_Time = item.Price_At_Time,
-                    Status = item.Order_Item_Status,
-                    Name = item.MenuItem?.Name
-                }).ToList();
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error adding items to order {OrderId}", order_id);
-                return StatusCode(500, new { message = "An error occurred while adding order items", error = ex.Message });
-            }
-        }
-        
-        /// <summary>
-        /// Updates quantities for multiple order items in bulk before approving to process (pending orders only).
-        /// </summary>
-        [Authorize(Roles = "Admin,Staff")]
-        [HttpPatch("{order_id}/items/quantities")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateOrderItemQuantities(
-            int order_id,
-            [FromBody] BulkQuantityUpdateDTO updateData
-        )
-        {
-            try
-            {
-                var order = await _context.SessionOrders
-                    .Include(o => o.OrderItems)
-                    .FirstOrDefaultAsync(o => o.Order_Id == order_id);
-                    
-                if (order is null)
-                {
-                    return NotFound("Order not found");
-                }
-
-                if (order.Status != OrderStatus.Pending)
-                {
-                    return BadRequest("Can only modify pending orders");
-                }
-
-                foreach (var itemUpdate in updateData.Items)
-                {
-                    var orderItem = order.OrderItems.FirstOrDefault(oi => oi.Item_Id == itemUpdate.Item_Id);
-                    
-                    if (orderItem is null)
-                    {
-                        return NotFound($"Order item {itemUpdate.Item_Id} not found in order");
-                    }
-
-                    orderItem.Quantity = itemUpdate.Quantity;
-                }
-
-                await _context.SaveChangesAsync();
-
-                return Ok(new { 
-                    message = "Quantities updated successfully",
-                    updatedCount = updateData.Items.Count
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating item quantities for order {OrderId}", order_id);
-                return StatusCode(500, "Internal Server Error");
-            }
-        }
-        
-
-        /// <summary>
-        /// Updates an existing order.
-        /// </summary>
-        /// <param name="order_id">The unique identifier of the order to update</param>
-        /// <param name="order_data">The updated order data</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> containing the updated <see cref="OrderResponseDTO"/> object.
-        /// Returns HTTP 200 (OK) with the updated order on success.
-        /// Returns HTTP 404 (Not Found) if the order doesn't exist.
-        /// Returns HTTP 409 (Conflict) if the order is not pending and the user lacks permission.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
-        /// </returns>
-        /// <response code="200">Returns the updated order</response>
-        /// <response code="404">If the order is not found</response>
-        /// <response code="409">If the order is not pending and the user is not authorized to modify it</response>
-        /// <response code="500">If an internal error occurs while updating the order</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     PUT /api/order/123
-        ///     {
-        ///         "status": "Approved"
-        ///     }
-        ///
-        /// This endpoint requires authentication.
-        /// Users can only update their own pending orders.
-        /// Staff and Admin users can update approved orders.
-        /// </remarks>
-        // [Authorize]
-        // [HttpPut("{order_id}")]
-        // [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
-        // [ProducesResponseType(StatusCodes.Status404NotFound)]
-        // [ProducesResponseType(StatusCodes.Status409Conflict)]
-        // [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        // public async Task<IActionResult> UpdateOrder(
-        //     int order_id,
-        //     OrderUpdateDTO order_data
-        // )
-        // {
-        //     try
-        //     {
-        //         var order = await _context.SessionOrders.FirstOrDefaultAsync(so => so.Order_Id == order_id);
-        //         if (order is null)
-        //         {
-        //             return NotFound("Order Data was not found");
-        //         }
-        //         int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-        //         var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
-        //         if (order.Status != OrderStatus.Pending)
-        //         {
-        //             if ((foundUser.Role != UserRoles.Staff || foundUser.Role != UserRoles.Admin) || userId != order.User_Id)
-        //             {
-        //                 return Conflict("Can not Modify a Approved Order");
-        //             }
-        //         }
-        //         var response = new OrderResponseDTO
-        //         {
-        //             Order_Id = order.Order_Id,
-        //             Session_Id = order.session_id,
-        //             Bill_Id = order.Bill_Id,
-        //             User_Id = order.User_Id ?? 0,
-        //             Status = order_data.Status,
-        //             Created_At = order.Created_At,
-        //         };
-        //         return Ok(response);
-
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //        _logger.LogError(ex, "Error updating order {OrderId}", order_id);
-        //         return StatusCode(500, new { message = "An error occurred while updating the order", error = ex.Message });
-        //     }
-        // }
-
-        /// <summary>
-        /// Deletes a specific item from an order.
-        /// </summary>
-        /// <param name="order_id">The unique identifier of the order</param>
-        /// <param name="item_id">The unique identifier of the item to delete</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> indicating the result of the operation.
-        /// Returns HTTP 200 (OK) with a success message when the item is deleted.
-        /// Returns HTTP 400 (Bad Request) if the order item doesn't exist.
-        /// Returns HTTP 404 (Not Found) if the order doesn't exist.
-        /// Returns HTTP 409 (Conflict) if the order is not pending and the user lacks permission.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
-        /// </returns>
-        /// <response code="200">Returns a success message when the item is deleted</response>
-        /// <response code="400">If the order item is not found</response>
-        /// <response code="404">If the order is not found</response>
-        /// <response code="409">If the order is not pending and the user is not authorized to modify it</response>
-        /// <response code="500">If an internal error occurs while deleting the order item</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     DELETE /api/order/123/items/456
-        ///
-        /// This endpoint requires authentication.
-        /// Users can only delete items from their own pending orders.
-        /// Staff and Admin users can delete items from approved orders.
-        /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
-        [HttpDelete("{order_id}/items/{item_id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> RemoveOrderItem(
-            int order_id,
-            int item_id
-        )
-        {
-            try
-            {
-                var order = await _context.SessionOrders.Include(o => o.OrderItems).FirstOrDefaultAsync(so => so.Order_Id == order_id);
-                if (order is null)
-                {
-                    return NotFound("Order Data was not found");
-                }
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
-                if (order.Status != OrderStatus.Pending)
-                {
-                    if ((foundUser.Role != UserRoles.Staff || foundUser.Role != UserRoles.Admin) || userId != order.User_Id)
-                    {
-                        return Conflict("Can not Modify a Approved Order");
-                    }
-                }
-                var item = order.OrderItems.FirstOrDefault(oi => oi.Order_Item_Id == order_id && oi.Item_Id == item_id);
-                if (item is null)
-                {
-                    return BadRequest("Order Item was not found");
-                }
-                _context.OrderItems.Remove(item);
-                await _context.SaveChangesAsync();
-                return Ok("Item was Deleted");
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting item {ItemId} from order {OrderId}", item_id, order_id);
-                return StatusCode(500, new { message = "An error occurred while deleting the order item", error = ex.Message });
-            }
-        }
-
-        /// <summary>
-        /// Approves a pending order and transitions to Approved status.
+        /// Approves a pending order and transitions to Approved/Processing status.
         /// </summary>
         [Authorize(Roles = "Admin,Staff")]
         [HttpPatch("{order_id}/approve")]
@@ -456,70 +169,300 @@ namespace back_end.Controllers
         }
 
         /// <summary>
-        /// Updates the status of an order.
+        /// Cancels a pending order.
         /// </summary>
-        /// <param name="order_id">The unique identifier of the order to update</param>
-        /// <param name="new_Status">The new status to assign to the order</param>
+        /// <param name="order_id">The unique identifier of the order to cancel</param>
         /// <returns>
-        /// An <see cref="IActionResult"/> indicating the result of the operation.
-        /// Returns HTTP 200 (OK) with a success message when the order status is updated.
+        /// An <see cref="IActionResult"/> containing the updated <see cref="OrderResponseDTO"/> object.
+        /// Returns HTTP 200 (OK) with the cancelled order on success.
+        /// Returns HTTP 400 (Bad Request) if the order has already been delivered.
         /// Returns HTTP 404 (Not Found) if the order doesn't exist.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
+        /// Returns HTTP 409 (Conflict) if the order is not in pending status.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during cancellation.
         /// </returns>
-        /// <response code="200">Returns a success message when the order status is updated</response>
+        /// <response code="200">Returns the cancelled order</response>
+        /// <response code="400">If the order has already been delivered and cannot be cancelled</response>
         /// <response code="404">If the order is not found</response>
-        /// <response code="500">If an internal error occurs while updating the order status</response>
+        /// <response code="409">If the order is not in pending status</response>
+        /// <response code="500">If an internal error occurs while cancelling the order</response>
         /// <remarks>
         /// Sample request:
         ///
-        ///     POST /api/order/123/status
-        ///     {
-        ///         "new_Status": "Delivered"
-        ///     }
+        ///     POST /api/order/123/cancel
         ///
-        /// This endpoint requires Admin or Staff role authorization.
-        /// When the status is set to 'Delivered', the completion timestamp is automatically set to the current UTC time.
-        /// 
-        /// Valid status values: Pending, Approved, InProgress, Delivered, Cancelled
+        /// This endpoint requires authentication.
+        /// Only orders with 'Pending' status can be cancelled.
+        /// Orders that are approved or delivered cannot be cancelled.
         /// </remarks>
-        // [Authorize(Roles = "Admin,Staff")]
-        // [HttpPatch("{order_id}/status")]
-        // [ProducesResponseType(StatusCodes.Status200OK)]
-        // [ProducesResponseType(StatusCodes.Status404NotFound)]
-        // [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Authorize]
+        [HttpPatch("{order_id}/cancel")]
+        [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> CancelOrder(
+            int order_id
+        )
+        {
+            try
+            {
+                var order = await _context.SessionOrders.Include(o => o.OrderItems).FirstOrDefaultAsync(so => so.Order_Id == order_id);
+                if (order is null)
+                {
+                    return NotFound("Order was not found to cancel");
+                }
+                if (order.Status == OrderStatus.Delivered)
+                {
+                    return BadRequest("Cannot cancel a delivered order");
+                }
+                if (order.Status != OrderStatus.Pending)
+                {
+                    return Conflict("Can only cancel pending orders");
+                }
+                order.Status = OrderStatus.Cancelled;
+                order.Completed_At = DateTime.UtcNow;
+                foreach (var item in order.OrderItems)
+                {
+                    item.Order_Item_Status = OrderStatus.Cancelled;
+                    item.Completed_At = DateTime.UtcNow;
+                }
 
-        // public async Task<IActionResult> UpdateOrderStatus(
-        //     int order_id,
-        //     OrderStatus new_Status
-        // )
-        // {
-        //     try
-        //     {
-        //         var order = await _context.SessionOrders.FirstOrDefaultAsync(so => so.Order_Id == order_id);
-        //         if (order is null)
-        //         {
-        //             return NotFound("Order Data was not found");
-        //         }
-        //         order.Status = new_Status;
-        //         if (order.Status == OrderStatus.Delivered)
-        //         {
-        //             order.Completed_At = DateTime.UtcNow;
-        //         }
-        //         _context.SessionOrders.Update(order);
-        //         await _context.SaveChangesAsync();
-        //         return Ok("Item was Updated");
+                _context.SessionOrders.Update(order);
+                await _context.SaveChangesAsync();
+                return Ok(new OrderResponseDTO
+                {
+                    Order_Id = order.Order_Id,
+                    Session_Id = order.session_id,
+                    Bill_Id = order.Bill_Id,
+                    User_Id = order.User_Id ?? 0,
+                    Status = order.Status,
+                    Created_At = order.Created_At,
+                    Completed_At = order.Completed_At,
+                    OrderItems = order.OrderItems.Select(oi => new OrderItemResponseDTO
+                    {
+                        Order_Item_Id = oi.Order_Item_Id,
+                        Order_Id = oi.Order_Key,
+                        Menu_Id = oi.Menu_Id,
+                        Item_Id = oi.Item_Id,
+                        Quantity = oi.Quantity,
+                        Price_At_Time = oi.Price_At_Time,
+                        Status = oi.Order_Item_Status,
+                        Completed_At = oi.Completed_At,
+                        Name = oi.MenuItem?.Name
+                    }).ToList()
+                });
 
-        //     }
-        //     catch (Exception ex)
-        //     {
-        //         _logger.LogError(ex, "Error getting Orders");
-        //         return StatusCode(500, "Internal Server Error");
-        //     }
-        // }
-
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
 
         /// <summary>
-        /// Marks an order item as completed/delivered.
+        /// Adds items to the created order from POST: api/Order
+        /// POST: api/Order/{order_id}/items
+        /// </summary>
+        [Authorize]
+        [HttpPost("{order_id}/items")]
+        [ProducesResponseType(typeof(List<OrderItemResponseDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<OrderItemInsertResponse>>> AddOrderItems(int order_id, [FromBody] List<OrderItemCreateDTO> items)
+        {
+            try
+            {
+                //Make sure there are items inside the order
+                if (items is null || items.Count == 0)
+                {
+                    return BadRequest("No items added to order.");
+                }
+
+                //Make sure the order exists so items can be added to it
+                var order = await _context.SessionOrders
+                    .Include(o => o.OrderItems)
+                    .FirstOrDefaultAsync(o => o.Order_Id == order_id);
+
+                if (order is null)
+                {
+                    return NotFound($"Order {order_id} was not found");
+                }
+
+                if (order.Status != OrderStatus.Pending)
+                {
+                    return Conflict("Cannot modify a non-pending order.");
+                }
+
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                if (order.User_Id != userId)
+                {
+                    return BadRequest("You can only add items to your own orders");
+                }
+
+                var addedItems = new List<OrderItems>();
+
+                foreach (var itemDto in items)
+                {
+                    var menuItem = await _context.MenuItems.FirstOrDefaultAsync(mi => mi.item_id == itemDto.Item_Id);
+                    if (menuItem == null)
+                    {
+                        return NotFound($"Menu item {itemDto.Item_Id} not found");
+                    }
+
+                    if (itemDto.Quantity <= 0)
+                    {
+                        return BadRequest($"Quantity must be positive for item '{menuItem.Name}' (ID: {itemDto.Item_Id})");
+                    }
+
+                    if (menuItem.Status != MenuItemStatus.Available)
+                    {
+                        return BadRequest($"Item '{menuItem.Name}' is currently unavailable");
+                    }
+
+                    var orderItem = new OrderItems
+                    {
+                        Order_Key = order_id,
+                        Menu_Id = itemDto.Menu_Id,
+                        Item_Id = itemDto.Item_Id,
+                        Quantity = itemDto.Quantity,
+                        Price_At_Time = itemDto.Price_At_Time,
+                        Order_Item_Status = OrderStatus.Pending,
+                        Completed_At = null
+                    };
+
+                    _context.OrderItems.Add(orderItem);
+                    addedItems.Add(orderItem);
+                }
+
+                await _context.SaveChangesAsync();
+
+                //Package up the order in a neat fashion
+                var response = addedItems.Select(item => new OrderItemResponseDTO
+                {
+                    Order_Item_Id = item.Order_Item_Id,
+                    Order_Id = item.Order_Key,
+                    Menu_Id = item.Menu_Id,
+                    Item_Id = item.Item_Id,
+                    Quantity = item.Quantity,
+                    Price_At_Time = item.Price_At_Time,
+                    Status = item.Order_Item_Status,
+                    Name = item.MenuItem?.Name
+                }).ToList();
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding items to order {OrderId}", order_id);
+                return StatusCode(500, new { message = "An error occurred while adding order items", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Updates order items before approval (pending orders only).
+        /// </summary>
+        [Authorize]
+        [HttpPatch("{order_id}/items/{item_id}")]
+        [ProducesResponseType(typeof(OrderItemResponseDTO), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateOrderItem(
+            int order_id, 
+            int item_id,
+            [FromBody] OrderItemUpdateDTO updateData
+        )
+        {
+            try
+            {
+                var order = await _context.SessionOrders
+                    .FirstOrDefaultAsync(o => o.Order_Id == order_id);
+
+                if (order is null)
+                {
+                    return NotFound("Order not found");
+                }
+
+                // Authorization: Owner can modify their pending orders
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                
+                bool isOwner = order.User_Id == userId;
+                bool isStaff = user?.Role == UserRoles.Staff || user?.Role == UserRoles.Admin;
+
+                if (!isOwner && !isStaff)
+                {
+                    return Forbid("You don't have permission to modify this order");
+                }
+
+                // Can only modify pending orders
+                if (order.Status != OrderStatus.Pending)
+                {
+                    return BadRequest("Can only modify pending orders");
+                }
+
+                var orderItem = await _context.OrderItems
+                    .Include(oi => oi.MenuItem)
+                    .FirstOrDefaultAsync(oi => oi.Order_Item_Id == item_id && oi.Order_Key == order_id);
+
+                if (orderItem is null)
+                {
+                    return NotFound("Order item not found");
+                }
+
+                // Update quantity if provided
+                if (updateData.Quantity.HasValue)
+                {
+                    if (updateData.Quantity.Value <= 0)
+                    {
+                        return BadRequest("Quantity must be positive");
+                    }
+                    if (updateData.Quantity.Value > 99)
+                    {
+                        return BadRequest("Quantity cannot exceed 99");
+                    }
+                    orderItem.Quantity = updateData.Quantity.Value;
+                }
+
+                // Update price if provided (staff only)
+                if (updateData.Price_At_Time.HasValue)
+                {
+                    if (!isStaff)
+                    {
+                        return Forbid("Only staff can modify prices");
+                    }
+                    if (updateData.Price_At_Time.Value < 0)
+                    {
+                        return BadRequest("Price cannot be negative");
+                    }
+                    orderItem.Price_At_Time = updateData.Price_At_Time.Value;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new OrderItemResponseDTO
+                {
+                    Order_Item_Id = orderItem.Order_Item_Id,
+                    Order_Id = orderItem.Order_Key,
+                    Menu_Id = orderItem.Menu_Id,
+                    Item_Id = orderItem.Item_Id,
+                    Quantity = orderItem.Quantity,
+                    Price_At_Time = orderItem.Price_At_Time,
+                    Status = orderItem.Order_Item_Status,
+                    Completed_At = orderItem.Completed_At,
+                    Name = orderItem.MenuItem?.Name
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating order item");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        /// <summary>
+        /// Marks a specific order item as completed/delivered.
         /// </summary>
         /// <param name="item_id">The unique identifier of the order item to complete</param>
         /// <returns>
@@ -534,7 +477,7 @@ namespace back_end.Controllers
         /// <remarks>
         /// Sample request:
         ///
-        ///     POST /api/order/items/123/complete
+        ///     POST /api/order/123/items/123/complete
         ///
         /// This endpoint requires Admin or Staff role authorization.
         /// The order item status will be updated to 'Delivered' and the completion timestamp will be set.
@@ -544,9 +487,7 @@ namespace back_end.Controllers
         [ProducesResponseType(typeof(OrderItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CompleteOrderItem(
-            int item_id
-        )
+        public async Task<IActionResult> CompleteOrderItem(int item_id)
         {
             try
             {
@@ -578,9 +519,62 @@ namespace back_end.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
-        
+
         /// <summary>
-        /// Marks an approved order as delivered/completed.
+        /// Marks multiple order items as completed/delivered in bulk
+        /// </summary>
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpPatch("{order_id}/items/complete")]
+        [ProducesResponseType(typeof(List<OrderItemResponseDTO>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CompleteBulkOrderItems(
+            int order_id, 
+            [FromBody] List<int> item_ids
+        )
+        {
+            try
+            {
+                var items = await _context.OrderItems
+                    .Where(oi => oi.Order_Key == order_id && item_ids.Contains(oi.Order_Item_Id))
+                    .ToListAsync();
+
+                if (items.Count != item_ids.Count)
+                {
+                    return NotFound("Some order items were not found");
+                }
+
+                foreach (var item in items)
+                {
+                    item.Order_Item_Status = OrderStatus.Delivered;
+                    item.Completed_At = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+
+                var response = items.Select(item => new OrderItemResponseDTO
+                {
+                    Order_Item_Id = item.Order_Item_Id,
+                    Order_Id = item.Order_Key,
+                    Menu_Id = item.Menu_Id,
+                    Item_Id = item.Item_Id,
+                    Quantity = item.Quantity,
+                    Price_At_Time = item.Price_At_Time,
+                    Status = item.Order_Item_Status,
+                    Completed_At = item.Completed_At
+                }).ToList();
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error completing bulk order items");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        /// <summary>
+        /// Marks the whole order as delivered/completed. (bulk order compeletion)
         /// </summary>
         [Authorize(Roles = "Admin,Staff")]
         [HttpPatch("{order_id}/complete")]
@@ -595,7 +589,7 @@ namespace back_end.Controllers
                     .Include(o => o.OrderItems)
                         .ThenInclude(oi => oi.MenuItem)
                     .FirstOrDefaultAsync(o => o.Order_Id == order_id);
-                    
+
                 if (order is null)
                 {
                     return NotFound("Order not found");
@@ -608,7 +602,7 @@ namespace back_end.Controllers
 
                 order.Status = OrderStatus.Delivered;
                 order.Completed_At = DateTime.UtcNow;
-                
+
                 foreach (var item in order.OrderItems)
                 {
                     item.Order_Item_Status = OrderStatus.Delivered;
@@ -647,7 +641,79 @@ namespace back_end.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
-    
+
+        /// <summary>
+        /// Deletes a specific item from an order.
+        /// </summary>
+        /// <param name="order_id">The unique identifier of the order</param>
+        /// <param name="item_id">The unique identifier of the item to delete</param>
+        /// <returns>
+        /// An <see cref="IActionResult"/> indicating the result of the operation.
+        /// Returns HTTP 200 (OK) with a success message when the item is deleted.
+        /// Returns HTTP 400 (Bad Request) if the order item doesn't exist.
+        /// Returns HTTP 404 (Not Found) if the order doesn't exist.
+        /// Returns HTTP 409 (Conflict) if the order is not pending and the user lacks permission.
+        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during the operation.
+        /// </returns>
+        /// <response code="200">Returns a success message when the item is deleted</response>
+        /// <response code="400">If the order item is not found</response>
+        /// <response code="404">If the order is not found</response>
+        /// <response code="409">If the order is not pending and the user is not authorized to modify it</response>
+        /// <response code="500">If an internal error occurs while deleting the order item</response>
+        /// <remarks>
+        /// Sample request:
+        ///
+        ///     DELETE /api/order/123/items/456
+        ///
+        /// This endpoint requires authentication.
+        /// Users can only delete items from their own pending orders.
+        /// Staff and Admin users can delete items from approved orders.
+        /// </remarks>
+        [Authorize(Roles = "Admin,Staff")]
+        [HttpDelete("{order_id}/items/{item_id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status409Conflict)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> RemoveOrderItem(
+            int order_id,
+            int order_item_id
+        )
+        {
+            try
+            {
+                var order = await _context.SessionOrders.Include(o => o.OrderItems).FirstOrDefaultAsync(so => so.Order_Id == order_id);
+                if (order is null)
+                {
+                    return NotFound("Order Data was not found");
+                }
+                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                if (order.Status != OrderStatus.Pending)
+                {
+                    if ((foundUser.Role != UserRoles.Staff && foundUser.Role != UserRoles.Admin) && userId != order.User_Id)
+                    {
+                        return Conflict("Cannot modify an approved order");
+                    }
+                }
+                var item = order.OrderItems.FirstOrDefault(oi => oi.Order_Item_Id == order_item_id);
+                if (item is null)
+                {
+                    return BadRequest("Order Item was not found");
+                }
+                _context.OrderItems.Remove(item);
+                await _context.SaveChangesAsync();
+                return Ok("Item was Deleted");
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting item {ItemId} from order {OrderId}", order_item_id, order_id);
+                return StatusCode(500, new { message = "An error occurred while deleting the order item", error = ex.Message });
+            }
+        }
+
         /// <summary>
         /// Retrieves all orders from the database.
         /// </summary>
@@ -667,6 +733,7 @@ namespace back_end.Controllers
         /// </remarks>
         //GET api/order
         //Get all Orders
+        [Authorize(Roles = "Admin,Staff")]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<SessionOrder>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -677,99 +744,6 @@ namespace back_end.Controllers
                 var order = await _context.SessionOrders.ToListAsync();
 
                 return Ok(order);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting Orders");
-                return StatusCode(500, "Internal Server Error");
-            }
-        }
-
-        /// <summary>
-        /// Cancels a pending order.
-        /// </summary>
-        /// <param name="order_id">The unique identifier of the order to cancel</param>
-        /// <returns>
-        /// An <see cref="IActionResult"/> containing the updated <see cref="OrderResponseDTO"/> object.
-        /// Returns HTTP 200 (OK) with the cancelled order on success.
-        /// Returns HTTP 400 (Bad Request) if the order has already been delivered.
-        /// Returns HTTP 404 (Not Found) if the order doesn't exist.
-        /// Returns HTTP 409 (Conflict) if the order is not in pending status.
-        /// Returns HTTP 500 (Internal Server Error) if an exception occurs during cancellation.
-        /// </returns>
-        /// <response code="200">Returns the cancelled order</response>
-        /// <response code="400">If the order has already been delivered and cannot be cancelled</response>
-        /// <response code="404">If the order is not found</response>
-        /// <response code="409">If the order is not in pending status</response>
-        /// <response code="500">If an internal error occurs while cancelling the order</response>
-        /// <remarks>
-        /// Sample request:
-        ///
-        ///     POST /api/order/123/cancel
-        ///
-        /// This endpoint requires authentication.
-        /// Only orders with 'Pending' status can be cancelled.
-        /// Orders that are approved or delivered cannot be cancelled.
-        /// </remarks>
-        [Authorize]
-        [HttpPatch("{order_id}/cancel")]
-        [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status409Conflict)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CancelOrder (
-            int order_id
-        )
-        {
-            try
-            {
-                var order = await _context.SessionOrders.Include(o => o.OrderItems).FirstOrDefaultAsync(so => so.Order_Id == order_id);
-                if (order is null)
-                {
-                    return NotFound("Order was not found to cancel");
-                }
-                if (order.Status != OrderStatus.Pending)
-                {
-                    return Conflict("Issue Canceling Order that is Approved");
-                }
-                if (order.Status == OrderStatus.Delivered)
-                {
-                    return BadRequest("Can not cancel a completed / delivered Order");
-                }
-                order.Status = OrderStatus.Cancelled;
-                order.Completed_At = DateTime.UtcNow;
-                foreach (var item in order.OrderItems)
-                {
-                    item.Order_Item_Status = OrderStatus.Cancelled;
-                    item.Completed_At = DateTime.UtcNow;
-                }
-                
-                _context.SessionOrders.Update(order);
-                await _context.SaveChangesAsync();
-                return Ok(new OrderResponseDTO
-                {
-                    Order_Id = order.Order_Id,
-                    Session_Id = order.session_id,
-                    Bill_Id = order.Bill_Id,
-                    User_Id = order.User_Id ?? 0,
-                    Status = order.Status,
-                    Created_At = order.Created_At,
-                    Completed_At = order.Completed_At,
-                    OrderItems = order.OrderItems.Select(oi => new OrderItemResponseDTO
-                    {
-                        Order_Item_Id = oi.Order_Item_Id,
-                        Order_Id = oi.Order_Key,
-                        Menu_Id = oi.Menu_Id,
-                        Item_Id = oi.Item_Id,
-                        Quantity = oi.Quantity,
-                        Price_At_Time = oi.Price_At_Time,
-                        Status = oi.Order_Item_Status,
-                        Completed_At = oi.Completed_At,
-                        Name = oi.MenuItem?.Name
-                    }).ToList()
-                });
-
             }
             catch (Exception ex)
             {
@@ -982,6 +956,7 @@ namespace back_end.Controllers
         /// </remarks>
         //GET: api/order/user{id}
         //Get all orders placed by a specific customer
+        [Authorize]
         [HttpGet("user/{userId}")]
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1109,75 +1084,6 @@ namespace back_end.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
-        
-        //POST: api/Order/{order_id}/items
-        //Add one or more items to an existing order
-        [Authorize]
-        [HttpPost("{order_id}/items")]
-        public async Task<ActionResult<IEnumerable<OrderItemInsertResponse>>> AddOrderItems(
-            int order_id,
-            [FromBody] List<OrderItemCreateDTO> items
-        )
-        {
-            try
-            {
-                //Make sure there are items inside the order
-                if (items is null || items.Count == 0)
-                {
-                    return BadRequest("No items added to order.");
-                }
 
-                //Make sure the order exists so items can be added to it
-                var order = await _context.SessionOrders.FirstOrDefaultAsync(o => o.Order_Id == order_id);
-                if (order is null)
-                {
-                    return NotFound($"Order {order_id} was not found");
-                }
-                if (order.Status != OrderStatus.Pending)
-                {
-                    return Conflict("Cannot modify a non-pending order.");
-                }
-
-                //Add each item to the order
-                var created = new List<OrderItems>();
-                foreach (var dto in items)
-                {
-                    var oi = new OrderItems
-                    {
-                        Order_Key = order_id,
-                        Menu_Id = dto.Menu_Id,
-                        Item_Id = dto.Item_Id,
-                        Quantity = dto.Quantity,
-                        Price_At_Time = dto.Price_At_Time,
-                        Order_Item_Status = dto.Status == 0 ? OrderStatus.Pending : dto.Status,
-                        Completed_At = null
-                    };
-
-                    _context.OrderItems.Add(oi);
-                    created.Add(oi);
-                }
-
-                await _context.SaveChangesAsync();
-
-                //Package up the order in a neat fashion
-                var response = created.Select(i => new OrderItemInsertResponse
-                {
-                    Order_Item_Id = i.Order_Item_Id,
-                    Order_Id = i.Order_Key,
-                    Menu_Id  = i.Menu_Id,
-                    Item_Id  = i.Item_Id,
-                    Quantity = i.Quantity,
-                    Price_At_Time = i.Price_At_Time,
-                    Status = i.Order_Item_Status
-                }).ToList();
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Error adding items to order {order_id}");
-                return StatusCode(500, "Internal Server Error");
-            }
-        }
     }
 }

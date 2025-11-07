@@ -77,6 +77,13 @@ namespace back_end.DTO.OrdersDTOs
         public OrderStatus Status { get; set; }
 
     }
+    public class OrderItemUpdateDTO
+    {
+        [JsonPropertyName("quantity")]
+        public int? Quantity { get; set; }
+        [JsonPropertyName("price_at_time")]
+        public decimal? Price_At_Time { get; set; } 
+    }
     public class OrderCreateDTO
     {
         [JsonPropertyName("session_id")]
@@ -90,22 +97,6 @@ namespace back_end.DTO.OrdersDTOs
     {
         [JsonPropertyName("status")]
         public OrderStatus Status { get; set; }
-    }
-
-    public class OrderItemQuantityUpdateDTO
-    {
-        [JsonPropertyName("item_id")]
-        public int Item_Id { get; set; }
-
-        [JsonPropertyName("quantity")]
-        [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
-        public int Quantity { get; set; }
-    }
-
-    public class BulkQuantityUpdateDTO
-    {
-        [JsonPropertyName("items")]
-        public List<OrderItemQuantityUpdateDTO> Items { get; set; } = new();
     }
 
     public class OrderResponseDTO
