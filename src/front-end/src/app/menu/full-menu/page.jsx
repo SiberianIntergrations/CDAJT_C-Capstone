@@ -323,121 +323,62 @@ const fetchMenuItems = async (categoryId, menu_id) => {
 
   const handleBillChange = (event) => {
     const billId = Number(event.target.value);
+    const billId = Number(event.target.value);
     setSelectedBillId(billId);
   };
 
-  // This function creates multiple calls to add order items - one per item
-  // const createOrderItems = async (orderId) => {
-  //   const orderItemPromises = Object.entries(quantities).flatMap(
-  //     ([categoryId, items]) =>
-  //       Object.entries(items)
-  //         .filter(([_, quantity]) => quantity > 0)
-  //         .map(([itemId, quantity]) => {
-  //           try {
-  //             const menuItem = menuItems[categoryId]?.find(
-  //               (item) => item.item_id === parseInt(itemId)
-  //             );
-
-  //             if (!menuItem) {
-  //               throw new Error(`Menu item ${itemId} not found`);
-  //             }
-  //             let price_at_time = menuItem.is_add_on ? Number(menuItem.price) || 0 : 0;
-
-  //             return{
-  //               //order_id: Number(orderId),
-  //               menu_id: Number(menuId),
-  //               item_id: Number(itemId),
-  //               quantity: Number(quantity),
-  //               price_at_time,
-  //               status: 0,
-  //             };
-  //           }
-  //           catch (error) {
-  //             console.error(`Failed to add item ${itemId}: ${error.message}`);
-  //             return null;
-  //         }
-  //       })
-  //   );
-  //         const payload = orderItemPromises.filter(Boolean);
-
-  //         if(orderItemPromises == 0){
-  //           return [];
-  //         }
-
-  //         console.log("POST", `/Order/${orderId}/items`, payload, "Array?", Array.isArray(payload));
-  //             const response = await api.post(`/Order/${orderId}/items`, payload);
-             
-  //             if (response.status !== 200 && response.status !== 201) {
-  //               throw new Error(`Failed to add item ${itemId}`);
-  //             }
-  //             return response.data;
-
-  // };
-
-  // This function creates all order items in a single API call
   const createOrderItems = async (orderId) => {
-    try {
-      // Build array of order items from quantities state
-      const orderItems = [];
-      
-      Object.entries(quantities).forEach(([categoryId, items]) => {
-        Object.entries(items).forEach(([itemId, quantity]) => {
-          if (quantity > 0) {
-            const menuItem = menuItems[categoryId]?.find(
-              (item) => item.item_id === parseInt(itemId)
-            );
 
-            if (!menuItem) {
-              console.error(`Menu item ${itemId} not found in category ${categoryId}`);
-              return;
+    const orderItemPromises = Object.entries(quantities).flatMap(
+      ([categoryId, items]) =>
+        Object.entries(items)
+          .filter(([_, quantity]) => quantity > 0)
+          .map(([itemId, quantity]) => {
+            try {
+              const menuItem = menuItems[categoryId]?.find(
+                (item) => item.item_id === parseInt(itemId)
+              );
+
+              if (!menuItem) {
+                throw new Error(`Menu item ${itemId} not found`);
+              }
+              let price_at_time = menuItem.is_add_on ? Number(menuItem.price) || 0 : 0;
+
+              return{
+                //order_id: Number(orderId),
+                menu_id: Number(menuId),
+                item_id: Number(itemId),
+                quantity: Number(quantity),
+                price_at_time,
+                status: 0,
+              };
             }
-
-            // Calculate price - only charge for add-ons
-            const price_at_time = menuItem.is_add_on 
-              ? Number(menuItem.price) || 0 
-              : 0;
-
-            orderItems.push({
-              menu_id: Number(menuId),
-              item_id: Number(itemId),
-              quantity: Number(quantity),
-              price_at_time,
-              // Status is automatically set to 0 (Pending) on backend
-            });
+            catch (error) {
+              console.error(`Failed to add item ${itemId}: ${error.message}`);
+              return null;
           }
-        });
-      });
+        })
+    );
+          const payload = orderItemPromises.filter(Boolean);
 
-      if (orderItems.length === 0) {
-        throw new Error("No items to add to order");
-      }
+          if(orderItemPromises == 0){
+            return [];
+          }
 
-      console.log("Adding order items:", orderItems);
+          console.log("POST", `/Order/${orderId}/items`, payload, "Array?", Array.isArray(payload));
+              const response = await api.post(`/Order/${orderId}/items`, payload);
+             
+              if (response.status !== 200 && response.status !== 201) {
+                throw new Error(`Failed to add item ${itemId}`);
+              }
+              return response.data;
 
-      // Send all items in one request
-      const response = await api.post(`/Order/${orderId}/items`, orderItems);
-
-      if (response.status !== 200 && response.status !== 201) {
-        throw new Error("Failed to add items to order");
-      }
-
-      console.log("Order items added successfully:", response.data);
-      return response.data;
-    } catch (error) {
-      console.error("Error creating order items:", error);
-      throw new Error(
-        error.response?.data?.message || 
-        error.message || 
-        "Failed to add items to order"
-      );
-    }
   };
 
-  // Commented out - it wasn't being used.
-  // const getVisibleItemCount = (categoryId) => {
-  //   const filteredItems = filterMenuItems(menuItems[categoryId], categoryId);
-  //   return filteredItems?.length || 0;
-  // };
+  const getVisibleItemCount = (categoryId) => {
+    const filteredItems = filterMenuItems(menuItems[categoryId], categoryId);
+    return filteredItems?.length || 0;
+  };
 
   const handleConfirmOrder = async () => {
     if (!selectedBillId || !sessionId || !menuId) {
@@ -470,32 +411,25 @@ const fetchMenuItems = async (categoryId, menu_id) => {
         throw new Error("Failed to create order");
       }
 
-      // Step 2: Parse the order ID from response
-      const newOrderId = Number(
-        orderResponse.data?.order_id ??
-        orderResponse.data?.orderId ??
-        orderResponse.data?.Order_Id ??
-        orderResponse.data?.order_Id ??
-        orderResponse.data?.OrderID
-      );
+    const newOrderId = Number(
+      orderResponse.data?.order_id ??
+      orderResponse.data?.orderId ??
+      orderResponse.data?.Order_Id ??
+      orderResponse.data?.order_Id ??
+      orderResponse.data?.OrderID
+    );
 
-      if (!newOrderId || newOrderId < 1) {
-        console.error("Invalid order ID in response:", orderResponse.data);
-        setError("Couldn't read new order id from server response.");
-        setIsSubmitting(false);
-        return;
-      }
-      console.log("New order created with ID:", newOrderId);
-
-      // Step 3: Add items to the order
+    if (!newOrderId) {
+      setError("Couldn't read new order id from server response.");
+      setIsSubmitting(false);
+      return;
+    }
       await createOrderItems(newOrderId);
 
       // Step 4: Clear quantities and show sucess message
       setQuantities({});
       setOrderSuccess(true);
-      setError(null);
 
-      // Step 5: Redirect to orders page after a short delay
       setTimeout(() => {
         window.location.href = "/dashboard/orders";
       }, 2000);

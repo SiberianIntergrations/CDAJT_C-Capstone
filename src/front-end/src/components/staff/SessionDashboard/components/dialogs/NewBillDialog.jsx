@@ -57,6 +57,7 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
       };
 
       console.log("Submitting bill data:", billData);
+      console.log("handleSubmit called with sessionId:", sessionId, "billData:", billData);
       const success = await createBill(sessionId, billData);
       console.log("Bill creation result:", success);
 
@@ -190,7 +191,10 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose} disabled={isLoading}>Cancel</Button>
         <Button
-          onClick={handleSubmit}
+        onClick={() => {
+            console.log("Create Bill button clicked");
+            handleSubmit();
+          }}
           variant="contained"
           disabled={isSubmitDisabled}
           startIcon={isLoading && <CircularProgress size={16}/>}

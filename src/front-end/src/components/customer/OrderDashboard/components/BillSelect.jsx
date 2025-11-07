@@ -85,7 +85,8 @@ const BillSelect = (props) => {
     return counts.join(" • ");
   };
 
-  const renderBillMenuItem = (bill) => (
+  const renderBillMenuItem = (bill) => {
+  return(
     <MenuItem key={bill.bill_id} value={Number(bill.bill_id)}>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
         <Typography variant="subtitle1">
@@ -96,7 +97,7 @@ const BillSelect = (props) => {
               bill.adult_count +
               bill.child_count +
               bill.senior_count +
-              bill.tot_count
+              bill.total_count
             } guests`}
             sx={{ ml: 1 }}
           />
@@ -107,6 +108,7 @@ const BillSelect = (props) => {
       </Box>
     </MenuItem>
   );
+};
 
   const renderError = () => {
     if (!error) return null;

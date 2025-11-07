@@ -1065,10 +1065,10 @@ namespace back_end.Controllers
                     orderby ds.Started_At descending
                     select ds.Session_Id
                 ).FirstOrDefaultAsync();
-                
-                if(activeSessionId == 0)
+
+                if (activeSessionId == 0)
                 {
-                     return NotFound("No active session for this user");
+                    return NotFound("No active session for this user");
                 }
 
                 var orders = await _context.SessionOrders
@@ -1103,9 +1103,79 @@ namespace back_end.Controllers
                 return Ok(userOrder);
             }
 
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex, "Can't get user's active orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+        
+        //POST: api/Order/{order_id}/items
+        //Add one or more items to an existing order
+        [Authorize]
+        [HttpPost("{order_id}/items")]
+        public async Task<ActionResult<IEnumerable<OrderItemInsertResponse>>> AddOrderItems(
+            int order_id,
+            [FromBody] List<OrderItemCreateDTO> items
+        )
+        {
+            try
+            {
+                //Make sure there are items inside the order
+                if (items is null || items.Count == 0)
+                {
+                    return BadRequest("No items added to order.");
+                }
+
+                //Make sure the order exists so items can be added to it
+                var order = await _context.SessionOrders.FirstOrDefaultAsync(o => o.Order_Id == order_id);
+                if (order is null)
+                {
+                    return NotFound($"Order {order_id} was not found");
+                }
+                if (order.Status != OrderStatus.Pending)
+                {
+                    return Conflict("Cannot modify a non-pending order.");
+                }
+
+                //Add each item to the order
+                var created = new List<OrderItems>();
+                foreach (var dto in items)
+                {
+                    var oi = new OrderItems
+                    {
+                        Order_Key = order_id,
+                        Menu_Id = dto.Menu_Id,
+                        Item_Id = dto.Item_Id,
+                        Quantity = dto.Quantity,
+                        Price_At_Time = dto.Price_At_Time,
+                        Order_Item_Status = dto.Status == 0 ? OrderStatus.Pending : dto.Status,
+                        Completed_At = null
+                    };
+
+                    _context.OrderItems.Add(oi);
+                    created.Add(oi);
+                }
+
+                await _context.SaveChangesAsync();
+
+                //Package up the order in a neat fashion
+                var response = created.Select(i => new OrderItemInsertResponse
+                {
+                    Order_Item_Id = i.Order_Item_Id,
+                    Order_Id = i.Order_Key,
+                    Menu_Id  = i.Menu_Id,
+                    Item_Id  = i.Item_Id,
+                    Quantity = i.Quantity,
+                    Price_At_Time = i.Price_At_Time,
+                    Status = i.Order_Item_Status
+                }).ToList();
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error adding items to order {order_id}");
                 return StatusCode(500, "Internal Server Error");
             }
         }

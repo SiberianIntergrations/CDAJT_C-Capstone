@@ -29,6 +29,8 @@ const OrderSummaryItem = ({ item, quantity, category, onQuantityChange }) => {
   const [expanded, setExpanded] = useState(false);
   const unitPrice = item.is_add_on ? item.price : 0;
   const totalPrice = unitPrice * quantity;
+  //To show items that are included in the all you can eat ($0)
+  const includedPrice = unitPrice === 0;
 
   return (
     <Box sx={{ borderBottom: "1px solid", borderColor: "divider" }}>
@@ -53,10 +55,10 @@ const OrderSummaryItem = ({ item, quantity, category, onQuantityChange }) => {
           x{quantity}
         </Typography>
         <Typography variant="body2" sx={{ flex: 1, textAlign: "right" }}>
-          ${unitPrice.toFixed(2)}
+          {includedPrice ? "Included" : `$${unitPrice.toFixed(2)}`}
         </Typography>
         <Typography variant="body2" sx={{ flex: 1, textAlign: "right" }}>
-          ${totalPrice.toFixed(2)}
+          {includedPrice ? "Included" : `$${totalPrice.toFixed(2)}`}
         </Typography>
       </Box>
 

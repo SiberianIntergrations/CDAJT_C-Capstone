@@ -19,6 +19,7 @@ const ServiceRequestForm = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [sessionId, setSessionId] = useState(null);
+  const [userId, setUserId] = useState(null);
 
   const commonRequests = [
     "Need water refill",
@@ -30,35 +31,38 @@ const ServiceRequestForm = () => {
     "Ready for bill",
   ];
 
+  //Find the current user's dining session right when the page loads
   useEffect(() => {
     const getActiveSession = async () => {
       try {
         const response = await api.get("/DiningSession/participants/active-session-id");
 
-        if (response && response.data) {
-          setSessionId(response.data.session_id);
-        } else {
-          setError("No active session found");
+          if (response?.data?.session_id) {
+            setSessionId(response.data.session_id);
+          } else {
+            setError("No active session found");
+          }
+        } catch (err) {
+          console.error("Error fetching session:", err);
+          if (err.response?.data?.message) {
+            setError(err.response.data.message);
+          } else {
+            setError("Unexpected error occurred");
+          }
         }
-      } catch (err) {
-        console.error("Error fetching session:", err);
-        if (err.response && err.response.data) {
-          setError(err.response.data.detail || "Error fetching session");
-        } else {
-          setError("Unexpected error occurred");
-        }
-      }
-    };
+      };
 
-    getActiveSession();
-  }, []);
+      getActiveSession();
+    }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!message.trim() || !sessionId) return;
-    setIsSubmitting(true);
-    setError("");
-    setSuccess(false);
+    //Send the service request to the staff
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!message.trim() || !sessionId) return;
+
+      setIsSubmitting(true);
+      setError("");
+      setSuccess(false);
 
     try {
       const response = await api.post(`/ServiceRequest/${sessionId}`,
@@ -75,15 +79,17 @@ const ServiceRequestForm = () => {
         throw new Error(errorMessage);
       }
 
-      setSuccess(true);
-      setMessage("");
-      setTimeout(() => setSuccess(false), 3000);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        setSuccess(true);
+        setMessage("");
+        setTimeout(() => setSuccess(false), 3000);
+
+      } catch (err) {
+        console.error("Service request error:", err);
+        setError(err.response?.data?.message || err.message);
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
 
   return (
     <Box maxWidth="sm" mx="auto" sx={{ pt: 3 }}>
