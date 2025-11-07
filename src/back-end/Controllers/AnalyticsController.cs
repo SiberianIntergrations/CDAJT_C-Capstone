@@ -130,7 +130,8 @@ namespace back_end.controllers
                             assignment.Item_Id,
                             menuItem.Name,
                             assignment.Total_View_Seconds,
-                            assignment.Menu_Id
+                            assignment.Menu_Id,
+                            assignment.Total_Views
                         })
                     .GroupBy(x => new { x.Item_Id, x.Name })
                     .Select(g => new
@@ -138,7 +139,7 @@ namespace back_end.controllers
                         item_id = g.Key.Item_Id,
                         name = g.Key.Name,
                         total_view_seconds = g.Sum(x => x.Total_View_Seconds),
-                        total_views = g.Sum(x => x.Menu_Id)
+                        total_views = g.Sum(x => x.Total_Views)
                     })
                     .ToListAsync();
 
