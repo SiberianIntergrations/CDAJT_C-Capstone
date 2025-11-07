@@ -22,39 +22,27 @@ const TagManagement = dynamic(() => import("@/components/tags/TagManagement"), {
 const TagManagementPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const { isAuthenticated, userRole, loading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token");
-
-      if (!token) {
-        router.push("/auth/login");
-        return;
-      }
-
-      // IMPORTANT: Wait for useAuth to finish loading
-      if (loading) {
-        return;
-      }
-
-      try {
-        // Now userRole should be loaded
-        if (!userRole || userRole.toLowerCase().trim() !== "admin") {
-          router.push("/unauthorized");
-          return;
-        }
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-      }
-    };
-
-    checkAuth();
+    if (loading) {
+      setIsLoading(true);
+      return;
+    }
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+    if (userRole !== "admin") {
+      router.push("/unauthorized");
+      return;
+    }
+    setIsAuthorized(true);
+    setIsLoading(false);
   }, [router, isAuthenticated, userRole, loading]);
 
-  if (isLoading) {
+  if (isLoading || !isAuthorized) {
     return (
       <Box
         display="flex"

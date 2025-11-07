@@ -1,32 +1,31 @@
 import api from "@/config/api";
 import { setAuthTokens, clearAuthTokens } from "@/utils/token";
+import { msalConfig } from "@/config/auth";
+import msalInstance from "@/config/msalInstance";
 
 // API calls
-export const loginUser = async (email, password) => {
-  const response = await api.post("/auth/login", {
-    email,
-    password,
-  });
-
-  // Automatically store tokens on login
-  const { access_token, refresh_token } = response.data || {};
-  if (!access_token) {
-    throw new Error("No access token returned from login");
+export const loginUser = async () => {
+  // Interactive login using MSAL
+  try {
+    const loginResponse = await msalInstance.loginPopup({
+      scopes: msalConfig.auth.scopes || ["openid", "profile", "email"],
+    });
+    // loginResponse.account contains user info
+    return loginResponse;
+  } catch (error) {
+    console.error("MSAL login error:", error);
+    throw error;
   }
-  setAuthTokens(access_token, refresh_token);
-
-  return response.data;
 };
 
 export const logoutUser = async () => {
   try {
-    clearAuthTokens();
+    await msalInstance.logoutPopup();
     if (typeof window !== "undefined") {
       window.location.href = "/";
     }
   } catch (error) {
-    console.error("Error during logout:", error);
-    clearAuthTokens();
+    console.error("MSAL logout error:", error);
   }
 };
 

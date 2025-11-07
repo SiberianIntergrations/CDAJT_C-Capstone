@@ -1,18 +1,34 @@
 // src/front-end/src/app/orders/page.jsx
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Orders from "@/components/employee/Orders";
+import { useAuth } from "@/hooks/useAuth";
 
-const OrdersPage = ({ user }) => {
+const OrdersPage = () => {
   const router = useRouter();
+  const { isAuthenticated, userRole, loading } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    if (!user || user.role !== "employee") {
-      router.push("/unauthorized");
+    if (loading) {
+      setIsLoading(true);
+      return;
     }
-  }, [user, router]);
-  if (!user || user.role !== "employee") return null;
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+    if (userRole !== "staff" && userRole !== "admin") {
+      router.push("/unauthorized");
+      return;
+    }
+    setIsAuthorized(true);
+    setIsLoading(false);
+  }, [router, isAuthenticated, userRole, loading]);
+
+  if (isLoading || !isAuthorized) return null;
 
   return <Orders />;
 };

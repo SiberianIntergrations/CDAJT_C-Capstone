@@ -166,7 +166,8 @@ namespace back_end.Controllers
     /// The service request status will be updated to 'Completed' and the completion timestamp will be set.
     /// The current authenticated user will be assigned as the user who completed the request.
     /// </remarks>
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     [HttpPost("{request_id}/complete")]
     public async Task<IActionResult> CompleteServiceRequest(int request_id)
     {
@@ -174,24 +175,31 @@ namespace back_end.Controllers
       {
         var sessionRequest = await _context.ServiceRequests
             .FirstOrDefaultAsync(sr => sr.request_id == request_id);
-
         if (sessionRequest is null)
         {
           return NotFound("The service request was not found");
         }
 
+        // var claimedByUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        // if (!int.TryParse(claimedByUserId, out int userId))
+        // {
+        //   return BadRequest("Invalid user ID in token");
+        // }
+
+        // var claimedByUser = await _context.Users
+        //     .FirstOrDefaultAsync(u => u.User_id == userId);
+
+        // if (claimedByUser is null)
+        // {
+        //   return NotFound("User not found");
+        // }
+
         sessionRequest.Status = ServiceRequestStatus.Completed;
-
-        var claimedByUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var claimedByUser = await _context.Users
-            .FirstOrDefaultAsync(u => u.User_id == int.Parse(claimedByUserId));
-
-        sessionRequest.ClaimedByUser = claimedByUser;
+        // sessionRequest.ClaimedByUser = claimedByUser;
         sessionRequest.Completed_At = DateTime.UtcNow;
-
         _context.ServiceRequests.Update(sessionRequest);
         await _context.SaveChangesAsync();
-
         return Ok(sessionRequest);
       }
       catch (Exception ex)
@@ -222,7 +230,8 @@ namespace back_end.Controllers
     /// This endpoint requires Admin or Staff role authorization.
     /// Only returns service requests with 'Pending' status.
     /// </remarks>
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     [HttpGet("by-session/{session_id}")]
     public async Task<IActionResult> GetSessionServiceRequest(int session_id)
     {
@@ -296,7 +305,8 @@ namespace back_end.Controllers
 
     //GET api/servicerequest/pending
     //Get all pending service requests
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     [HttpGet("pending")]
     public async Task<ActionResult<IEnumerable<ServiceRequestResponseDTO>>> GetAllPendingServiceRequests()
     {
