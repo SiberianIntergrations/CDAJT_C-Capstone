@@ -4,7 +4,6 @@ using back_end.DTO.Auth;
 using Microsoft.AspNetCore.Mvc;
 using back_end.DTO.Analytics;
 using Microsoft.AspNetCore.Http.Features;
-using System.Security.Claims;
 
 namespace back_end.controllers
 {
@@ -130,8 +129,8 @@ namespace back_end.controllers
                             assignment.Item_Id,
                             menuItem.Name,
                             assignment.Total_View_Seconds,
-                            assignment.Menu_Id,
-                            assignment.Total_Views
+                            assignment.Total_Views,
+                            assignment.Menu_Id
                         })
                     .GroupBy(x => new { x.Item_Id, x.Name })
                     .Select(g => new
@@ -139,7 +138,7 @@ namespace back_end.controllers
                         item_id = g.Key.Item_Id,
                         name = g.Key.Name,
                         total_view_seconds = g.Sum(x => x.Total_View_Seconds),
-                        total_views = g.Sum(x => x.Total_Views)
+                        total_views = g.Sum(x => x.Total_Views) 
                     })
                     .ToListAsync();
 
@@ -231,6 +230,7 @@ namespace back_end.controllers
                     })
                     .ToListAsync();
 
+
                 if (!dailyTurnover.Any() && !monthlyTurnover.Any())
                 {
                     _logger.LogWarning("No table turnover data found");
@@ -274,20 +274,13 @@ namespace back_end.controllers
         {
             try
             {
-
-                string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var user = await _context.Users.Include(u => u.Locations).FirstOrDefaultAsync(u => u.User_id == int.Parse(userId));
-                if(user is null)
-                {
-                    return BadRequest("can not get a user location");
-                }
                 var orderTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null && ds.Location_Id == user.Location_id)
+                    .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null)
                     .Select(ds => new
                     {
                         sessionId = ds.Session_Id,
                         TimeToFirstOrderSeconds = EF.Functions.DateDiffSecond(ds.Started_At, ds.First_Order_At)
-                    }).Take(75)
+                    }).Take(25)
                     .ToListAsync();
 
                 var dailyAverageTiming = await _context.DiningSessions
