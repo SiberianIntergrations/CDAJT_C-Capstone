@@ -69,8 +69,7 @@ const NewTableGroupDialog = ({ open }) => {
       await refreshData();
       handleClose();
     } catch (err) {
-      console.log(err);
-      setError(err.response?.data?.message || "Failed to create table group");
+      setError(err.response.data || "Failed to create table group");
     } finally {
       setIsSubmitting(false);
     }

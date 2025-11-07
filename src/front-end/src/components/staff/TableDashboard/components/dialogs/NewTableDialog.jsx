@@ -76,7 +76,6 @@ const NewTableDialog = ({ open }) => {
       await refreshData();
       handleClose();
     } catch (err) {
-      console.log(err);
       setError(err.response.data || "Failed to create table");
     } finally {
       setIsSubmitting(false);
