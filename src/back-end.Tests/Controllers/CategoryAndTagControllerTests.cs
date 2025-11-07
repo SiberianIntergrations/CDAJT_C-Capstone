@@ -195,11 +195,15 @@ public class TagControllerTests : IDisposable
         // Assert
         result.Should().BeOfType<OkObjectResult>();
         var okResult = result as OkObjectResult;
-        var tag = okResult!.Value as Tag;
 
-        tag.Should().NotBeNull();
-        tag!.tag_id.Should().Be(1);
-        tag.tag_name.Should().Be("Vegetarian");
+        // The controller returns TagBaseDTO, not Tag entity
+        var value = okResult!.Value;
+        value.Should().NotBeNull();
+
+        // Use dynamic or reflection to check properties since it's an anonymous DTO type
+        dynamic tag = value!;
+        ((int)tag.Tag_Id).Should().Be(1);
+        ((string)tag.Tag_Name).Should().Be("Vegetarian");
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
@@ -18,27 +19,22 @@ public class QrCodeIntegrationTests : IClassFixture<WebApplicationFactory<Progra
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
-            builder.ConfigureServices(services =>
+            builder.ConfigureTestServices(services =>
             {
-                // Remove the existing DbContext registration
-                var descriptor = services.SingleOrDefault(
+                // Remove the ApplicationDbContext registration
+                var contextDescriptor = services.SingleOrDefault(
                     d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
 
-                if (descriptor != null)
-                    services.Remove(descriptor);
+                if (contextDescriptor != null)
+                {
+                    services.Remove(contextDescriptor);
+                }
 
                 // Add DbContext using in-memory database for testing
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TestDb");
+                    options.UseInMemoryDatabase("TestDb" + Guid.NewGuid().ToString());
                 });
-
-                // Build the service provider and ensure database is created
-                var sp = services.BuildServiceProvider();
-                using var scope = sp.CreateScope();
-                var scopedServices = scope.ServiceProvider;
-                var db = scopedServices.GetRequiredService<ApplicationDbContext>();
-                db.Database.EnsureCreated();
             });
         });
 

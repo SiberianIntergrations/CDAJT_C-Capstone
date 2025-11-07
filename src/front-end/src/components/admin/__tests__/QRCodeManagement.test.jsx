@@ -90,17 +90,17 @@ describe('QRCodeManagement Component', () => {
       expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
     });
 
-    // Try to download without entering table number
-    const downloadButtons = screen.queryAllByText(/Download/i);
-    if (downloadButtons.length > 0) {
-      fireEvent.click(downloadButtons[0]);
+    // Wait for locations to load
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/location');
+    });
 
-      await waitFor(() => {
-        // Snackbar should show warning
-        expect(screen.getByText(/Please select a location and enter a table number/i))
-          .toBeInTheDocument();
-      });
-    }
+    // Download buttons should be disabled when table number is not provided
+    const downloadButtons = screen.getAllByRole('button', { name: /Download/i });
+
+    // The first two Download buttons are for WiFi and Session (not in dialog)
+    const wifiDownloadButton = downloadButtons[0];
+    expect(wifiDownloadButton).toBeDisabled();
   });
 
   test('downloads WiFi QR code when valid input provided', async () => {
@@ -113,13 +113,11 @@ describe('QRCodeManagement Component', () => {
       if (url === '/admin/qr/wifi') {
         return Promise.resolve({ data: mockBlob });
       }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: [] });
+      }
       return Promise.reject(new Error('Not found'));
     });
-
-    // Mock document methods
-    const createElementSpy = jest.spyOn(document, 'createElement');
-    const appendChildSpy = jest.spyOn(document.body, 'appendChild').mockImplementation(() => {});
-    const removeChildSpy = jest.spyOn(document.body, 'removeChild').mockImplementation(() => {});
 
     render(<QRCodeManagement />);
 
@@ -132,22 +130,20 @@ describe('QRCodeManagement Component', () => {
     fireEvent.change(tableInput, { target: { value: '5' } });
 
     // Find and click download WiFi button
-    const downloadButtons = screen.queryAllByText(/Download/i);
-    if (downloadButtons.length > 0) {
-      fireEvent.click(downloadButtons[0]);
+    await waitFor(() => {
+      const downloadButtons = screen.getAllByRole('button', { name: /Download/i });
+      expect(downloadButtons[0]).not.toBeDisabled();
+    });
 
-      await waitFor(() => {
-        expect(api.get).toHaveBeenCalledWith('/admin/qr/wifi', {
-          params: { locationId: 1, table: '5' },
-          responseType: 'blob',
-        });
+    const downloadButtons = screen.getAllByRole('button', { name: /Download/i });
+    fireEvent.click(downloadButtons[0]);
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/admin/qr/wifi', {
+        params: { locationId: 1, table: '5' },
+        responseType: 'blob',
       });
-    }
-
-    // Cleanup mocks
-    createElementSpy.mockRestore();
-    appendChildSpy.mockRestore();
-    removeChildSpy.mockRestore();
+    });
   });
 
   test('opens preview dialog when preview button clicked', async () => {
@@ -160,6 +156,9 @@ describe('QRCodeManagement Component', () => {
       if (url === '/admin/qr/wifi' || url === '/admin/qr/session') {
         return Promise.resolve({ data: mockBlob });
       }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: [] });
+      }
       return Promise.reject(new Error('Not found'));
     });
 
@@ -169,19 +168,30 @@ describe('QRCodeManagement Component', () => {
       expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
     });
 
+    // Wait for locations to load
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/location');
+    });
+
     // Fill table number
     const tableInput = screen.getByLabelText(/Table Number/i);
     fireEvent.change(tableInput, { target: { value: '5' } });
 
-    // Click preview button
-    const previewButtons = screen.queryAllByText(/Preview/i);
-    if (previewButtons.length > 0) {
-      fireEvent.click(previewButtons[0]);
+    // Wait for button to be enabled and click preview button
+    await waitFor(() => {
+      const previewButtons = screen.getAllByRole('button', { name: /Preview/i });
+      expect(previewButtons[0]).not.toBeDisabled();
+    });
 
-      await waitFor(() => {
-        expect(api.get).toHaveBeenCalled();
-      });
-    }
+    const previewButtons = screen.getAllByRole('button', { name: /Preview/i });
+    fireEvent.click(previewButtons[0]);
+
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/admin/qr/wifi', expect.objectContaining({
+        params: { locationId: 1, table: '5' },
+        responseType: 'blob',
+      }));
+    });
   });
 
   test('bulk generation sends correct API request', async () => {
@@ -217,23 +227,24 @@ describe('QRCodeManagement Component', () => {
       });
     });
 
-    // Click bulk generate button
-    const bulkButton = screen.queryByText(/Generate QR Codes for All/i);
-    if (bulkButton) {
-      fireEvent.click(bulkButton);
+    // Click bulk generate button - use getByRole to avoid ambiguity
+    const bulkButton = screen.getByRole('button', { name: /Generate QR Codes for All/i });
+    fireEvent.click(bulkButton);
 
-      await waitFor(() => {
-        expect(api.post).toHaveBeenCalledWith('/admin/qr/bulk', null, {
-          params: { locationId: 1 },
-        });
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/admin/qr/bulk', null, {
+        params: { locationId: 1 },
       });
-    }
+    });
   });
 
   test('displays error message on API failure', async () => {
     api.get.mockImplementation((url, config) => {
       if (url === '/location') {
         return Promise.resolve({ data: mockLocations });
+      }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: [] });
       }
       if (url === '/admin/qr/wifi') {
         return Promise.reject({
@@ -249,26 +260,60 @@ describe('QRCodeManagement Component', () => {
       expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
     });
 
+    // Wait for locations to load
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/location');
+    });
+
     // Fill table number
     const tableInput = screen.getByLabelText(/Table Number/i);
     fireEvent.change(tableInput, { target: { value: '5' } });
 
-    // Try to download
-    const downloadButtons = screen.queryAllByText(/Download/i);
-    if (downloadButtons.length > 0) {
-      fireEvent.click(downloadButtons[0]);
+    // Wait for button to be enabled
+    await waitFor(() => {
+      const downloadButtons = screen.getAllByRole('button', { name: /Download/i });
+      expect(downloadButtons[0]).not.toBeDisabled();
+    });
 
-      await waitFor(() => {
-        expect(screen.getByText(/Failed to download/i)).toBeInTheDocument();
-      }, { timeout: 3000 });
-    }
+    // Try to download
+    const downloadButtons = screen.getAllByRole('button', { name: /Download/i });
+    fireEvent.click(downloadButtons[0]);
+
+    // Wait for API call to be made
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/admin/qr/wifi', {
+        params: { locationId: 1, table: '5' },
+        responseType: 'blob',
+      });
+    });
+
+    // Check for error message - the component shows the message from response.data.message
+    await waitFor(() => {
+      const errorText = screen.queryByText(/Server error/i) || screen.queryByText(/Failed to download/i);
+      expect(errorText).toBeInTheDocument();
+    }, { timeout: 3000 });
   });
 
   test('handles location selection change', async () => {
+    api.get.mockImplementation((url) => {
+      if (url === '/location') {
+        return Promise.resolve({ data: mockLocations });
+      }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: [] });
+      }
+      return Promise.reject(new Error('Not found'));
+    });
+
     render(<QRCodeManagement />);
 
     await waitFor(() => {
       expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
+    });
+
+    // Wait for locations to load
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/location');
     });
 
     // The select should be populated with locations
@@ -282,6 +327,9 @@ describe('QRCodeManagement Component', () => {
     api.get.mockImplementation((url) => {
       if (url === '/location') {
         return new Promise(resolve => setTimeout(() => resolve({ data: mockLocations }), 100));
+      }
+      if (url === '/TableEntity') {
+        return Promise.resolve({ data: [] });
       }
       return Promise.reject(new Error('Not found'));
     });
@@ -321,17 +369,29 @@ describe('QRCodeManagement Component', () => {
       expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
     });
 
-    // Generate QR codes first
-    const bulkButton = screen.queryByText(/Generate QR Codes for All/i);
-    if (bulkButton) {
-      fireEvent.click(bulkButton);
-
-      await waitFor(() => {
-        // Check that the PDF information is displayed correctly
-        expect(screen.getByText(/16 QR codes per page \(4 across × 4 down\)/i)).toBeInTheDocument();
-        expect(screen.getByText(/1\.75" × 1\.75"/i)).toBeInTheDocument();
+    // Wait for tables to be fetched
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/TableEntity', {
+        params: { locationId: 1 }
       });
-    }
+    });
+
+    // Generate QR codes first
+    const bulkButton = screen.getByRole('button', { name: /Generate QR Codes for All/i });
+    fireEvent.click(bulkButton);
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/admin/qr/bulk', null, {
+        params: { locationId: 1 },
+      });
+    });
+
+    // Check that the PDF information is displayed correctly
+    await waitFor(() => {
+      expect(screen.getByText(/16 QR codes per page \(4 across × 4 down\)/i)).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/1\.75" × 1\.75"/i)).toBeInTheDocument();
   });
 
   test('PDF download button shows correct text', async () => {
@@ -359,17 +419,28 @@ describe('QRCodeManagement Component', () => {
       expect(screen.getByText(/QR Code Management/i)).toBeInTheDocument();
     });
 
-    // Generate QR codes
-    const bulkButton = screen.queryByText(/Generate QR Codes for All/i);
-    if (bulkButton) {
-      fireEvent.click(bulkButton);
-
-      await waitFor(() => {
-        // Check PDF button text
-        const pdfButton = screen.queryByText(/Download as PDF \(16 QR per page\)/i);
-        expect(pdfButton).toBeInTheDocument();
+    // Wait for tables to be fetched
+    await waitFor(() => {
+      expect(api.get).toHaveBeenCalledWith('/TableEntity', {
+        params: { locationId: 1 }
       });
-    }
+    });
+
+    // Generate QR codes
+    const bulkButton = screen.getByRole('button', { name: /Generate QR Codes for All/i });
+    fireEvent.click(bulkButton);
+
+    await waitFor(() => {
+      expect(api.post).toHaveBeenCalledWith('/admin/qr/bulk', null, {
+        params: { locationId: 1 },
+      });
+    });
+
+    // Check PDF button text
+    await waitFor(() => {
+      const pdfButton = screen.getByRole('button', { name: /Download as PDF \(16 QR per page\)/i });
+      expect(pdfButton).toBeInTheDocument();
+    });
   });
 
   test('fetches tables when location is selected', async () => {

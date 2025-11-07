@@ -36,6 +36,13 @@ public class AdminQrCodeControllerTests : IDisposable
         _qrService = new QrGeneratorService(_context, _mockConfig.Object, _mockServiceLogger.Object);
         _controller = new AdminQrCodeController(_qrService, _context, _mockControllerLogger.Object);
 
+        // Setup HttpContext for Response.Headers
+        var httpContext = new Microsoft.AspNetCore.Http.DefaultHttpContext();
+        _controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext
+        {
+            HttpContext = httpContext
+        };
+
         // Seed test data
         SeedTestData();
     }
