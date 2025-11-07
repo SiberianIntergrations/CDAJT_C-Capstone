@@ -184,9 +184,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
     try {
       // previously used /service-requests/{requestId}/complete
       // TODO: Endpoint to mark a service request as complete
-      const response = await api.post(
-        `/service-requests/${requestId}/complete`
-      );
+      const response = await api.post(`/ServiceRequest/${requestId}/complete`);
 
       if (response.status !== 200)
         throw new Error("Failed to complete request");
