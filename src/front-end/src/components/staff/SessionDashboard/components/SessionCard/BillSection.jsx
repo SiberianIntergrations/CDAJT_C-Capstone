@@ -8,18 +8,18 @@ const BillSection = ({ session }) => {
   const { openDialog, closeBill } = useSession();
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  // console.log("Bill session: ", session);
 
   const handleCloseBill = async (billId) => {
     try {
       setLoading(true);
-      const success = await closeBill(session.session_Id, billId);
-      if (!success) {
+      const response = await closeBill(session.session_Id, billId);
+      if (!response || typeof response !== "object") {
         throw new Error("Failed to close bill");
       }
+      setError(null); // Clear error on success
     } catch (err) {
       console.error("Error closing bill:", err);
-      setError("Failed to close bill. Please try again");
+      setError(err.message || "Failed to close bill. Please try again");
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,6 @@ const BillSection = ({ session }) => {
           {error}
         </Alert>
       </Collapse>
-
       <Box
         sx={{
           display: "flex",
@@ -65,7 +64,6 @@ const BillSection = ({ session }) => {
           <Users className="w-4 h-4" />
           Bills: {session.bill_Count}
         </Typography>
-
         <Button
           size="small"
           variant="contained"
@@ -82,7 +80,6 @@ const BillSection = ({ session }) => {
           New Bill
         </Button>
       </Box>
-
       <Box
         sx={{
           display: "flex",
