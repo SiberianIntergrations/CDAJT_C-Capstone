@@ -19,6 +19,7 @@ import OrderSummary from "@/components/customer/OrderDashboard/components/OrderS
 import useMenuSearch from "@/components/menu/searchUtils";
 import Tags from "@/components/Tags";
 import api from "@/config/api";
+import { useOrderActions } from "@/hooks/useOrderActions";
 
 const SWIPE_THRESHOLD = 50;
 const ANIMATION_DURATION = 300;
@@ -112,8 +113,30 @@ const FullMenu = () => {
   const [error, setError] = useState(null);
   const [selectedBillId, setSelectedBillId] = useState("");
   const [menuId, setMenuId] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+
+  const handleOrderSuccess = () => {
+    setOrderSuccess(true);
+    setQuantities({});
+    
+    // Redirect to orders page
+    setTimeout(() => {
+      window.location.href = "/dashboard/orders";
+    }, 2000);
+
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+      setOrderSuccess(false);
+    }, 3000);
+  };
+
+  const {
+    createOrder,
+    addOrderItems,
+    actionError,
+    isLoading,
+    clearActionError,
+  } = useOrderActions(handleOrderSuccess);
 
   const handleQuantityChange = (categoryId, itemId, delta) => {
     setQuantities((prev) => ({
@@ -188,7 +211,7 @@ const FullMenu = () => {
     );
   };
 
-useEffect(() => {
+  useEffect(() => {
     const getActiveSession = async () => {
       try {
         setError(null);
@@ -209,175 +232,153 @@ useEffect(() => {
     getActiveSession();
   }, []);
 
-
-useEffect(() => {
-  //Session ID can only be 1 or above
-  if (!sessionId || sessionId < 1) {
-    console.log("Invalid sessionId. Skipping menu fetch.");
-    return;
-  }
-
-  const fetchMenu = async () => {
-    try {
-      setError(null);
-
-      const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
-
-      if (response?.status >= 200 && response.status < 300 && response.data) {
-        const raw = response.data;
-        console.log("session-menu raw =", raw);
-
-
-        const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
-        const getMenuID =
-          typeof id === "number" ? id : parseInt(String(id), 10);
-
-        if (Number.isNaN(getMenuID) || getMenuID < 1) {
-          console.warn("Menu ID is invalid:", raw);
-          setError("No menu for this session");
-          return;
-        }
-
-        setMenuId(getMenuID);
-
-        console.log("parsed menuId =", getMenuID);
-      } else {
-        console.warn("No menu found", response?.data);
-        setError("No menu found for this session");
-      }
-    } catch (err) {
-      console.error("Error fetching menu:", err);
-      const message =
-        err?.response?.data?.detail ??
-        err?.response?.data?.message ??
-        err?.message ??
-        "Error fetching menu";
-      setError(message);
+  useEffect(() => {
+    //Session ID can only be 1 or above
+    if (!sessionId || sessionId < 1) {
+      console.log("Invalid sessionId. Skipping menu fetch.");
+      return;
     }
-  };
 
-  fetchMenu();
-}, [sessionId]);
+    const fetchMenu = async () => {
+      try {
+        setError(null);
 
-//When you have the menuID call to get current menu
-useEffect(() => {
-  if (!menuId) return;
-  fetchMenuItems(null, menuId);
-}, [menuId]);
+        const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
 
-useEffect(() => {
-  const fetchCategories = async () => {
-    try {
-      setError(null);
-      const response = await api.get("/Category");
-      const data = Array.isArray(response.data) ? response.data : [];
-      setCategories(
-        data.map(c => ({
-          category_id: c.category_id ?? c.Category_id,
-          name: c.name ?? c.Category_name,
-        }))
-      );
-    }catch (err) {
+        if (response?.status >= 200 && response.status < 300 && response.data) {
+          const raw = response.data;
+          console.log("session-menu raw =", raw);
+
+          const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
+          const getMenuID =
+            typeof id === "number" ? id : parseInt(String(id), 10);
+
+          if (Number.isNaN(getMenuID) || getMenuID < 1) {
+            console.warn("Menu ID is invalid:", raw);
+            setError("No menu for this session");
+            return;
+          }
+
+          setMenuId(getMenuID);
+
+          console.log("parsed menuId =", getMenuID);
+        } else {
+          console.warn("No menu found", response?.data);
+          setError("No menu found for this session");
+        }
+      } catch (err) {
+        console.error("Error fetching menu:", err);
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          "Error fetching menu";
+        setError(message);
+      }
+    };
+
+    fetchMenu();
+  }, [sessionId]);
+
+  //When you have the menuID call to get current menu
+  useEffect(() => {
+    if (!menuId) return;
+    fetchMenuItems(null, menuId);
+  }, [menuId]);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        setError(null);
+        const response = await api.get("/Category");
+        const data = Array.isArray(response.data) ? response.data : [];
+        setCategories(
+          data.map((c) => ({
+            category_id: c.category_id ?? c.Category_id,
+            name: c.name ?? c.Category_name,
+          }))
+        );
+      } catch (err) {
         console.error("Error fetching categories:", err);
-        const message = err?.response?.data?.detail ?? err?.response?.data?.message ?? err?.message ?? "Error fetching categories";
+        const message =
+          err?.response?.data?.detail ??
+          err?.response?.data?.message ??
+          err?.message ??
+          "Error fetching categories";
         setError(message);
       }
     };
     fetchCategories();
   }, []);
 
-const fetchMenuItems = async (categoryId, menu_id) => {
+  const fetchMenuItems = async (categoryId, menu_id) => {
+    //Make sure the menu ID is valid or if we already loaded the menu items
+    if (!menu_id || menuItems[categoryId]) return;
 
-  //Make sure the menu ID is valid or if we already loaded the menu items
-  if (!menu_id || menuItems[categoryId]) return;
+    try {
+      //Call GetItemsByMenu and check if it's in an array
+      const response = await api.get(`/Menu/${menu_id}/item`);
+      const items = Array.isArray(response.data) ? response.data : [];
 
-  try {
-    //Call GetItemsByMenu and check if it's in an array
-    const response = await api.get(`/Menu/${menu_id}/item`);
-    const items = Array.isArray(response.data) ? response.data : [];
+      //Clean up the field names so it's the same everywhere on the page
+      const normalized = items.map((it) => ({
+        item_id: it.item_id ?? it.itemId ?? it.Item_Id,
+        name: it.name,
+        description: it.description,
+        price: it.price,
+        is_add_on: it.is_add_on ?? it.isAddOn,
+        item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
+        category_id: it.categoryID ?? it.categoryId ?? it.category_id,
+        category: it.category,
+        tags: it.tags ?? [],
+      }));
 
-    //Clean up the field names so it's the same everywhere on the page
-    const normalized = items.map(it => ({
-      item_id: it.item_id ?? it.itemId ?? it.Item_Id,
-      name: it.name,
-      description: it.description,
-      price: it.price,
-      is_add_on: it.is_add_on ?? it.isAddOn,
-      item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
-      category_id: it.categoryID ?? it.categoryId ?? it.category_id,
-      category: it.category,
-      tags: it.tags ?? []
-    }));
+      //Group the items so all each category has its own list
+      const grouped = normalized.reduce((acc, item) => {
+        (acc[item.category_id] ||= []).push(item);
+        return acc;
+      }, {});
 
-    //Group the items so all each category has its own list
-    const grouped = normalized.reduce((acc, item) => {
-      (acc[item.category_id] ||= []).push(item);
-      return acc;
-    }, {});
-
-    setMenuItems(prev => ({ ...prev, ...grouped }));
-  } catch (err) {
-    console.error(`Error fetching menu items for menu ${menu_id}:`, err);
-  }
-};
+      setMenuItems((prev) => ({ ...prev, ...grouped }));
+    } catch (err) {
+      console.error(`Error fetching menu items for menu ${menu_id}:`, err);
+    }
+  };
 
   const handleBillChange = (event) => {
-    const billId = Number(event.target.value);
     const billId = Number(event.target.value);
     setSelectedBillId(billId);
   };
 
-  const createOrderItems = async (orderId) => {
-
-    const orderItemPromises = Object.entries(quantities).flatMap(
+  // Creates an array of order items from the amounts selected
+  const createOrderItems = () => {
+    const orderItems = Object.entries(quantities).flatMap(
       ([categoryId, items]) =>
         Object.entries(items)
           .filter(([_, quantity]) => quantity > 0)
           .map(([itemId, quantity]) => {
-            try {
-              const menuItem = menuItems[categoryId]?.find(
-                (item) => item.item_id === parseInt(itemId)
-              );
+            const menuItem = menuItems[categoryId]?.find(
+              (item) => item.item_id === parseInt(itemId)
+            );
 
-              if (!menuItem) {
-                throw new Error(`Menu item ${itemId} not found`);
-              }
-              let price_at_time = menuItem.is_add_on ? Number(menuItem.price) || 0 : 0;
-
-              return{
-                //order_id: Number(orderId),
-                menu_id: Number(menuId),
-                item_id: Number(itemId),
-                quantity: Number(quantity),
-                price_at_time,
-                status: 0,
-              };
+            if (!menuItem) {
+              throw new Error(`Menu item ${itemId} not found`);
             }
-            catch (error) {
-              console.error(`Failed to add item ${itemId}: ${error.message}`);
-              return null;
-          }
-        })
+
+            let price_at_time = menuItem.is_add_on
+              ? Number(menuItem.price) || 0
+              : 0;
+
+            return {
+              menu_id: Number(menuId),
+              item_id: Number(itemId),
+              quantity: Number(quantity),
+              price_at_time,
+            };
+          })
     );
-          const payload = orderItemPromises.filter(Boolean);
 
-          if(orderItemPromises == 0){
-            return [];
-          }
-
-          console.log("POST", `/Order/${orderId}/items`, payload, "Array?", Array.isArray(payload));
-              const response = await api.post(`/Order/${orderId}/items`, payload);
-             
-              if (response.status !== 200 && response.status !== 201) {
-                throw new Error(`Failed to add item ${itemId}`);
-              }
-              return response.data;
-
-  };
-
-  const getVisibleItemCount = (categoryId) => {
-    const filteredItems = filterMenuItems(menuItems[categoryId], categoryId);
-    return filteredItems?.length || 0;
+    return orderItems;
   };
 
   const handleConfirmOrder = async () => {
@@ -395,55 +396,53 @@ const fetchMenuItems = async (categoryId, menu_id) => {
       return;
     }
 
-    setIsSubmitting(true);
+    // Clear any previous errors
     setError(null);
+    clearActionError();
 
     try {
-      // Step 1: Create Order
       console.log("Creating order for session:", sessionId, "bill:", selectedBillId);
 
-      const orderResponse = await api.post("/Order", {
-        session_id: sessionId,
-        bill_id: selectedBillId,
-      });
+      const orderResponse = await createOrder(sessionId, selectedBillId);
 
-      if (orderResponse.status !== 200 && orderResponse.status !== 201) {
+      if (!orderResponse) {
         throw new Error("Failed to create order");
       }
 
-    const newOrderId = Number(
-      orderResponse.data?.order_id ??
-      orderResponse.data?.orderId ??
-      orderResponse.data?.Order_Id ??
-      orderResponse.data?.order_Id ??
-      orderResponse.data?.OrderID
-    );
+      const newOrderId = Number(
+        orderResponse.order_id ??
+          orderResponse.orderId ??
+          orderResponse.Order_Id ??
+          orderResponse.order_Id ??
+          orderResponse.OrderID
+      );
 
-    if (!newOrderId) {
-      setError("Couldn't read new order id from server response.");
-      setIsSubmitting(false);
-      return;
-    }
-      await createOrderItems(newOrderId);
+      if (!newOrderId) {
+        setError("Couldn't read new order id from server response.");
+        return;
+      }
 
-      // Step 4: Clear quantities and show sucess message
-      setQuantities({});
-      setOrderSuccess(true);
+      console.log("Order created with ID:", newOrderId);
 
-      setTimeout(() => {
-        window.location.href = "/dashboard/orders";
-      }, 2000);
+      // Create order items
+      const orderItems = createOrderItems();
 
-      setTimeout(() => {
-        setOrderSuccess(false);
-      }, 3000);
+      if (orderItems.length === 0) {
+        throw new Error("No items to add to order");
+      }
+
+      console.log("Adding items to order:", orderItems);
+
+      // Add items to the order using the hook
+      await addOrderItems(newOrderId, orderItems);
     } catch (error) {
       console.error("Error processing order:", error);
-      setError(error.response?.data?.detail || "Error processing order");
-    } finally {
-      setIsSubmitting(false);
+      setError(error.message || "Error processing order");
     }
   };
+
+  // Combine local and hook errors
+  const displayError = error || actionError;
 
   return (
     <Container disableGutters maxWidth={false}>
@@ -457,16 +456,16 @@ const fetchMenuItems = async (categoryId, menu_id) => {
         </Typography>
 
         {/* Error Alert */}
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-
-        {/* Success Alert */}
-        {orderSuccess && (
-          <Alert severity="success" sx={{ mb: 2 }}>
-            Order placed successfully! Redirecting to your orders...
+        {displayError && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            onClose={() => {
+              setError(null);
+              clearActionError();
+            }}
+          >
+            {displayError}
           </Alert>
         )}
 
@@ -516,7 +515,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
           )}
         </Box>
 
-        {selectedBillId  && (
+        {selectedBillId && (
           <Box sx={{ width: "100%", mb: 4 }}>
             {categories.map((category) => {
               const filteredItems = filterMenuItems(
@@ -549,7 +548,15 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                       },
                     }}
                   >
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", pr: 2 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        width: "100%",
+                        pr: 2,
+                      }}
+                    >
                       <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                         {(category.name || menuItems[category.category_id]?.[0]?.category || `Category ${category.category_id}`)}
                         {" "}
@@ -803,9 +810,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
               size="large"
               onClick={handleConfirmOrder}
               disabled={
-                isSubmitting ||
-                !selectedBillId ||
-                getTotalStats().itemCount === 0
+                isLoading || !selectedBillId || getTotalStats().itemCount === 0
               }
               sx={{
                 bgcolor: "#C01E2E",
@@ -816,7 +821,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                 fontSize: "1.2rem",
               }}
             >
-              {isSubmitting ? (
+              {isLoading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
                 `Confirm Order ${
