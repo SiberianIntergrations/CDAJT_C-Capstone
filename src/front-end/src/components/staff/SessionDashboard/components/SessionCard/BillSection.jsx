@@ -13,9 +13,6 @@ const BillSection = ({ session }) => {
     try {
       setLoading(true);
       const response = await closeBill(session.session_Id, billId);
-      if (!response || typeof response !== "object") {
-        throw new Error("Failed to close bill");
-      }
       setError(null); // Clear error on success
     } catch (err) {
       console.error("Error closing bill:", err);
