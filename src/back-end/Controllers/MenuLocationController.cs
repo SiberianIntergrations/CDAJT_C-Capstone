@@ -3,16 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
-using System.Linq.Expressions;
-using back_end.DTO.MenuItems;
-using Microsoft.AspNetCore.Authorization;
-using back_end.DTO.MenuDTO;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
-using back_end.domain.Seeders;
-using Pomelo.EntityFrameworkCore.MySql.Storage.Internal;
-using System.Formats.Asn1;
-using System.Security.Cryptography.X509Certificates;
-using Microsoft.AspNetCore.Mvc.Routing;
 
 namespace back_end.Controllers
 {
