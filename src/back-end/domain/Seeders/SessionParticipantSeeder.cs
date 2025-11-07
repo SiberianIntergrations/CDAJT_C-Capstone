@@ -17,10 +17,17 @@ namespace back_end.domain.Seeders
         private readonly ILogger<SessionParticipantSeeder> _logger;
         private readonly Random _rng = new();
 
+        private Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
+
         public SessionParticipantSeeder(ApplicationDbContext context, ILogger<SessionParticipantSeeder> logger)
         {
             _context = context;
             _logger = logger;
+        }
+
+        public void SetUserSeedData(Dictionary<string, (string DisplayName, string GivenName, string Surname)> userSeedData)
+        {
+            _userSeedData = userSeedData;
         }
 
         public void Seed()
@@ -33,62 +40,71 @@ namespace back_end.domain.Seeders
             if (!sessions.Any())
                 throw new InvalidOperationException("No dining sessions found. Seed sessions first.");
 
-            var customers = _context.Users
-                .Where(u => u.Role == UserRoles.Customer)
-                .ToList();
-
-            var staff = _context.Users
-                .Where(u => u.Role == UserRoles.Staff)
-                .ToList();
-
-            if (!customers.Any() || !staff.Any())
-                throw new InvalidOperationException("Not enough users found. Seed users first.");
-
-            var activeAssigned = new HashSet<int>();
+            var userUsageCount = new Dictionary<string, int>();
             int created = 0;
 
             foreach (var s in sessions)
             {
-                var sessionStart = s.Started_At; // adjust if different
+                var sessionStart = s.Started_At;
                 var isActive = s.Ended_At == null;
 
-                if (!isActive) activeAssigned.Clear();
-
-                var sessionStaff = staff[_rng.Next(staff.Count)];
+                // Pick a random staff from CSV
+                var staffOids = _userSeedData.Keys.ToList();
+                var staffOid = staffOids[_rng.Next(staffOids.Count)];
+                var staffInfo = _userSeedData[staffOid];
+                if (!userUsageCount.ContainsKey(staffOid)) userUsageCount[staffOid] = 0;
+                userUsageCount[staffOid]++;
                 _context.SessionParticipants.Add(new SessionParticipant
                 {
                     Session_Id = s.Session_Id,
-                    User_Id = sessionStaff.User_id,
+                    User_Oid = staffOid,
+                    User_Name = $"{staffInfo.GivenName} {staffInfo.Surname}".Trim(),
                     Joined_At = sessionStart,
                     Left_At = s.Ended_At
                 });
                 created++;
 
                 var numCustomers = _rng.Next(1, 6);
-                var pool = isActive
-                    ? customers.Where(c => !activeAssigned.Contains(c.User_id)).ToList()
-                    : customers;
+                var customerOids = staffOids.Where(oid => oid != staffOid).OrderBy(_ => _rng.Next()).Take(numCustomers).ToList();
 
-                numCustomers = Math.Min(numCustomers, pool.Count);
-                var chosen = pool.OrderBy(_ => _rng.Next()).Take(numCustomers).ToList();
-
-                foreach (var c in chosen)
+                foreach (var customerOid in customerOids)
                 {
-                    if (isActive) activeAssigned.Add(c.User_id);
-
+                    var customerInfo = _userSeedData[customerOid];
+                    if (!userUsageCount.ContainsKey(customerOid)) userUsageCount[customerOid] = 0;
+                    userUsageCount[customerOid]++;
                     var joinTime = sessionStart.AddMinutes(_rng.Next(0, 31));
                     _context.SessionParticipants.Add(new SessionParticipant
                     {
                         Session_Id = s.Session_Id,
-                        User_Id = c.User_id,
+                        User_Oid = customerOid,
+                        User_Name = $"{customerInfo.GivenName} {customerInfo.Surname}".Trim(),
                         Joined_At = joinTime,
                         Left_At = s.Ended_At
                     });
                     created++;
                 }
+            }
 
-                //_context.SaveChanges();
-                _logger.LogInformation($"SAVE CHANGES completed. User #: {_context.Users.Count()}");
+            // Ensure every account is used at least twice
+            foreach (var kvp in _userSeedData)
+            {
+                var oid = kvp.Key;
+                var info = kvp.Value;
+                if (!userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2)
+                {
+                    for (int i = userUsageCount.GetValueOrDefault(oid, 0); i < 2; i++)
+                    {
+                        _context.SessionParticipants.Add(new SessionParticipant
+                        {
+                            Session_Id = sessions.FirstOrDefault()?.Session_Id ?? 1,
+                            User_Oid = oid,
+                            User_Name = $"{info.GivenName} {info.Surname}".Trim(),
+                            Joined_At = DateTime.UtcNow.AddMinutes(_rng.Next(1, 60)),
+                            Left_At = null
+                        });
+                        created++;
+                    }
+                }
             }
 
             var totalActive = _context.SessionParticipants.Count(p => p.Left_At == null);
