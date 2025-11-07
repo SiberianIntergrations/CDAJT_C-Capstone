@@ -116,6 +116,7 @@ const AppBarWithTitle = ({ title }) => {
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
       { icon: Table, label: "Tables", path: "/dashboard/tables" },
+      { icon: Users, label: "Orders", path: "/staff/dashboard/orders" },
     ],
     admin: [
       { icon: Home, label: "Home", path: "/" },

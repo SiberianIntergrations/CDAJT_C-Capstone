@@ -5,7 +5,7 @@ import api from "@/config/api";
 import { useOrderActions } from "@/hooks/useOrderActions";
 import { Header } from "@/components/staff/Order/OrderHeader";
 import { TabBar } from "@/components/staff/Order/OrderTabBar";
-import { OrderQueue } from "@/components/staff/Order/OrderQueue";
+import { OrderGrid } from "@/components/staff/Order/OrderGrid";
 import { OrderDetailDialog } from "@/components/staff/Order/OrderDetailDialog";
 
 const OrderDashboard = () => {
@@ -245,7 +245,7 @@ const OrderDashboard = () => {
         counts={tabCounts}
       />
 
-      <OrderQueue
+      <OrderGrid
         orders={filteredOrders}
         onOrderClick={setSelectedOrderId}
       />
