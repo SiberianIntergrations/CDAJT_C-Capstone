@@ -12,6 +12,7 @@ import {
   Select,
   MenuItem,
   Typography,
+  Chip,
 } from "@mui/material";
 import { useTable } from "../../context/TableContext";
 import api from "@/config/api";
@@ -25,9 +26,28 @@ const AddTableToGroupDialog = ({ open, group }) => {
 
   useEffect(() => {
     if (open && group) {
-      // Filter tables that are not in any group
+      // Filter tables that are not in any group and are active
       const available = tables.filter((t) => !t.tableGroup_Id && t.is_active);
-      setAvailableTables(available);
+
+      // Filter tables in active sessions
+      const filterTables = async () => {
+        const filtered = await Promise.all(
+          available.map(async (table) => {
+            try {
+              const response = await api.post(
+                `/TableEntity/${table.table_Id}/active-session`
+              );
+              return response.data.success ? table : null;
+            } catch (error) {
+              console.error(error);
+              return null;
+            }
+          })
+        );
+        setAvailableTables(filtered.filter((table) => table !== null));
+      };
+
+      filterTables();
     }
   }, [open, group, tables]);
 
@@ -49,7 +69,7 @@ const AddTableToGroupDialog = ({ open, group }) => {
       await refreshData();
       handleClose();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to add table to group");
+      setError(err.response.data || "Failed to add table to group");
     } finally {
       setIsSubmitting(false);
     }
@@ -85,7 +105,28 @@ const AddTableToGroupDialog = ({ open, group }) => {
                   >
                     {availableTables.map((table) => (
                       <MenuItem key={table.table_Id} value={table.table_Id}>
-                      Location: {table.location.name} || Table: {table.table_number} || Seats: ({table.seat_count}  )
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                          }}
+                        >
+                          Table {table.table_number}
+                          <Chip
+                            label={`${table.seat_count} seats`}
+                            size="small"
+                            variant="outlined"
+                          />
+                          {table.tableGroup_Name && (
+                            <Chip
+                              label={table.tableGroup_Name}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                            />
+                          )}
+                        </Box>
                       </MenuItem>
                     ))}
                   </Select>
