@@ -1,8 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+  Card,
+  CardContent,
   Stack,
   Divider,
   Box,
@@ -12,8 +11,9 @@ import {
   Button,
   Snackbar,
   Alert,
+  Collapse,
 } from "@mui/material";
-import { ChevronDown, Bell, Check, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Bell, Check, AlertCircle } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";
@@ -37,38 +37,35 @@ const ConfirmEndButton = styled(Box, {
   height: "100%",
   display: showConfirm ? "flex" : "none",
   alignItems: "center",
-  backgroundColor: "#C01E2E", // Changed to site's main red
+  backgroundColor: "#C01E2E",
   color: "#ffffff",
   zIndex: 2,
   borderRadius: theme.shape.borderRadius,
   transition: "all 0.3s ease-out",
 }));
 
-const StyledAccordion = styled(Accordion, {
-  shouldForwardProp: (prop) => prop !== "hasRequests" && prop !== "isBlinking",
-})(({ theme, hasRequests, isBlinking }) => ({
+const StyledCard = styled(Card, {
+  shouldForwardProp: (prop) =>
+    prop !== "dimmed" && prop !== "hasRequests" && prop !== "isBlinking",
+})(({ theme, dimmed, hasRequests, isBlinking }) => ({
   marginBottom: 0,
+  backgroundColor: hasRequests
+    ? "rgba(255, 220, 100, 0.15)"
+    : theme.palette.background.paper,
+  transition: "all 0.3s ease",
+  opacity: dimmed ? 0.5 : 1,
+  pointerEvents: dimmed ? "none" : "auto",
   boxShadow: theme.shadows[2],
-  borderRadius: `${theme.shape.borderRadius}px !important`,
-  position: "relative",
-  zIndex: 1,
-  "&:before": {
-    display: "none",
-  },
-  "& .MuiAccordionSummary-content": {
-    margin: "12px 0",
-  },
-  "& .MuiAccordionDetails-root": {
-    padding: theme.spacing(2),
-  },
-  backgroundColor: hasRequests ? "rgba(255, 220, 100, 0.15)" : "#ffffff",
+  borderRadius: `${theme.shape.borderRadius}px`,
   animation:
     isBlinking && hasRequests ? "blink 1s ease-in-out infinite" : "none",
-  transition: "transform 0.3s ease-out, opacity 0.3s ease-out",
   "@keyframes blink": {
     "0%": { backgroundColor: "rgba(255, 220, 100, 0.25)" },
     "50%": { backgroundColor: "rgba(255, 220, 100, 0.5)" },
     "100%": { backgroundColor: "rgba(255, 220, 100, 0.25)" },
+  },
+  "&:hover": {
+    boxShadow: dimmed ? theme.shadows[2] : theme.shadows[4],
   },
 }));
 
@@ -115,21 +112,17 @@ const EndSessionButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
+const SessionCard = ({ session, onRequestUpdate }) => {
   const [requests, setRequests] = useState([]);
   const [isBlinking, setIsBlinking] = useState(false);
-  const [dragX, setDragX] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
-  const [error, setError] = useState(null);
-  const touchStartX = useRef(null);
+  const [expanded, setExpanded] = useState(false);
   const { endSession, actionError, clearActionError } = useSession();
 
   useEffect(() => {
     if (actionError) {
-      // Optionally show error in a snackbar or other UI element
       setShowConfirm(false);
-      setDragX(0);
     }
   }, [actionError]);
 
@@ -150,40 +143,8 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
     }
   }, [session.session_Id, onRequestUpdate]);
 
-  useEffect(() => {
-    if (showConfirm && expanded) {
-      onExpand(false);
-    }
-  }, [showConfirm, expanded, onExpand]);
-
-  const handleAccordionChange = (e, isExpanded) => {
-    if (!showConfirm) {
-      onExpand(isExpanded);
-    }
-  };
-
-  useEffect(() => {
-    if (showConfirm && expanded) {
-      onExpand(false);
-    }
-  }, [showConfirm, expanded, onExpand]);
-
-  const handleInitiateEnd = useCallback(
-    (e) => {
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      onExpand(false);
-      setShowConfirm(true);
-    },
-    [onExpand]
-  );
-
   const handleComplete = async (requestId) => {
     try {
-      // previously used /service-requests/{requestId}/complete
-      // TODO: Endpoint to mark a service request as complete
       const response = await api.post(`/ServiceRequest/${requestId}/complete`);
 
       if (response.status !== 200)
@@ -194,13 +155,21 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
     }
   };
 
+  const handleInitiateEnd = useCallback((e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setExpanded(false);
+    setShowConfirm(true);
+  }, []);
+
   const handleCancelEnd = (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
     setShowConfirm(false);
-    setDragX(0);
     setIsEnding(false);
   };
 
@@ -214,9 +183,10 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
 
     try {
       setIsEnding(true);
-      clearActionError(); // Clear any previous errors
+      clearActionError();
       const success = await endSession(session.session_Id);
       if (!success) {
+        // Error handling already done by context
       }
     } catch (error) {
       console.error("Error ending session:", error);
@@ -224,40 +194,6 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
       setIsEnding(false);
     }
   };
-
-  const handleTouchStart = useCallback(
-    (e) => {
-      if (!session.is_closable || isEnding || showConfirm) return;
-      touchStartX.current = e.touches[0].clientX;
-    },
-    [session.is_closable, isEnding, showConfirm]
-  );
-
-  const handleTouchMove = useCallback(
-    (e) => {
-      if (
-        !touchStartX.current ||
-        !session.is_closable ||
-        isEnding ||
-        showConfirm
-      )
-        return;
-      const currentX = e.touches[0].clientX;
-      const diff = touchStartX.current - currentX;
-      const newDragX = Math.min(Math.max(-diff, -150), 0);
-      setDragX(newDragX);
-    },
-    [session.is_closable, isEnding, showConfirm]
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    if (!session.is_closable || isEnding || showConfirm) return;
-    if (dragX <= -100) {
-      setShowConfirm(true);
-    }
-    setDragX(0);
-    touchStartX.current = null;
-  }, [dragX, session.is_closable, isEnding, showConfirm]);
 
   useEffect(() => {
     if (isEnding) return;
@@ -298,7 +234,7 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              gap: 2, // Adds space between elements
+              gap: 2,
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -344,39 +280,23 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
         </ConfirmEndButton>
       )}
 
-      <StyledAccordion
-        expanded={expanded && !showConfirm}
-        onChange={handleAccordionChange}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
+      <StyledCard
+        dimmed={showConfirm}
         hasRequests={requests.length > 0}
-        isBlinking={isBlinking}
-        sx={{
-          transform: `translateX(${dragX}px)`,
-          opacity: showConfirm ? 0.5 : 1,
-          pointerEvents: showConfirm || isEnding ? "none" : "auto",
-          transition: "all 0.3s ease-out",
-        }}
+        sx={{ opacity: showConfirm ? 0.5 : 1 }}
       >
-        <AccordionSummary
-          expandIcon={<ChevronDown />}
-          aria-controls={`session-${session.session_Id}-content`}
-          id={`session-${session.session_Id}-header`}
-        >
-          <Box sx={{ width: "100%" }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                mb: 1,
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+        <CardContent>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="flex-start"
+          >
+            <Box flex={1}>
+              <Box display="flex" alignItems="center" gap={2}>
                 <Typography variant="h6">
                   Session #{session.session_Id}
                 </Typography>
+                <Typography variant="h6">{session.location_Name}</Typography>
                 {requests.length > 0 && (
                   <Chip
                     size="small"
@@ -385,51 +305,61 @@ const SessionCard = ({ session, onRequestUpdate, expanded, onExpand }) => {
                     icon={<Bell size={16} />}
                   />
                 )}
-
-                <Typography variant="h6">{session.location_Name}</Typography>
+                <Chip
+                  size="small"
+                  label={session.is_closable ? "Ready to Close" : "Active"}
+                  color={session.is_closable ? "success" : "primary"}
+                />
               </Box>
-              <Chip
-                size="small"
-                label={session.is_closable ? "Ready to Close" : "Active"}
-                color={session.is_closable ? "success" : "primary"}
-              />
+
+              {requests.length > 0 && (
+                <Box my={2}>
+                  {requests.map((request) => (
+                    <ServiceRequest
+                      key={request.request_id}
+                      request={request}
+                      onComplete={handleComplete}
+                    />
+                  ))}
+                </Box>
+              )}
             </Box>
 
-            {requests.map((request) => (
-              <ServiceRequest
-                key={request.request_id}
-                request={request}
-                onComplete={handleComplete}
-              />
-            ))}
-          </Box>
-        </AccordionSummary>
-
-        <AccordionDetails>
-          <Stack spacing={2}>
-            <TableSection session={session} />
-            <BillSection session={session} />
-            <Divider />
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                width: "100%",
-                pt: 1,
-              }}
+            <IconButton
+              size="small"
+              onClick={() => setExpanded(!expanded)}
+              disabled={showConfirm || isEnding}
             >
-              <EndSessionButton
-                variant="contained"
-                // disabled={!session.is_closable || isEnding}
-                onClick={handleInitiateEnd}
-                startIcon={<AlertCircle />}
+              {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </IconButton>
+          </Box>
+
+          <Collapse in={expanded}>
+            <Stack spacing={2}>
+              <TableSection session={session} />
+              <BillSection session={session} />
+              <Divider />
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  width: "100%",
+                  pt: 1,
+                }}
               >
-                End Session
-              </EndSessionButton>
-            </Box>
-          </Stack>
-        </AccordionDetails>
-      </StyledAccordion>
+                <EndSessionButton
+                  variant="contained"
+                  onClick={handleInitiateEnd}
+                  disabled={isEnding}
+                  startIcon={<AlertCircle />}
+                >
+                  End Session
+                </EndSessionButton>
+              </Box>
+            </Stack>
+          </Collapse>
+        </CardContent>
+      </StyledCard>
     </CardWrapper>
   );
 };
