@@ -38,7 +38,7 @@ export const useTableData = () => {
       );
       if (response.status === 200) {
         setTableGroups(response.data);
-        console.log("Table Group Data",response.data)
+        // console.log("Table Group Data", response.data);
         return response.data;
       }
     } catch (err) {

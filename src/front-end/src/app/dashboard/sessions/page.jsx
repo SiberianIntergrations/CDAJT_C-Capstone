@@ -5,14 +5,7 @@ import { Box, CircularProgress } from "@mui/material";
 import { ErrorBoundary } from "react-error-boundary";
 import SessionDashboard from "@/components/staff/SessionDashboard";
 import styled from "@emotion/styled";
-import { getUserRole } from "@/utils/token";
-
-// export const metadata = {
-//   title: "Session Management | Sushi Toshi",
-//   description: "Manage dining sessions and tables",
-//   name: "viewport",
-//   content: "width=device-width, initial-scale=1",
-// };
+import { useAuth } from "@/hooks/useAuth";
 
 const ErrorMessage = styled.div`
   padding: 16px;
@@ -36,36 +29,27 @@ function ErrorFallback({ error }) {
 const SessionsPage = () => {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const { isAuthenticated, userRole, loading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("access_token");
-      if (!token) {
-        router.push("/auth/login");
-        return false;
-      }
-
-      try {
-        const role = getUserRole(token);
-
-        if (role !== "admin" && role !== "staff") {
-          router.push("/unauthorized");
-          return false;
-        }
-        return true;
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-        return false;
-      }
-    };
-
-    if (checkAuth()) {
-      setIsLoading(false);
+    if (loading) {
+      setIsLoading(true);
+      return;
     }
-  }, [router]);
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+    if (userRole !== "admin" && userRole !== "staff") {
+      router.push("/unauthorized");
+      return;
+    }
+    setIsAuthorized(true);
+    setIsLoading(false);
+  }, [router, isAuthenticated, userRole, loading]);
 
-  if (isLoading) {
+  if (isLoading || !isAuthorized) {
     return (
       <Box
         display="flex"

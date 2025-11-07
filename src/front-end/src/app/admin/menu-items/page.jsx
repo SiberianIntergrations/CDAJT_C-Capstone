@@ -3,13 +3,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Box, CircularProgress } from "@mui/material";
 import dynamic from "next/dynamic";
-import { getAccessToken } from "@/utils/token";
+// import { getAccessToken } from "@/utils/token";
 import api from "@/config/api";
 import { useAuth } from "@/hooks/useAuth";
-// export const metadata = {
-//   title: "Menu Item Management | Sushi Toshi",
-//   description: "Manage menu items",
-//
 
 const MenuItemManagement = dynamic(
   () => import("@/components/admin/MenuItemManagement"),
@@ -35,34 +31,20 @@ export default function MenuItemsPage() {
   const { isAuthenticated, userRole, loading } = useAuth();
 
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const token = getAccessToken();
-
-        if (!token) {
-          router.push("/auth/login");
-          return;
-        }
-
-        if (loading) {
-          return;
-        }
-
-        if (userRole !== "admin") {
-          router.push("/unauthorized");
-          return;
-        }
-
-        setIsAuthorized(true);
-      } catch (error) {
-        console.error("Error verifying token:", error);
-        router.push("/auth/login");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    checkAuth();
+    if (loading) {
+      setIsLoading(true);
+      return;
+    }
+    if (!isAuthenticated) {
+      router.push("/auth/login");
+      return;
+    }
+    if (userRole !== "admin") {
+      router.push("/unauthorized");
+      return;
+    }
+    setIsAuthorized(true);
+    setIsLoading(false);
   }, [router, isAuthenticated, userRole, loading]);
 
   if (isLoading || !isAuthorized) {
