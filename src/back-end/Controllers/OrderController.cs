@@ -6,6 +6,7 @@ using back_end.domain.enums;
 using back_end.DTO.OrdersDTOs;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using back_end.Helpers;
 
 namespace back_end.Controllers
 {
@@ -71,12 +72,19 @@ namespace back_end.Controllers
                 {
                     return NotFound("Bill Was not found for the current session order Create Bill");
                 }
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                // Use Oauth user info
+                var userOid = ClaimsHelpers.GetUserOid(User);
+                var userName = ClaimsHelpers.GetUserDisplayName(User);
+                if (string.IsNullOrEmpty(userOid))
+                {
+                    return Unauthorized(new { message = "User Oid not found in claims." });
+                }
                 var newOrder = new SessionOrder
                 {
                     session_id = order_data.Session_Id,
                     Bill_Id = order_data.Bill_Id,
-                    User_Id = userId,
+                    User_Oid = userOid,
+                    User_Name = userName,
                     Status = OrderStatus.Pending,
                     Created_At = DateTime.UtcNow
                 };
@@ -88,7 +96,8 @@ namespace back_end.Controllers
                     Order_Id = newOrder.Order_Id,
                     Session_Id = newOrder.session_id,
                     Bill_Id = newOrder.Bill_Id,
-                    User_Id = newOrder.User_Id ?? 0,
+                    User_Oid = newOrder.User_Oid,
+                    User_Name = newOrder.User_Name,
                     Status = newOrder.Status,
                     Created_At = newOrder.Created_At
                 });
@@ -146,22 +155,33 @@ namespace back_end.Controllers
                 {
                     return NotFound("Order Data was not found");
                 }
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                // Use Oauth user info
+                var userOid = ClaimsHelpers.GetUserOid(User);
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+                if (string.IsNullOrEmpty(userOid))
+                {
+                    return Unauthorized("User Oid not found in claims.");
+                }
+                // Only allow update if pending, or if staff/admin
                 if (order.Status != OrderStatus.Pending)
                 {
-                    if ((foundUser.Role != UserRoles.Staff || foundUser.Role != UserRoles.Admin) || userId != order.User_Id)
+                    // TODO: Please verify new functionality
+                    if (!(userRole.Contains("user.Staff") || userRole.Contains("user.Admin")) && userOid != order.User_Oid)
                     {
                         return Conflict("Can not Modify a Approved Order");
                     }
                 }
+                //TODO: Verify that this was supposed to be added
+                order.Status = order_data.Status;
+                await _context.SaveChangesAsync();
                 var response = new OrderResponseDTO
                 {
                     Order_Id = order.Order_Id,
                     Session_Id = order.session_id,
                     Bill_Id = order.Bill_Id,
-                    User_Id = order.User_Id ?? 0,
-                    Status = order_data.Status,
+                    User_Oid = order.User_Oid,
+                    User_Name = order.User_Name,
+                    Status = order.Status,
                     Created_At = order.Created_At,
                 };
                 return Ok(response);
@@ -220,16 +240,23 @@ namespace back_end.Controllers
                 {
                     return NotFound("Order Data was not found");
                 }
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                // Use Oauth user info
+                var userOid = ClaimsHelpers.GetUserOid(User);
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
+                if (string.IsNullOrEmpty(userOid))
+                {
+                    return Unauthorized("User Oid not found in claims.");
+                }
                 if (order.Status != OrderStatus.Pending)
                 {
-                    if ((foundUser.Role != UserRoles.Staff || foundUser.Role != UserRoles.Admin) || userId != order.User_Id)
+                    // TODO: Please verify new functionality
+                    if (!(userRole.Contains("user.Staff") || userRole.Contains("user.Admin")) && userOid != order.User_Oid)
                     {
                         return Conflict("Can not Modify a Approved Order");
                     }
                 }
-                var item = await _context.OrderItems.FirstOrDefaultAsync(oi => oi.Order_Item_Id == order_id && oi.Item_Id == item_id);
+                //TODO: Verify that this was supposed to be Order_Key and not Order_Item_Id
+                var item = await _context.OrderItems.FirstOrDefaultAsync(oi => oi.Order_Key == order_id && oi.Item_Id == item_id);
                 if (item is null)
                 {
                     return BadRequest("Order Item was not found");
@@ -275,7 +302,7 @@ namespace back_end.Controllers
         /// 
         /// Valid status values: Pending, Approved, InProgress, Delivered, Cancelled
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPost("{order_id}/status")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -332,7 +359,7 @@ namespace back_end.Controllers
         /// This endpoint requires Admin or Staff role authorization.
         /// The order item status will be updated to 'Delivered' and the completion timestamp will be set.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPost("items/{item_id}/complete")]
         [ProducesResponseType(typeof(OrderItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -472,7 +499,8 @@ namespace back_end.Controllers
                     Order_Id = order.Order_Id,
                     Session_Id = order.session_id,
                     Bill_Id = order.Bill_Id,
-                    User_Id = order.User_Id ??0,
+                    User_Oid = order.User_Oid,
+                    User_Name = order.User_Name,
                     Status = order.Status,
                     Created_At = order.Created_At,
                 };
@@ -527,7 +555,7 @@ namespace back_end.Controllers
                 //Get the user, session, bill and ordered items
                 var order = await _context.SessionOrders
                             .Where(o => o.Order_Id == id)
-                            .Include(o => o.User)
+                            // .Include(o => o.User) // Removed for Oauth
                             .Include(o => o.DiningSession)
                             .Include(o => o.Bill)
                             .Include(o => o.OrderItems)
@@ -555,8 +583,8 @@ namespace back_end.Controllers
 
                     customer = new
                     {
-                        name = $"{order.User.First_name} {order.User.Last_name}",
-                        email = order.User.Email
+                        userOid = order.User_Oid,
+                        userName = order.User_Name
                     },
 
                     items = order.OrderItems.Select(o => new
@@ -623,7 +651,7 @@ namespace back_end.Controllers
 
                 var sessionOrder = await _context.SessionOrders
                                         .Where(o => o.session_id == sessionId)
-                                        .Include(o => o.User)
+                                        // .Include(o => o.User) // Removed for Oauth
                                         .Include(o => o.OrderItems)
                                             .ThenInclude(or => or.MenuItem)
                                         .OrderBy(o => o.Created_At)
@@ -633,8 +661,8 @@ namespace back_end.Controllers
                 {
                     orderId = o.Order_Id,
                     sessionId = o.session_id,
-                    customerId = o.User_Id,
-                    customerName = $"{o.User.First_name} {o.User.Last_name}",
+                    userOid = o.User_Oid,
+                    userName = o.User_Name,
                     status = o.Status,
                     itemTotal = o.OrderItems.Count,
                     orderTotal = o.OrderItems.Sum(or => or.Quantity * or.Price_At_Time),
@@ -654,7 +682,7 @@ namespace back_end.Controllers
         /// <summary>
         /// Retrieves all orders placed by a specific user.
         /// </summary>
-        /// <param name="userId">The unique identifier of the user</param>
+        /// <param name="userOid">The unique identifier of the user (OID)</param>
         /// <returns>
         /// An <see cref="ActionResult"/> containing a collection of order history objects.
         /// Returns HTTP 200 (OK) with the list of orders sorted by most recent on success.
@@ -667,7 +695,7 @@ namespace back_end.Controllers
         /// <remarks>
         /// Sample request:
         ///
-        ///     GET /api/order/user/123
+        ///     GET /api/order/user/{userOid}
         ///
         /// Returns order history including:
         /// - Order details (ID, session, menu name, status)
@@ -677,28 +705,26 @@ namespace back_end.Controllers
         /// 
         /// Orders are sorted by creation date in descending order (newest first).
         /// </remarks>
-        //GET: api/order/user{id}
+        //GET: api/order/user/{userOid}
         //Get all orders placed by a specific customer
-        [HttpGet("user/{userId}")]
+        [HttpGet("user/{userOid}")]
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<object>>> GetOrderByUser(int userId)
+        public async Task<ActionResult<IEnumerable<object>>> GetOrderByUser(string userOid)
         {
             try
             {
-                var user = await _context.Users.FindAsync(userId);
-
-                //Check if user exists
-                if (user == null)
+                //Check if userOid is valid
+                if (string.IsNullOrWhiteSpace(userOid))
                 {
-                    return NotFound(new { message = $"Can't find user with ID: {userId}" });
+                    return NotFound(new { message = $"Can't find user with Oid: {userOid}" });
                 }
 
                 //Get all orders from this user and sort by the newest
                 //Include session menu and item details
                 var order = await _context.SessionOrders
-                            .Where(o => o.User_Id == userId)
+                            .Where(o => o.User_Oid == userOid)
                             .Include(o => o.DiningSession)
                                 .ThenInclude(or => or.Menu)
                             .Include(o => o.OrderItems)
@@ -707,7 +733,6 @@ namespace back_end.Controllers
                             .ToListAsync();
 
                 //Include Order totals and items for each OrderID
-                //Should we include Name here?
                 var orderHistory = order.Select(o => new
                 {
                     orderId = o.Order_Id,
@@ -730,7 +755,7 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Can't find Order for User ID: {userId}");
+                _logger.LogError(ex, $"Can't find Order for User Oid: {userOid}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
@@ -745,18 +770,18 @@ namespace back_end.Controllers
 
             try
             {
-                //Get the currently logged in user's ID
-                var id = User.FindFirst(ClaimTypes.NameIdentifier)!.Value;
-                if (string.IsNullOrWhiteSpace(id) || !int.TryParse(id, out var userId))
+                //Get the currently logged in user's Oid
+                var userOid = ClaimsHelpers.GetUserOid(User);
+                if (string.IsNullOrWhiteSpace(userOid))
                 {
-                    return Unauthorized(new { message = $"Can't find user with ID: {id}" });
+                    return Unauthorized(new { message = $"Can't find user Oid in claims." });
                 }
 
                 //Get the user's session that's currently active
                 var activeSessionId = await (
                     from p in _context.SessionParticipants
                     join ds in _context.DiningSessions on p.Session_Id equals ds.Session_Id
-                    where p.User_Id == userId
+                    where p.User_Oid == userOid
                     && p.Left_At == null
                     && ds.Ended_At == null
                     orderby ds.Started_At descending
@@ -769,7 +794,7 @@ namespace back_end.Controllers
                 }
 
                 var orders = await _context.SessionOrders
-                                .Where(o => o.User_Id == userId && o.session_id == activeSessionId && (bill_id == null || o.Bill_Id == bill_id))
+                                .Where(o => o.User_Oid == userOid && o.session_id == activeSessionId && (bill_id == null || o.Bill_Id == bill_id))
                                 .Include(o => o.DiningSession)
                                     .ThenInclude(or => or.Menu)
                                 .Include(o => o.OrderItems)

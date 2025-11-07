@@ -1,14 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
-using back_end.DTO.Auth;
+
 using Microsoft.AspNetCore.Mvc;
-using back_end.DTO.Analytics;
+
 using back_end.domain.Entities;
-using back_end.domain;
+
 using back_end.domain.enums;
 using back_end.DTO.DashBoardDTOs;
-using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Security.Cryptography;
+
 
 namespace back_end.controllers
 {

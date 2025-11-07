@@ -12,6 +12,7 @@ using back_end.domain.Seeders;
 using System.Security.Claims;
 using back_end.DTO.SessionParticipantDTOs;
 using Swashbuckle.AspNetCore.Annotations;
+using back_end.Helpers;
 
 namespace back_end.Controllers
 {
@@ -68,10 +69,18 @@ namespace back_end.Controllers
                 {
                     return BadRequest("Can not Join a ended Session");
                 }
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
 
-                var existingParticipant = await _context.SessionParticipants.FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Id == foundUser.User_id && !sp.Left_At.HasValue);
+                // Get Oauth user info
+                var userOid = ClaimsHelpers.GetUserOid(User);
+                var userName = ClaimsHelpers.GetUserDisplayName(User);
+
+                if (string.IsNullOrEmpty(userOid))
+                {
+                    return Unauthorized("User Oid not found in claims.");
+                }
+
+                var existingParticipant = await _context.SessionParticipants
+                    .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Oid == userOid && !sp.Left_At.HasValue);
                 if (existingParticipant != null)
                 {
                     return BadRequest("You are already A participant");
@@ -79,10 +88,10 @@ namespace back_end.Controllers
                 var newParticipant = new SessionParticipant
                 {
                     Session_Id = session_id,
-                    User_Id = foundUser.User_id,
+                    User_Oid = userOid,
+                    User_Name = userName,
                     Joined_At = DateTime.UtcNow,
                     Left_At = null,
-
                 };
                 _context.SessionParticipants.Add(newParticipant);
                 await _context.SaveChangesAsync();
@@ -90,10 +99,10 @@ namespace back_end.Controllers
                 {
                     Participant_Id = newParticipant.Participant_Id,
                     Session_Id = newParticipant.Session_Id,
-                    User_Id = newParticipant.User_Id ??0,
+                    User_Oid = newParticipant.User_Oid,
+                    User_Name = newParticipant.User_Name,
                     Joined_At = newParticipant.Joined_At,
                     Left_At = newParticipant.Left_At
-
                 });
             }
             catch (Exception ex)
@@ -136,15 +145,22 @@ namespace back_end.Controllers
                     return NotFound("Dining Session was not found");
                 }
 
-                int userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-                var foundUser = await _context.Users.FirstOrDefaultAsync(u => u.User_id == userId);
+                // Get Oauth user info
+                var userOid = ClaimsHelpers.GetUserOid(User);
 
-                var existingParticipant = await _context.SessionParticipants.FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Id == foundUser.User_id && !sp.Left_At.HasValue);
+                if (string.IsNullOrEmpty(userOid))
+                {
+                    return Unauthorized("User Oid not found in claims.");
+                }
+
+                var existingParticipant = await _context.SessionParticipants
+                    .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Oid == userOid && !sp.Left_At.HasValue);
                 if(existingParticipant is null)
                 {
                     return BadRequest("You are not a active participant to the session");
                 }
-                var activeOrders = await _context.SessionOrders.FirstOrDefaultAsync(so => so.session_id == session_id && so.User_Id == foundUser.User_id && so.Status != OrderStatus.Delivered);
+                var activeOrders = await _context.SessionOrders
+                    .FirstOrDefaultAsync(so => so.session_id == session_id && so.User_Oid == userOid && so.Status != OrderStatus.Delivered);
                 if (activeOrders != null)
                 {
                     return BadRequest("You can not leave a active session with active orders");
