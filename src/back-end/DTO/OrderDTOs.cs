@@ -77,6 +77,13 @@ namespace back_end.DTO.OrdersDTOs
         public OrderStatus Status { get; set; }
 
     }
+    public class OrderItemUpdateDTO
+    {
+        [JsonPropertyName("quantity")]
+        public int? Quantity { get; set; }
+        [JsonPropertyName("price_at_time")]
+        public decimal? Price_At_Time { get; set; } 
+    }
     public class OrderCreateDTO
     {
         [JsonPropertyName("session_id")]
@@ -86,11 +93,11 @@ namespace back_end.DTO.OrdersDTOs
         public int Bill_Id { get; set; }
     }
 
-    public class OrderUpdateDTO
-    {
-        [JsonPropertyName("status")]
-        public OrderStatus Status { get; set; }
-    }
+    // public class OrderUpdateDTO
+    // {
+    //     [JsonPropertyName("status")]
+    //     public OrderStatus Status { get; set; }
+    // }
 
     public class OrderResponseDTO
     {
@@ -117,17 +124,15 @@ namespace back_end.DTO.OrdersDTOs
         }
     }
     
-    public class OrderStatusResponseDTO
-    {
-        [JsonPropertyName("order_id")]
-        public int Order_Id { get; set; }
+    // public class OrderStatusResponseDTO
+    // {
+    //     [JsonPropertyName("order_id")]
+    //     public int Order_Id { get; set; }
 
-        [JsonPropertyName("status")]
-        public OrderStatus Status { get; set; }
+    //     [JsonPropertyName("status")]
+    //     public OrderStatus Status { get; set; }
 
-        [JsonPropertyName("bill_id")]
-        public int Bill_Id { get; set; }
-
-
-    }
+    //     [JsonPropertyName("bill_id")]
+    //     public int Bill_Id { get; set; }
+    // }
 }

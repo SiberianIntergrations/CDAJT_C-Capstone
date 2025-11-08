@@ -3,6 +3,7 @@ import { Box, Card, Typography, Badge, Stack } from "@mui/material";
 import { Bell, Plus } from "lucide-react";
 import { keyframes, styled } from "@mui/material/styles";
 import { useSession } from "../context/SessionContext";
+import { PageHeader } from "@/components/common/PageHeader";
 import api from "@/config/api";
 
 const pulseAnimation = keyframes`
@@ -62,6 +63,7 @@ const DashboardSummary = () => {
   const [serviceRequests, setServiceRequests] = useState(0);
   const [isNewRequest, setIsNewRequest] = useState(false);
   const [previousCount, setPreviousCount] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const checkServiceRequests = async () => {
     try {
@@ -88,6 +90,15 @@ const DashboardSummary = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      refreshSessions?.(),
+      checkServiceRequests()
+    ]);
+    setIsRefreshing(false);
+  };
+
   useEffect(() => {
     checkServiceRequests();
     const interval = setInterval(checkServiceRequests, 5000);
@@ -103,20 +114,26 @@ const DashboardSummary = () => {
         gap: "1rem",
       }}
     >
-      <Stack direction="row" justifyContent="left" alignItems="center" mb={2}>
-        <Typography pr={3} variant="h4">
-          Active Sessions:
-        </Typography>
-        {serviceRequests > 0 && (
-          <Badge badgeContent={serviceRequests} color="warning">
-            <StyledBell
-              size={42}
-              isNew={isNewRequest}
-              sx={{ mr: "-15px", mt: "-10px" }}
-            />
-          </Badge>
-        )}
-      </Stack>
+      <PageHeader
+        title="Active Sessions"
+        onRefresh={handleRefresh}
+        isLoading={isRefreshing}
+        showRefresh={true}
+        actions={
+          serviceRequests > 0 && (
+            <Badge badgeContent={serviceRequests} color="warning">
+              <StyledBell size={24} isNew={isNewRequest} />
+            </Badge>
+          )
+        }
+        sx={{
+          mb: 2,
+          p: 0,
+          pb: 2,
+          position: "relative",
+          backgroundColor: "transparent",
+        }}
+      />
 
       <AddButton onClick={() => openDialog("newSession")}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
