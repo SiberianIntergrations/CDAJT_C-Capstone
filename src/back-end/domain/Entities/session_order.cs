@@ -16,8 +16,11 @@ namespace back_end.domain.Entities
         [ForeignKey(nameof(Bill))]
         public int Bill_Id { get; set; }
 
-        [ForeignKey(nameof(User))]
-        public int? User_Id { get; set; }
+        // Replacing User_Id with User_Oid and User_Name
+        [MaxLength(100)]
+        public string? User_Oid { get; set; }
+        [MaxLength(200)]
+        public string? User_Name { get; set; }
 
         public OrderStatus Status { get; set; }
 
@@ -25,10 +28,8 @@ namespace back_end.domain.Entities
 
         public DateTime? Completed_At { get; set; }
 
-
         public DiningSession DiningSession { get; set; } = null!;
         public Billing Bill { get; set; } = null!;
-        public User? User { get; set; } = null!;
         public ICollection<OrderItems> OrderItems { get; set; } = new List<OrderItems>();
 
     }

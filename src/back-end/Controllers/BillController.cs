@@ -1,14 +1,10 @@
-using System.IO.Compression;
-using System.Numerics;
-using back_end.domain;
-using System.Security.Claims;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
 using back_end.DTO.bill;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using back_end.Helpers;
 
 namespace back_end.controllers
 {
@@ -521,9 +517,13 @@ namespace back_end.controllers
     {
       try
       {
-        // Retrieve current user ID from claims (assuming JWT authentication)
-        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "User_Id");
-        var userId = userIdClaim?.Value ?? "Unknown";
+        // Retrieve current user Oid from claims (Entra ID Oauth) using ClaimsHelpers
+        var userOid = ClaimsHelpers.GetUserOid(User);
+
+        if (string.IsNullOrEmpty(userOid))
+        {
+          return Unauthorized(new { detail = "User Oid not found in claims." });
+        }
 
         // Get all bills for user's active session using joins
         var bills = await _context.Bills
@@ -539,7 +539,7 @@ namespace back_end.controllers
                 (bill, participant) => new { bill, participant }
             )
             .Where(x =>
-                x.participant.User_Id.ToString() == userId &&
+                x.participant.User_Oid == userOid &&
                 x.participant.Left_At == null &&  // User hasn't left
                 x.bill.DiningSession.Ended_At == null        // Session is active
             )
@@ -552,7 +552,7 @@ namespace back_end.controllers
         }
 
         // Convert bills to response model
-        _logger.LogInformation($"Found {bills.Count} bills for user {userId}'s active session");
+        _logger.LogInformation($"Found {bills.Count} bills for user {userOid}'s active session");
 
         var billResponses = bills.Select(bill => new BillResponse
         {

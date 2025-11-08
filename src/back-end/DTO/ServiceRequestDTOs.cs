@@ -1,5 +1,3 @@
-
-
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using back_end.domain.enums;
@@ -20,10 +18,14 @@ namespace back_end.DTO.ServiceRequestDTOs
         public int Session_Id { get; set; }
         [JsonPropertyName("table_id")]
         public int Table_Id { get; set; }
-        [JsonPropertyName("requested_by")]
-        public int Requested_By { get; set; }
-        [JsonPropertyName("claimed_by")]
-        public int? Claimed_By { get; set; }
+        [JsonPropertyName("request_by_oid")]
+        public string Request_By_Oid { get; set; } = string.Empty;
+        [JsonPropertyName("request_by_name")]
+        public string Request_By_Name { get; set; } = string.Empty;
+        [JsonPropertyName("claimed_by_oid")]
+        public string? Claimed_By_Oid { get; set; }
+        [JsonPropertyName("claimed_by_name")]
+        public string? Claimed_By_Name { get; set; }
         [JsonPropertyName("notes")]
         public string? Notes { get; set; }
         [JsonPropertyName("status")]
@@ -36,9 +38,6 @@ namespace back_end.DTO.ServiceRequestDTOs
         public DateTime? Completed_at    { get; set; }
         [JsonPropertyName("table_number")]
         public int Table_Number{ get; set; }
-            
-            
-
     }
     
 }

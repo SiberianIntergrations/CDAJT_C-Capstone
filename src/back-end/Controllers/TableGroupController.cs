@@ -4,6 +4,7 @@ using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using back_end.DTO.TableGroupDTOs;
+using back_end.Helpers;
 
 namespace back_end.Controllers
 {
@@ -20,8 +21,7 @@ namespace back_end.Controllers
       _logger = logger;
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpPost]
     public async Task<IActionResult> CreateTableGroup([FromBody] TableGroupCreateDTO groupData)
     {
@@ -215,8 +215,7 @@ namespace back_end.Controllers
       }
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpPut("{table_group_id}")]
     public async Task<IActionResult> UpdateTableGroup(int table_group_id, [FromBody] TableGroupUpdateDTO groupData)
     {
@@ -279,8 +278,7 @@ namespace back_end.Controllers
       }
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpDelete("{table_group_id}")]
     public async Task<IActionResult> DeleteTableGroup(int table_group_id)
     {
@@ -322,8 +320,7 @@ namespace back_end.Controllers
       }
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpPost("{table_group_id}/tables/{table_id}")]
     public async Task<IActionResult> AddTableToGroup(int table_group_id, int table_id)
     {
@@ -388,8 +385,7 @@ namespace back_end.Controllers
       }
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpDelete("{table_group_id}/tables/{table_id}")]
     public async Task<IActionResult> RemoveTableFromGroup(int table_group_id, int table_id)
     {
@@ -435,8 +431,7 @@ namespace back_end.Controllers
       }
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpPost("{table_group_id}/toggle-status")]
     public async Task<IActionResult> ToggleTableGroupStatus(int table_group_id)
     {

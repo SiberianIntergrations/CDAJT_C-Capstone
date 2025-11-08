@@ -2,18 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
-using back_end.domain;
-using System.Linq.Expressions;
-using back_end.DTO.MenuItems;
 using Microsoft.AspNetCore.Authorization;
-using back_end.DTO.MenuDTO;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
-using back_end.domain.Seeders;
-using System.Security.Claims;
-using back_end.DTO.SessionParticipantDTOs;
 using back_end.DTO.TableEntityDTOs;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Swashbuckle.AspNetCore.Annotations;
+using back_end.Helpers;
 
 namespace back_end.Controllers
 {
@@ -45,8 +36,7 @@ namespace back_end.Controllers
     /// <response code="403">The user is not authorized to create tables.</response>
     /// <response code="409">A table with the specified number already exists.</response>
     /// <response code="500">An unexpected error occurred while creating the table.</response>
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpPost()]
     public async Task<IActionResult> CreateTable(TableEntityCreateDTO table_data)
     {
@@ -344,8 +334,7 @@ namespace back_end.Controllers
     /// <response code="404">No table exists with the specified <paramref name="table_id"/>.</response>
     /// <response code="409">The table cannot be deactivated because it is currently in use.</response>
     /// <response code="500">An unexpected error occurred while toggling the table status.</response>
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpPost("{table_id}/toggle-status")]
     public async Task<IActionResult> ToggleTableStatus(int table_id)
     {
@@ -451,8 +440,7 @@ namespace back_end.Controllers
       }
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpPost("{table_id}/assign-to-group/{table_group_id}")]
     public async Task<IActionResult> AssignTableToGroup(int table_id, int table_group_id)
     {
@@ -501,8 +489,7 @@ namespace back_end.Controllers
       }
     }
 
-    // [Authorize(Roles = "Admin,Staff")]
-    [Authorize]
+    [Authorize(Policy = "staffOnly")]
     [HttpDelete("{table_id}/remove-from-group")]
     public async Task<IActionResult> RemoveTableFromGroup(int table_id)
     {
