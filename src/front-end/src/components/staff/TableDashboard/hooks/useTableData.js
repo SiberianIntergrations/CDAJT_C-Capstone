@@ -16,8 +16,20 @@ export const useTableData = () => {
 
   const fetchTables = useCallback(async () => {
     try {
+      const storedLocationId = storage.get("branch-location");
+      if (!storedLocationId) {
+        setError(
+          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+        );
+        console.error(
+          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+        );
+
+        return [];
+      }
+
       const response = await api.get(
-        `/TableEntity?locationId=${storage.get("branch-location")}`
+        `/TableEntity?locationId=${storedLocationId}`
       );
       if (response.status === 200) {
         setTables(response.data);
@@ -33,8 +45,20 @@ export const useTableData = () => {
 
   const fetchTableGroups = useCallback(async () => {
     try {
+      const storedLocationId = storage.get("branch-location");
+      if (!storedLocationId) {
+        setError(
+          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+        );
+        console.error(
+          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+        );
+
+        return [];
+      }
+
       const response = await api.get(
-        `/TableGroup?locationId=${storage.get("branch-location")}`
+        `/TableGroup?locationId=${storedLocationId}`
       );
       if (response.status === 200) {
         setTableGroups(response.data);
