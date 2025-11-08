@@ -39,3 +39,36 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 }
+
+// Mock Next.js Image component
+jest.mock('next/image', () => ({
+  __esModule: true,
+  default: (props) => {
+    // eslint-disable-next-line jsx-a11y/alt-text
+    return <img {...props} />
+  },
+}))
+
+// Mock Next.js Link component
+jest.mock('next/link', () => {
+  return ({ children, href, onClick }) => {
+    return <a href={href} onClick={onClick}>{children}</a>
+  }
+})
+
+// Mock CSS modules
+jest.mock('../styles/Layout.module.css', () => ({
+  header: 'header',
+  headerText: 'headerText',
+  navbar: 'navbar',
+  navbarLogo: 'navbarLogo',
+  logoImage: 'logoImage',
+  navbarLinks: 'navbarLinks',
+  navbarLinksTitles: 'navbarLinksTitles',
+  navbarLinksContainer: 'navbarLinksContainer',
+  navbarRightContainer: 'navbarRightContainer',
+  authButton: 'authButton',
+  menuDropdownContainer: 'menuDropdownContainer',
+  dropdownMenu: 'dropdownMenu',
+  dropdownMenuVisible: 'dropdownMenuVisible',
+}))
