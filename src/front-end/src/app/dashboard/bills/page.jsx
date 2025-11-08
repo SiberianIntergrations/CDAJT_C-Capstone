@@ -98,7 +98,7 @@ const BillsDashboard = () => {
         setLoading(true);
         setError(null);
 
-        const response = await api.get("/DiningSession/participants/active-session-id");
+        const response = await api.get("/DiningSession/participants/active-session-id/latest");
 
         if (response.status !== 200) {
           throw new Error("Failed to fetch active session");

@@ -718,6 +718,9 @@ namespace back_end.controllers
         // Get current user Oid from claims using ClaimsHelpers
         var userOid = ClaimsHelpers.GetUserOid(User);
 
+        _logger.LogInformation($"USER OID: '{userOid}'");
+
+
         if (string.IsNullOrEmpty(userOid))
         {
           return Unauthorized(new { message = "User not authenticated" });
@@ -746,6 +749,47 @@ namespace back_end.controllers
         _logger.LogError(ex, "Error retrieving active session");
         return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
       }
+    }
+
+
+    //Returns the most recent session of a user
+    //Similar to endpoint GetActiveSessionID but reduces multiple sessions for same user
+    [Authorize]
+    [HttpGet("participants/active-session-id/latest")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetMostRecentActiveSessionId()
+    {
+        try
+        {
+            var userOid = ClaimsHelpers.GetUserOid(User);
+
+            if (string.IsNullOrEmpty(userOid))
+                return Unauthorized(new { message = "User not authenticated" });
+
+            var latestSessionId = await _context.DiningSessions
+                .Join(_context.SessionParticipants,
+                    ds => ds.Session_Id,
+                    sp => sp.Session_Id,
+                    (ds, sp) => new { ds, sp })
+                .Where(x => x.sp.User_Oid == userOid &&
+                            x.ds.Ended_At == null)
+                .OrderByDescending(x => x.ds.Started_At)
+                .Select(x => x.ds.Session_Id)
+                .FirstOrDefaultAsync();
+
+            if (latestSessionId == 0)
+                return NotFound(new { message = "No active session found" });
+
+            return Ok(new { session_id = latestSessionId });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving latest active session");
+            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+        }
     }
 
     /// <summary>
