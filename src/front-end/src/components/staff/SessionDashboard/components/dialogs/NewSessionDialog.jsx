@@ -29,7 +29,7 @@ const NewSessionDialog = ({ open, onClose }) => {
   const [selectedLocation, setSelectedLocation] = useState(
     storage.get("branch-location")
   );
-  const [tableAssignmentType, setTableAssignmentType] = useState("none"); // none, table, tableGroup
+  const [tableAssignmentType, setTableAssignmentType] = useState("table");
   const [selectedTable, setSelectedTable] = useState("");
   const [selectedTableGroup, setSelectedTableGroup] = useState("");
 
@@ -137,7 +137,7 @@ const NewSessionDialog = ({ open, onClose }) => {
   const handleClose = () => {
     setSelectedMenu("");
     setSelectedLocation(storage.get("branch-location"));
-    setTableAssignmentType("none");
+    setTableAssignmentType("table");
     setSelectedTable("");
     setSelectedTableGroup("");
     onClose();
@@ -239,32 +239,34 @@ const NewSessionDialog = ({ open, onClose }) => {
                     {availableTables.length === 0 ? (
                       <MenuItem disabled>No available tables</MenuItem>
                     ) : (
-                      availableTables.map((table) => (
-                        <MenuItem key={table.table_Id} value={table.table_Id}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
-                            Table {table.table_number}
-                            <Chip
-                              label={`${table.seat_count} seats`}
-                              size="small"
-                              variant="outlined"
-                            />
-                            {table.tableGroup_Name && (
+                      availableTables
+                        .filter((table) => table.tableGroup_Id === null)
+                        .map((table) => (
+                          <MenuItem key={table.table_Id} value={table.table_Id}>
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              Table {table.table_number}
                               <Chip
-                                label={table.tableGroup_Name}
+                                label={`${table.seat_count} seats`}
                                 size="small"
-                                color="primary"
                                 variant="outlined"
                               />
-                            )}
-                          </Box>
-                        </MenuItem>
-                      ))
+                              {table.tableGroup_Name && (
+                                <Chip
+                                  label={table.tableGroup_Name}
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                />
+                              )}
+                            </Box>
+                          </MenuItem>
+                        ))
                     )}
                   </Select>
                   {availableTables.length === 0 && (

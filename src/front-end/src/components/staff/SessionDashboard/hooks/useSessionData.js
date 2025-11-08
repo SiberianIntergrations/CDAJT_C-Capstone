@@ -15,16 +15,36 @@ export const useSessionData = (updateTrigger = 0) => {
 
   const fetchSessions = useCallback(async () => {
     try {
+      const storedLocationId = storage.get("branch-location");
+      if (!storedLocationId) {
+        setError(
+          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+        );
+        console.error(
+          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+        );
+
+        return [];
+      }
+
       const response = await api.get(
-        `/Dashboard/sessions?locationId=${storage.get("branch-location")}`
+        `/Dashboard/sessions?locationId=${storedLocationId}`
       );
 
-      if (response.status !== 200) throw new Error("Failed to fetch sessions");
+      if (response.status === 204) {
+        setError("No active dining sessions found.");
+        throw new Error("No active dining sessions found.");
+      }
+
+      if (response.status !== 200) {
+        setError("Failed to fetch sessions");
+        throw new Error("Failed to fetch sessions");
+      }
       const data = response.data;
       setSessions(data);
     } catch (err) {
-      setError("Failed to load sessions");
       console.error(err);
+      console.log(err);
     }
   }, []);
 

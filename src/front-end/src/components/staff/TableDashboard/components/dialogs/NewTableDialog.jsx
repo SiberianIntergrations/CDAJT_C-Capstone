@@ -76,7 +76,7 @@ const NewTableDialog = ({ open }) => {
       await refreshData();
       handleClose();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create table");
+      setError(err.response.data || "Failed to create table");
     } finally {
       setIsSubmitting(false);
     }
@@ -129,23 +129,6 @@ const NewTableDialog = ({ open }) => {
                 setFormData({ ...formData, table_Number: e.target.value })
               }
             />
-
-            <FormControl fullWidth>
-              <InputLabel>Location</InputLabel>
-              <Select 
-                value={formData.location_Id}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, location_Id: e.target.value }))
-                }
-                label="Location"
-              >
-                {locationList.map((location) => (
-                  <MenuItem key={location.location_Id} value={location.location_Id}>
-                    {location.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
             <TextField
               label="Seat Count"
               type="number"

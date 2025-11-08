@@ -66,7 +66,7 @@ namespace back_end.controllers
     /// Returns HTTP 500 (Internal Server Error) if an exception occurs during retrieval.
     /// </returns>
     /// <response code="200">Returns the list of active dining sessions with detailed information</response>
-    /// <response code="404">If no active dining sessions are found</response>
+    /// <response code="204">If no active dining sessions are found</response>
     /// <response code="500">If an internal error occurs while retrieving sessions</response>
     /// <remarks>
     /// Sample requests:
@@ -111,7 +111,7 @@ namespace back_end.controllers
 
         if (sessions == null || sessions.Count == 0)
         {
-          return NotFound(new { message = "No active dining sessions found." });
+          return NoContent();
         }
 
         var dashBoardSessions = new List<object>();

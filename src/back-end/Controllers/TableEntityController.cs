@@ -45,7 +45,8 @@ namespace back_end.Controllers
     /// <response code="403">The user is not authorized to create tables.</response>
     /// <response code="409">A table with the specified number already exists.</response>
     /// <response code="500">An unexpected error occurred while creating the table.</response>
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     [HttpPost()]
     public async Task<IActionResult> CreateTable(TableEntityCreateDTO table_data)
     {
@@ -343,7 +344,8 @@ namespace back_end.Controllers
     /// <response code="404">No table exists with the specified <paramref name="table_id"/>.</response>
     /// <response code="409">The table cannot be deactivated because it is currently in use.</response>
     /// <response code="500">An unexpected error occurred while toggling the table status.</response>
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     [HttpPost("{table_id}/toggle-status")]
     public async Task<IActionResult> ToggleTableStatus(int table_id)
     {
@@ -449,7 +451,8 @@ namespace back_end.Controllers
       }
     }
 
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     [HttpPost("{table_id}/assign-to-group/{table_group_id}")]
     public async Task<IActionResult> AssignTableToGroup(int table_id, int table_group_id)
     {
@@ -498,7 +501,8 @@ namespace back_end.Controllers
       }
     }
 
-    [Authorize(Roles = "Admin,Staff")]
+    // [Authorize(Roles = "Admin,Staff")]
+    [Authorize]
     [HttpDelete("{table_id}/remove-from-group")]
     public async Task<IActionResult> RemoveTableFromGroup(int table_id)
     {

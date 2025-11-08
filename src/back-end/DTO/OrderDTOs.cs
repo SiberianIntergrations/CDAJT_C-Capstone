@@ -77,6 +77,13 @@ namespace back_end.DTO.OrdersDTOs
         public OrderStatus Status { get; set; }
 
     }
+    public class OrderItemUpdateDTO
+    {
+        [JsonPropertyName("quantity")]
+        public int? Quantity { get; set; }
+        [JsonPropertyName("price_at_time")]
+        public decimal? Price_At_Time { get; set; } 
+    }
     public class OrderCreateDTO
     {
         [JsonPropertyName("session_id")]

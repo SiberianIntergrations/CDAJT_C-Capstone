@@ -1,7 +1,6 @@
+// src/front-end/src/app/dashboard/staff-admin/page.jsx
 import React from 'react';
 import { Box } from 'lucide-react';
-
-// TODO: Implement the staff admin page functionality
 
 const StaffAdminPage = () => {
   return (

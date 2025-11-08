@@ -8,21 +8,18 @@ const SessionList = () => {
   const [orderedSessions, setOrderedSessions] = useState([]);
   const [sessionRequests, setSessionRequests] = useState({});
   const [expandedSessionId, setExpandedSessionId] = useState(null);
+
   const sessionRefs = useRef({});
   const scrollTimeoutRef = useRef(null);
+  const lastUpdateTypeRef = useRef(null); // Tracks latest update if it's 'expand' or 'request'
 
   const scrollToSession = useCallback((sessionId) => {
-    if (scrollTimeoutRef.current) {
-      clearTimeout(scrollTimeoutRef.current);
-    }
-
+    if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     scrollTimeoutRef.current = setTimeout(() => {
       const element = sessionRefs.current[sessionId];
       if (element) {
         const viewportHeight = window.innerHeight;
-        const elementTop =
-          element.getBoundingClientRect().top + window.scrollY;
-
+        const elementTop = element.getBoundingClientRect().top + window.scrollY;
         const scrollPosition =
           elementTop - viewportHeight / 2 + element.offsetHeight / 2;
 
@@ -31,7 +28,7 @@ const SessionList = () => {
           behavior: "smooth",
         });
       }
-    }, 100);
+    }, 80);
   }, []);
 
   useEffect(() => {
@@ -47,13 +44,17 @@ const SessionList = () => {
 
     setOrderedSessions(ordered);
 
-    if (expandedSessionId) {
-      const expandedSessionIndex = ordered.findIndex(
-        (s) => s.session_Id === expandedSessionId
-      );
-      if (expandedSessionIndex !== -1) {
-        scrollToSession(expandedSessionId);
-      }
+    // Only auto-scroll when the last update was an expand action
+    if (
+      expandedSessionId &&
+      lastUpdateTypeRef.current === "expand" &&
+      ordered.some((s) => s.session_Id === expandedSessionId)
+    ) {
+      scrollToSession(expandedSessionId);
+    }
+
+    if (lastUpdateTypeRef.current) {
+      lastUpdateTypeRef.current = null;
     }
   }, [sessions, sessionRequests, expandedSessionId, scrollToSession]);
 
@@ -73,13 +74,13 @@ const SessionList = () => {
       ...prev,
       [sessionId]: requests.length,
     }));
+    // Marked so reordering does not trigger auto-scroll
+    lastUpdateTypeRef.current = "request";
   }, []);
 
   useEffect(() => {
     return () => {
-      if (scrollTimeoutRef.current) {
-        clearTimeout(scrollTimeoutRef.current);
-      }
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
     };
   }, []);
 

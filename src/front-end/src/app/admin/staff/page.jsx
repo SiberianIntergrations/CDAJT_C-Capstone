@@ -1,9 +1,9 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Box, CircularProgress } from "@mui/material";
-import { getAccessToken } from "@/utils/token";
+import { useAuth } from "@/hooks/useAuth";
 
 const StaffManagementPage = dynamic(
   () => import("@/components/admin/StaffManagementPage"),
@@ -24,25 +24,39 @@ const StaffManagementPage = dynamic(
 
 const StaffPage = () => {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const { isAuthenticated, userRole, loading } = useAuth();
 
   useEffect(() => {
-    const token = getAccessToken();
-    if (!token) {
+    if (loading) {
+      setIsLoading(true);
+      return;
+    }
+    if (!isAuthenticated) {
       router.push("/auth/login");
       return;
     }
-
-    // TODO: Fix role-based access control
-    try {
-      const tokenData = JSON.parse(atob(token.split(".")[1]));
-      // if (tokenData.role !== "admin") {
-      //   router.push("/unauthorized");
-      // }
-    } catch (error) {
-      console.error("Error verifying token:", error);
-      router.push("/auth/login");
+    if (userRole !== "admin") {
+      router.push("/unauthorized");
+      return;
     }
-  }, [router]);
+    setIsAuthorized(true);
+    setIsLoading(false);
+  }, [router, isAuthenticated, userRole, loading]);
+
+  if (isLoading || !isAuthorized) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return <StaffManagementPage />;
 };
