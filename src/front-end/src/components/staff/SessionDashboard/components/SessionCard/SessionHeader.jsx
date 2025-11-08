@@ -1,62 +1,27 @@
 import React, { useMemo } from "react";
 import { Box, Typography, Chip } from "@mui/material";
-import { Clock, Users, Receipt, Bell } from "lucide-react";
+import { Bell } from "lucide-react";
 
 /**
- * 
  * Displays header information for a dining session card including:
  * - Session ID
- * - Duration with live timer
  * - Active/Closed status
- * - Start/End timestamps
  * - Table assignments
+ * - Location
  */
 const SessionHeader = ({ session, requests = [] }) => {
-  // Calculate session duration in real-time
-  const sessionInfo = useMemo(() => {
-    const startTime = session?.started_At
-    const endTime = session?.ended_At
-
-    if (!startTime) {
-      return {
-        duration: "0 min",
-        minutes: 0,
-        isActive: true,
-      };
-    }
-
-    const start = new Date(startTime);
-    const end = endTime ? new Date(endTime) : new Date();
-    const totalMinutes = Math.floor((end - start) / 60000);
-    
-    let durationText;
-    if (totalMinutes < 60) {
-      durationText = `${totalMinutes} min`;
-    } else {
-      const hours = Math.floor(totalMinutes / 60);
-      const mins = totalMinutes % 60;
-      durationText = `${hours}h ${mins}m`;
-    }
-
-    return {
-      duration: durationText,
-      minutes: totalMinutes,
-      isActive: !endTime,
-    };
-  }, [session?.started_At, session?.ended_At]);
-
-  // Determine duration chip color based on AYCE time limits
-  const getDurationColor = () => {
-    if (!sessionInfo.isActive) return "default";
-    if (sessionInfo.minutes >= 120) return "error"; // Exceeded 2hr limit
-    if (sessionInfo.minutes >= 100) return "warning"; // Approaching limit
-    return "primary";
-  };
+  // Calculate session status
+  const isActive = useMemo(() => {
+    return !session?.ended_At;
+  }, [session?.ended_At]);
 
   // Format timestamp for display
   const formatTime = (timestamp) => {
     if (!timestamp) return "N/A";
-    return new Date(timestamp).toLocaleTimeString();
+    return new Date(timestamp).toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
 
   // Get table numbers display
@@ -73,18 +38,24 @@ const SessionHeader = ({ session, requests = [] }) => {
 
   return (
     <Box>
-      {/* Top Row: Session ID and Status Chips */}
+      {/* Top Row: Session ID, Tables, Requests and Status */}
       <Box sx={{ 
         display: "flex", 
         justifyContent: "space-between", 
         alignItems: "center", 
-        mb: 1.5 
+        mb: 0.5 
       }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
           <Typography variant="h6">
             Session #{session?.session_Id}
           </Typography>
           
+          <Typography variant="body2" color="text.secondary">
+            Tables: {tableDisplay}
+          </Typography>
+        </Box>
+        
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           {/* Service Requests Notification Bell */}
           {requests.length > 0 && (
             <Chip
@@ -101,57 +72,20 @@ const SessionHeader = ({ session, requests = [] }) => {
               }}
             />
           )}
-        </Box>
-        
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          {/* Duration Chip */}
-          <Chip
-            icon={<Clock size={14} />}
-            label={sessionInfo.duration}
-            size="small"
-            color={getDurationColor()}
-            variant={sessionInfo.isActive ? "filled" : "outlined"}
-          />
           
           {/* Status Chip */}
           <Chip
-            label={sessionInfo.isActive ? "Active" : "Closed"}
+            label={isActive ? "Active" : "Closed"}
             size="small"
-            color={sessionInfo.isActive ? "success" : "default"}
-            variant={sessionInfo.isActive ? "filled" : "outlined"}
+            color={isActive ? "success" : "default"}
+            variant={isActive ? "filled" : "outlined"}
           />
         </Box>
       </Box>
-
       {/* Location Row */}
-      <Box sx={{ mb: 1 }}>
-        <Typography variant="body2" color="text.secondary">{session?.location_Name}
-        </Typography>
-      </Box>
-
-      {/* Timestamp Row */}
-      <Box sx={{ mb: 1 }}>
+      <Box sx={{ display: "flex"}}>
         <Typography variant="body2" color="text.secondary">
-          <Box component="span" sx={{ fontWeight: 500 }}>Started:</Box> {formatTime(session?.started_At)}
-          {session?.ended_At && (
-            <>
-              {" • "}
-              <Box component="span" sx={{ fontWeight: 500 }}>Ended:</Box> {formatTime(session.ended_At)}
-            </>
-          )}
-        </Typography>
-      </Box>
-
-      {/* Info Row: Tables*/}
-      <Box sx={{ 
-        display: "flex", 
-        gap: 2, 
-        flexWrap: "wrap",
-        alignItems: "center" 
-      }}>
-        {/* Tables */}
-        <Typography variant="body2" color="text.secondary">
-          <Box component="span" sx={{ fontWeight: 500 }}>Tables:</Box> {tableDisplay}
+          {session?.location_Name}
         </Typography>
       </Box>
     </Box>
