@@ -1,9 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
-using back_end.DTO.Auth;
 using Microsoft.AspNetCore.Mvc;
 using back_end.DTO.Analytics;
+<<<<<<< HEAD
 using Microsoft.AspNetCore.Http.Features;
+=======
+using back_end.Helpers;
+
+>>>>>>> main
 
 namespace back_end.controllers
 {
@@ -274,8 +278,27 @@ namespace back_end.controllers
         {
             try
             {
+<<<<<<< HEAD
                 var orderTiming = await _context.DiningSessions
                     .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null)
+=======
+                // Use ClaimsHelpers for user identification
+                string userOid = ClaimsHelpers.GetUserOid(User);
+
+                // Get user's location from claims (if available)
+                string? locationIdStr = User.FindFirst("location_id")?.Value;
+                int? locationId = null;
+                if (int.TryParse(locationIdStr, out var locId))
+                    locationId = locId;
+
+                if (locationId == null)
+                {
+                    return BadRequest("Cannot determine user location from claims.");
+                }
+
+                var orderTiming = await _context.DiningSessions
+                    .Where(ds => ds.Location_Id == locationId)
+>>>>>>> main
                     .Select(ds => new
                     {
                         sessionId = ds.Session_Id,
@@ -284,7 +307,6 @@ namespace back_end.controllers
                     .ToListAsync();
 
                 var dailyAverageTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At.ToString() != null && ds.Started_At.ToString() != null)
                     .GroupBy(ds => ds.Started_At.Date)
                     .Select(g => new
                     {

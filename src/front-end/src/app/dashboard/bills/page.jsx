@@ -63,50 +63,6 @@ const BillCard = styled(Card, {
   },
 }));
 
-const SessionContextWrapper = ({ children }) => {
-  const createBill = async (sessionId, billData) => {
-    try {
-      const res = await api.post(`/Bill/create_bill/${sessionId}`,
-        {
-          bill_name: billData.billName,
-          adult_count: parseInt(billData.adultCount),
-          child_count: parseInt(billData.childCount),
-          senior_count: parseInt(billData.seniorCount),
-          tot_count: parseInt(billData.totCount),
-        }
-      );
-      if (res.status !== 200) throw new Error("Failed to create bill");
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  return (
-    <SessionProvider
-      value={{
-        createBill,
-        dialogState: {
-          newBill: false,
-          addTable: false,
-          currentSessionId: null,
-        },
-        openDialog: () => {},
-        closeDialog: () => {},
-        addTable: async () => {},
-        createSession: async () => {},
-        closeBill: async () => {},
-        endSession: async () => {},
-        refreshData: async () => {},
-        actionError: null,
-        clearActionError: () => {},
-      }}
-    >
-      {children}
-    </SessionProvider>
-  );
-};
-
 const BillsDashboard = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -135,45 +91,84 @@ const BillsDashboard = () => {
   }
 }; */
 
-useEffect(() => {
-    fetchBills();
-}, []);
+// Fetch active session ID first
+  useEffect(() => {
+    const fetchActiveSession = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const fetchBills = async () => {
+        const response = await api.get("/DiningSession/participants/active-session-id");
+
+        if (response.status !== 200) {
+          throw new Error("Failed to fetch active session");
+        }
+
+        if (response.data && response.data.session_id) {
+          setSessionId(response.data.session_id);
+        } else {
+          setError("No active session found. Please join a table first.");
+        }
+      } catch (err) {
+        console.error("Error fetching active session:", err);
+        setError(
+          err?.response?.data?.detail || 
+          err?.response?.data?.message || 
+          "Unable to fetch your active session"
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchActiveSession();
+  }, []);
+
+// Fetch bills when sessionId is available
+  useEffect(() => {
+    if (sessionId) {
+      fetchBills(sessionId);
+    }
+  }, [sessionId]);
+
+  const fetchBills = async (sid) => {
     try {
       setLoading(true);
       setError(null);
 
-      const res = await api.get(`/Bill/active/bills`);
+      console.log("Fetching bills for session:", sid);
+      const res = await api.get(`/Bill/get_bills/${sid}`);
 
-      setBills(Array.isArray(res.data) ? res.data : []);
+      if (res.status !== 200) {
+        throw new Error("Failed to fetch bills");
+      }
+
+      const billsData = Array.isArray(res.data) ? res.data : [];
+      console.log("Bills fetched:", billsData);
+      setBills(billsData);
     } catch (err) {
+      console.error("Error fetching bills:", err);
+      
+      // 404 means no bills exist - not an error
       if (err?.response?.status === 404) {
         setBills([]);
+        setError(null);
       } else {
-        setError(err?.response?.data?.detail || "Error loading bills");
+        setError(
+          err?.response?.data?.detail || 
+          err?.response?.data?.message || 
+          "Error loading bills"
+        );
       }
     } finally {
       setLoading(false);
     }
   };
 
-  //Code that was used for sessions
-  //May be needed for staff/admin
-  /*
-  useEffect(() => {
-    (async () => {
-      await fetchActiveSession();
-    })();
-  }, []);
-
-  useEffect(() => {
-    if (sessionId) fetchBills(sessionId);
-  }, [sessionId]);
-  */
-
   const handleBillCreated = async () => {
-    await fetchBills();
+    if (sessionId) {
+      await fetchBills(sessionId);
+    }
     setDialogOpen(false);
   };
 
@@ -210,6 +205,7 @@ useEffect(() => {
   }
 
   return (
+    <SessionProvider sessionId={sessionId}>
     <Container maxWidth="lg">
       <Box sx={{ py: 3 }}>
         <Box
@@ -221,9 +217,11 @@ useEffect(() => {
           }}
         >
           <Typography variant="h4">Your Table's Bills</Typography>
-          <AddButton onClick={() => setDialogOpen(true)}>
-            <Plus />
-          </AddButton>
+            {sessionId && (
+              <AddButton onClick={() => setDialogOpen(true)}>
+                <Plus />
+              </AddButton>
+            )}
         </Box>
 
         {error && (
@@ -278,13 +276,18 @@ useEffect(() => {
           </Box>
         )}
 
-        <SessionContextWrapper>
-          <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-            <NewBillDialog open={dialogOpen} sessionId={sessionId} onClose={handleBillCreated} />
-          </Dialog>
-        </SessionContextWrapper>
+        {sessionId && (
+            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+              <NewBillDialog 
+                open={dialogOpen} 
+                sessionId={sessionId} 
+                onClose={handleBillCreated} 
+              />
+            </Dialog>
+          )}
       </Box>
     </Container>
+    </SessionProvider>
   );
 };
 

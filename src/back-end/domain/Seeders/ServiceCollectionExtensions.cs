@@ -16,7 +16,6 @@ namespace back_end.domain.Seeders
       services.AddScoped<CategorySeeder>();
       services.AddScoped<TagSeeder>();
       services.AddScoped<MenuSeeder>();
-      services.AddScoped<UserSeeder>();
       services.AddScoped<MenuItemSeeder>();
       services.AddScoped<TableSeeder>();
       services.AddScoped<DiningSessionSeeder>();

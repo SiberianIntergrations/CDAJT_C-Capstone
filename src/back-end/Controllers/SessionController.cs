@@ -81,7 +81,7 @@ namespace back_end.Controllers
                 .Where(s => s.Session_Id == id)
                 .Include(s => s.Menu)
                 .Include(s => s.Participants)
-                    .ThenInclude(se => se.User)
+                // .ThenInclude(se => se.User) removed for Oauth
                 .Include(s => s.Table)
                 .Include(s => s.TableGroup)
                     .ThenInclude(tg => tg.Tables)
@@ -105,12 +105,12 @@ namespace back_end.Controllers
           firstOrder = session.First_Order_At,
           active = session.Ended_At == null,
 
-          //Get all the participants in the session with their information
+          // Updated: Get all the participants in the session with their information
           guests = session.Participants.Select(s => new
           {
             participantId = s.Participant_Id,
-            userId = s.User_Id,
-            userName = $"{s.User.First_name} {s.User.Last_name}",
+            userOid = s.User_Oid,
+            userName = s.User_Name,
             joinedAt = s.Joined_At,
             leftAt = s.Left_At
           }).ToList(),
@@ -122,7 +122,8 @@ namespace back_end.Controllers
           orders = session.Orders.Select(s => new
           {
             orderID = s.Order_Id,
-            userId = s.User_Id,
+            userOid = s.User_Oid,
+            userName = s.User_Name,
             status = s.Status.ToString(),
             itemCount = s.OrderItems.Count,
             createdAt = s.Created_At,
@@ -154,7 +155,7 @@ namespace back_end.Controllers
                             .Where(s => s.Ended_At == null)
                             .Include(s => s.Menu)
                             .Include(s => s.Participants)
-                                .ThenInclude(se => se.User)
+                            // .ThenInclude(se => se.User) removed for Oauth
                             .Include(s => s.Table)
                             .Include(s => s.TableGroup)
                                 .ThenInclude(tg => tg.Tables)
@@ -209,7 +210,7 @@ namespace back_end.Controllers
                     .Include(s => s.TableGroup)
                         .ThenInclude(tg => tg.Tables)
                     .Include(s => s.Participants)
-                        .ThenInclude(p => p.User)
+                    // .ThenInclude(p => p.User) removed for Oauth
                     .Where(s => s.Ended_At == null)
                     .Where(s => s.Table_Id == table ||
                                (s.TableGroup_Id.HasValue &&
@@ -240,8 +241,8 @@ namespace back_end.Controllers
                                     .Where(s => s.Left_At == null)
                                     .Select(s => new
                                     {
-                                      userId = s.User_Id,
-                                      userName = $"{s.User.First_name} {s.User.Last_name}",
+                                      userOid = s.User_Oid,
+                                      userName = s.User_Name,
                                       joinedAt = s.Joined_At
                                     }).ToList()
         };
@@ -261,23 +262,15 @@ namespace back_end.Controllers
     /// <response code="200">Active/empty result returned for the user.</response>
     /// <response code="404">User not found.</response>
     /// <response code="500">An error occurred while retrieving the user's current session.</response>
-    [HttpGet("user/{userId}/current")]
-    public async Task<ActionResult<object>> GetCurrentSessionByUser(int userId)
+    [HttpGet("user/{userOid}/current")]
+    public async Task<ActionResult<object>> GetCurrentSessionByUser(string userOid)
     {
       try
       {
-        var user = await _context.Users.FindAsync(userId);
-
-        //Check if user exists
-        if (user == null)
-        {
-          return NotFound(new { message = $"Can't find user with ID: {userId}" });
-        }
-
         //Check for an active session that the user is currently in
         //Add Menu and Table information
         var session = await _context.SessionParticipants
-                            .Where(s => s.User_Id == userId && s.Left_At == null)
+                            .Where(s => s.User_Oid == userOid && s.Left_At == null)
                             .Include(s => s.DiningSession)
                                 .ThenInclude(se => se.Menu)
                             .Include(s => s.DiningSession)
@@ -295,8 +288,7 @@ namespace back_end.Controllers
           return Ok(new
           {
             message = "Guest is not currently in an active dining session.",
-            userId = user.User_id,
-            userName = $"{user.First_name} {user.Last_name}",
+            userOid = userOid,
             activeSession = false
           });
         }
@@ -317,7 +309,7 @@ namespace back_end.Controllers
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, $"Can't get session for user ID: {userId}");
+        _logger.LogError(ex, $"Can't get session for user Oid: {userOid}");
         return StatusCode(500, "Internal Server Error");
       }
     }

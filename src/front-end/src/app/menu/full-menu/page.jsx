@@ -19,6 +19,7 @@ import OrderSummary from "@/components/customer/OrderDashboard/components/OrderS
 import useMenuSearch from "@/components/menu/searchUtils";
 import Tags from "@/components/Tags";
 import api from "@/config/api";
+import { useOrderActions } from "@/hooks/useOrderActions";
 
 const SWIPE_THRESHOLD = 50;
 const ANIMATION_DURATION = 300;
@@ -112,8 +113,30 @@ const FullMenu = () => {
   const [error, setError] = useState(null);
   const [selectedBillId, setSelectedBillId] = useState("");
   const [menuId, setMenuId] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+
+  const handleOrderSuccess = () => {
+    setOrderSuccess(true);
+    setQuantities({});
+    
+    // Redirect to orders page
+    setTimeout(() => {
+      window.location.href = "/dashboard/orders";
+    }, 2000);
+
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+      setOrderSuccess(false);
+    }, 3000);
+  };
+
+  const {
+    createOrder,
+    addOrderItems,
+    actionError,
+    isLoading,
+    clearActionError,
+  } = useOrderActions(handleOrderSuccess);
 
   const handleQuantityChange = (categoryId, itemId, delta) => {
     setQuantities((prev) => ({
@@ -192,7 +215,6 @@ const FullMenu = () => {
     const getActiveSession = async () => {
       try {
         setError(null);
-        // api from old project: /dining-sessions/participants/active-session-id GET
         const response = await api.get(
           "/DiningSession/participants/active-session-id"
         );
@@ -211,18 +233,35 @@ const FullMenu = () => {
   }, []);
 
   useEffect(() => {
+    //Session ID can only be 1 or above
     if (!sessionId || sessionId < 1) {
+      console.log("Invalid sessionId. Skipping menu fetch.");
       return;
     }
+
     const fetchMenu = async () => {
       try {
         setError(null);
-        // api from old project: /dining-sessions/session-menu/{sessionId} GET
-        const response = await api.get(
-          `/DiningSession/session-menu/${sessionId}`
-        );
+
+        const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
+
         if (response?.status >= 200 && response.status < 300 && response.data) {
-          setMenuId(response.data.menu_id ?? response.data);
+          const raw = response.data;
+          console.log("session-menu raw =", raw);
+
+          const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
+          const getMenuID =
+            typeof id === "number" ? id : parseInt(String(id), 10);
+
+          if (Number.isNaN(getMenuID) || getMenuID < 1) {
+            console.warn("Menu ID is invalid:", raw);
+            setError("No menu for this session");
+            return;
+          }
+
+          setMenuId(getMenuID);
+
+          console.log("parsed menuId =", getMenuID);
         } else {
           console.warn("No menu found", response?.data);
           setError("No menu found for this session");
@@ -237,27 +276,28 @@ const FullMenu = () => {
         setError(message);
       }
     };
+
     fetchMenu();
   }, [sessionId]);
 
-
-//When you have the menuID call to get current menu
-useEffect(() => {
-  if (!menuId) return;
-  fetchMenuItems(null, menuId);
-}, [menuId]);
+  //When you have the menuID call to get current menu
+  useEffect(() => {
+    if (!menuId) return;
+    fetchMenuItems(null, menuId);
+  }, [menuId]);
 
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setError(null);
         const response = await api.get("/Category");
-        const data = response.data;
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else {
-          console.error("Categories data is not an array");
-        }
+        const data = Array.isArray(response.data) ? response.data : [];
+        setCategories(
+          data.map((c) => ({
+            category_id: c.category_id ?? c.Category_id,
+            name: c.name ?? c.Category_name,
+          }))
+        );
       } catch (err) {
         console.error("Error fetching categories:", err);
         const message =
@@ -271,97 +311,74 @@ useEffect(() => {
     fetchCategories();
   }, []);
 
-  // TODO: Update api endpoints
-const fetchMenuItems = async (categoryId, menu_id) => {
+  const fetchMenuItems = async (categoryId, menu_id) => {
+    //Make sure the menu ID is valid or if we already loaded the menu items
+    if (!menu_id || menuItems[categoryId]) return;
 
-  //Make sure the menu ID is valid or if we already loaded the menu items
-  if (!menu_id || menuItems[categoryId]) return;
+    try {
+      //Call GetItemsByMenu and check if it's in an array
+      const response = await api.get(`/Menu/${menu_id}/item`);
+      const items = Array.isArray(response.data) ? response.data : [];
 
-  try {
-    //Call GetItemsByMenu and check if it's in an array
-    const response = await api.get(`/Menu/${menu_id}/item`);
-    const items = Array.isArray(response.data) ? response.data : [];
+      //Clean up the field names so it's the same everywhere on the page
+      const normalized = items.map((it) => ({
+        item_id: it.item_id ?? it.itemId ?? it.Item_Id,
+        name: it.name,
+        description: it.description,
+        price: it.price,
+        is_add_on: it.is_add_on ?? it.isAddOn,
+        item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
+        category_id: it.categoryID ?? it.categoryId ?? it.category_id,
+        category: it.category,
+        tags: it.tags ?? [],
+      }));
 
-    //Clean up the field names so it's the same everywhere on the page
-    const normalized = items.map(it => ({
-      item_id: it.item_id ?? it.itemId ?? it.Item_Id,
-      name: it.name,
-      description: it.description,
-      price: it.price,
-      is_add_on: it.is_add_on ?? it.isAddOn,
-      item_image_url: it.item_image_url ?? it.imageURL ?? it.imageUrl,
-      category_id: it.categoryID ?? it.categoryId ?? it.category_id,
-      category: it.category,
-      tags: it.tags ?? []
-    }));
+      //Group the items so all each category has its own list
+      const grouped = normalized.reduce((acc, item) => {
+        (acc[item.category_id] ||= []).push(item);
+        return acc;
+      }, {});
 
-    //Group the items so all each category has its own list
-    const grouped = normalized.reduce((acc, item) => {
-      (acc[item.category_id] ||= []).push(item);
-      return acc;
-    }, {});
-
-    setMenuItems(prev => ({ ...prev, ...grouped }));
-  } catch (err) {
-    console.error(`Error fetching menu items for menu ${menu_id}:`, err);
-  }
-};
+      setMenuItems((prev) => ({ ...prev, ...grouped }));
+    } catch (err) {
+      console.error(`Error fetching menu items for menu ${menu_id}:`, err);
+    }
+  };
 
   const handleBillChange = (event) => {
-    const billId = event.target.value;
+    const billId = Number(event.target.value);
     setSelectedBillId(billId);
   };
 
-  const createOrderItems = async (orderId) => {
-    const errors = [];
-
-    const orderItemPromises = Object.entries(quantities).flatMap(
+  // Creates an array of order items from the amounts selected
+  const createOrderItems = () => {
+    const orderItems = Object.entries(quantities).flatMap(
       ([categoryId, items]) =>
         Object.entries(items)
           .filter(([_, quantity]) => quantity > 0)
-          .map(async ([itemId, quantity]) => {
-            try {
-              const menuItem = menuItems[categoryId]?.find(
-                (item) => item.item_id === parseInt(itemId)
-              );
+          .map(([itemId, quantity]) => {
+            const menuItem = menuItems[categoryId]?.find(
+              (item) => item.item_id === parseInt(itemId)
+            );
 
-              if (!menuItem) {
-                throw new Error(`Menu item ${itemId} not found`);
-              }
-
-              let newPrice = menuItem.is_add_on ? menuItem.price : 0;
-
-              const response = await api.post(`/orders/${orderId}/items`, {
-                order_id: orderId,
-                menu_id: menuId,
-                item_id: parseInt(itemId),
-                quantity: quantity,
-                price_at_time: newPrice,
-                status: "pending",
-              });
-              if (response.status !== 200 && response.status !== 201) {
-                throw new Error(`Failed to add item ${itemId}`);
-              }
-              return response.data;
-            } catch (error) {
-              errors.push(`Failed to add item ${itemId}: ${error.message}`);
-              return null;
+            if (!menuItem) {
+              throw new Error(`Menu item ${itemId} not found`);
             }
+
+            let price_at_time = menuItem.is_add_on
+              ? Number(menuItem.price) || 0
+              : 0;
+
+            return {
+              menu_id: Number(menuId),
+              item_id: Number(itemId),
+              quantity: Number(quantity),
+              price_at_time,
+            };
           })
     );
 
-    const results = await Promise.all(orderItemPromises);
-
-    if (errors.length > 0) {
-      throw new Error(`Some items failed to be added: ${errors.join(", ")}`);
-    }
-
-    return results.filter(Boolean);
-  };
-
-  const getVisibleItemCount = (categoryId) => {
-    const filteredItems = filterMenuItems(menuItems[categoryId], categoryId);
-    return filteredItems?.length || 0;
+    return orderItems;
   };
 
   const handleConfirmOrder = async () => {
@@ -379,34 +396,53 @@ const fetchMenuItems = async (categoryId, menu_id) => {
       return;
     }
 
-    setIsSubmitting(true);
+    // Clear any previous errors
     setError(null);
+    clearActionError();
 
     try {
-      const orderResponse = await api.post("/Order", {
-        session_id: sessionId,
-        bill_id: selectedBillId,
-      });
-      if (orderResponse.status !== 200 && orderResponse.status !== 201) {
+      console.log("Creating order for session:", sessionId, "bill:", selectedBillId);
+
+      const orderResponse = await createOrder(sessionId, selectedBillId);
+
+      if (!orderResponse) {
         throw new Error("Failed to create order");
       }
 
-      const newOrderId = orderResponse.data.order_id;
-      await createOrderItems(newOrderId);
+      const newOrderId = Number(
+        orderResponse.order_id ??
+          orderResponse.orderId ??
+          orderResponse.Order_Id ??
+          orderResponse.order_Id ??
+          orderResponse.OrderID
+      );
 
-      setQuantities({});
-      setOrderSuccess(true);
+      if (!newOrderId) {
+        setError("Couldn't read new order id from server response.");
+        return;
+      }
 
-      setTimeout(() => {
-        setOrderSuccess(false);
-      }, 3000);
+      console.log("Order created with ID:", newOrderId);
+
+      // Create order items
+      const orderItems = createOrderItems();
+
+      if (orderItems.length === 0) {
+        throw new Error("No items to add to order");
+      }
+
+      console.log("Adding items to order:", orderItems);
+
+      // Add items to the order using the hook
+      await addOrderItems(newOrderId, orderItems);
     } catch (error) {
       console.error("Error processing order:", error);
-      setError(error.response?.data?.detail || "Error processing order");
-    } finally {
-      setIsSubmitting(false);
+      setError(error.message || "Error processing order");
     }
   };
+
+  // Combine local and hook errors
+  const displayError = error || actionError;
 
   return (
     <Container disableGutters maxWidth={false}>
@@ -418,6 +454,20 @@ const fetchMenuItems = async (categoryId, menu_id) => {
         >
           All You Can Eat Menu
         </Typography>
+
+        {/* Error Alert */}
+        {displayError && (
+          <Alert
+            severity="error"
+            sx={{ mb: 2 }}
+            onClose={() => {
+              setError(null);
+              clearActionError();
+            }}
+          >
+            {displayError}
+          </Alert>
+        )}
 
         <Box sx={{ width: "100%" }} mb={3}>
           {sessionId ? (
@@ -465,7 +515,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
           )}
         </Box>
 
-        {/*selectedBillId > 0  && */(
+        {selectedBillId && (
           <Box sx={{ width: "100%", mb: 4 }}>
             {categories.map((category) => {
               const filteredItems = filterMenuItems(
@@ -475,6 +525,11 @@ const fetchMenuItems = async (categoryId, menu_id) => {
 
               const stats = getSelectedItemsStats(category.category_id);
               const visibleCount = filteredItems.length;
+
+              // Skip categories with no visible items
+              if (visibleCount === 0 && stats.itemCount === 0) {
+                return null;
+              }
 
               return (
                 <Accordion
@@ -493,7 +548,15 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                       },
                     }}
                   >
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", pr: 2 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        width: "100%",
+                        pr: 2,
+                      }}
+                    >
                       <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                         {(category.name || menuItems[category.category_id]?.[0]?.category || `Category ${category.category_id}`)}
                         {" "}
@@ -726,6 +789,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
               </Alert>
             )}
 
+            {/* Order Summary */}
             {getTotalStats().itemCount > 0 && (
               <Paper elevation={2} sx={{ mb: 3, overflow: "hidden" }}>
                 <Box sx={{ p: 2 }}>
@@ -739,15 +803,14 @@ const fetchMenuItems = async (categoryId, menu_id) => {
               </Paper>
             )}
 
+            {/* Confirm Order Button */}
             <Button
               variant="contained"
               fullWidth
               size="large"
               onClick={handleConfirmOrder}
               disabled={
-                isSubmitting ||
-                !selectedBillId ||
-                getTotalStats().itemCount === 0
+                isLoading || !selectedBillId || getTotalStats().itemCount === 0
               }
               sx={{
                 bgcolor: "#C01E2E",
@@ -758,7 +821,7 @@ const fetchMenuItems = async (categoryId, menu_id) => {
                 fontSize: "1.2rem",
               }}
             >
-              {isSubmitting ? (
+              {isLoading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
                 `Confirm Order ${

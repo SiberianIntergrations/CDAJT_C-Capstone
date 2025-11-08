@@ -23,10 +23,23 @@ export const useSessionActions = (onSuccess) => {
 
   const handleError = (err, context) => {
     console.log(err);
-    const msg =
-      err.response?.data ||
-      err.response?.message ||
-      `Unknown error in ${context}`;
+
+    // Ensure msg is always a string
+    let msg;
+
+    if (typeof err.response?.data === "string") {
+      msg = err.response.data;
+    } else if (err.response?.data?.message) {
+      msg = err.response.data.message;
+    } else if (err.response?.data?.detail) {
+      msg = err.response.data.detail;
+    } else if (typeof err.response?.message === "string") {
+      msg = err.response.message;
+    } else if (typeof err.message === "string") {
+      msg = err.message;
+    } else {
+      msg = `Unknown error in ${context}`;
+    }
 
     console.error(`[useSessionActions] ${context}:`, err);
     setActionError(msg);
@@ -304,13 +317,12 @@ export const useSessionActions = (onSuccess) => {
         const sid = toInt(sessionId);
         if (!sid) throw new Error("Session ID is required");
 
-        const payload = {
-          bill_name: billData.billName,
-          adult_count: parseInt(billData.adultCount),
-          child_count: parseInt(billData.childCount),
-          senior_count: parseInt(billData.seniorCount),
-          tot_count: parseInt(billData.totCount),
-        };
+      const payload = {
+        bill_name: billData.billName,
+        adult_count: parseInt(billData.adultCount),
+        child_count: parseInt(billData.childCount),
+        senior_count: parseInt(billData.seniorCount),
+      };
 
         if (!payload.bill_name) throw new Error("Bill name is required");
 
