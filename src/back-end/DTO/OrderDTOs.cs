@@ -97,7 +97,8 @@ namespace back_end.DTO.OrdersDTOs
         public int Order_Id { get; set; }
         public int Session_Id { get; set; }
         public int Bill_Id { get; set; }
-        public int User_Id { get; set; }
+        public string? User_Oid { get; set; }
+        public string? User_Name { get; set; }
         public OrderStatus Status { get; set; }
         public DateTime Created_At { get; set; }
         public DateTime? Completed_At { get; set; }

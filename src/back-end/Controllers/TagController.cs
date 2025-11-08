@@ -1,13 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
-using back_end.domain;
 using back_end.DTO.TagDTOs;
 using Swashbuckle.AspNetCore.Annotations;
-using back_end.domain.enums;
+using back_end.Helpers;
 
 namespace back_end.controllers
 {
@@ -39,7 +37,7 @@ namespace back_end.controllers
     /// <response code="403">The user does not have permission to create tags.</response>
     /// <response code="409">A tag with the same name already exists.</response>
     /// <response code="500">An unexpected error occurred while creating the tag.</response>
-    [Authorize]
+    [Authorize(Policy = "adminOnly")]
     [HttpPost]
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -53,13 +51,6 @@ namespace back_end.controllers
     {
       try
       {
-        // Check if user is Admin
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-        if (userRole != UserRoles.Admin.ToString())
-        {
-          return StatusCode(403, new { detail = "Permission denied" });
-        }
-
         // Check if tag already exists
         var existingTag = await _context.Tags
           .FirstOrDefaultAsync(t => t.tag_name == tagData.Tag_Name);
@@ -201,7 +192,7 @@ namespace back_end.controllers
     /// <response code="403">The user does not have permission to update tags.</response>
     /// <response code="404">A tag with the specified <paramref name="tag_id"/> does not exist.</response>
     /// <response code="500">An unexpected error occurred while updating the tag.</response>
-    [Authorize]
+    [Authorize(Policy = "adminOnly")]
     [HttpPut("{tag_id:int}")]
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -216,13 +207,6 @@ namespace back_end.controllers
     {
       try
       {
-        // Check if user is Admin
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-        if (userRole != UserRoles.Admin.ToString())
-        {
-          return StatusCode(403, new { detail = "Permission denied" });
-        }
-
         var tag = await _context.Tags
           .FirstOrDefaultAsync(t => t.tag_id == tag_id);
 
@@ -269,7 +253,7 @@ namespace back_end.controllers
     /// <response code="403">The user does not have permission to access this endpoint.</response>
     /// <response code="404">The specified tag was not found.</response>
     /// <response code="500">An unexpected server error occurred while retrieving data.</response>
-    [Authorize]
+    [Authorize(Policy = "adminOnly")]
     [HttpGet("{tag_id:int}/menu_items")]
     [Produces("application/json")]
 
@@ -282,18 +266,10 @@ namespace back_end.controllers
     [SwaggerResponse(StatusCodes.Status403Forbidden, "Permission denied", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status404NotFound, "Tag not found", typeof(ProblemDetails))]
     [SwaggerResponse(StatusCodes.Status500InternalServerError, "Server error", typeof(ProblemDetails))]   
-    [Authorize]
     public async Task<IActionResult> GetMenuItemsByTag(int tag_id)
     {
       try
       {
-        // Check if user is Admin
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-        if (userRole != UserRoles.Admin.ToString())
-        {
-          return StatusCode(403, new { detail = "Permission denied" });
-        }
-
         var tag = await _context.Tags
           .Include(t => t.MenuItemTags)
             .ThenInclude(mit => mit.MenuItem)
@@ -326,7 +302,7 @@ namespace back_end.controllers
     /// <response code="403">The current user does not have permission to delete tags.</response>
     /// <response code="404">No tag exists with the supplied <paramref name="tag_id"/>.</response>
     /// <response code="500">An unexpected error occurred while deleting the tag.</response>
-    [Authorize]
+    [Authorize(Policy = "adminOnly")]
     [HttpDelete("{tag_id:int}")]
     [Produces("application/json")]
     [SwaggerOperation(
@@ -338,13 +314,6 @@ namespace back_end.controllers
     {
       try
       {
-        // Check if user is Admin
-        var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
-        if (userRole != UserRoles.Admin.ToString())
-        {
-          return StatusCode(403, new { detail = "Permission denied" });
-        }
-
         var tag = await _context.Tags
           .Include(t => t.MenuItemTags)
           .FirstOrDefaultAsync(t => t.tag_id == tag_id);

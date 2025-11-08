@@ -1,20 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
-using back_end.DTO.Auth;
 using Microsoft.AspNetCore.Mvc;
-using back_end.DTO.Analytics;
 using back_end.domain.Entities;
-using back_end.domain;
 using back_end.domain.enums;
 using back_end.DTO.DiningSessionDTOs;
 using back_end.DTO.TableGroupDTOs;
-using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Security.Cryptography;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using System.Data.SqlTypes;
 using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using back_end.Helpers;
 
 namespace back_end.controllers
 {
@@ -722,15 +715,13 @@ namespace back_end.controllers
     {
       try
       {
-        // Get current user ID from claims
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // Get current user Oid from claims using ClaimsHelpers
+        var userOid = ClaimsHelpers.GetUserOid(User);
 
-        if (string.IsNullOrEmpty(userIdClaim))
+        if (string.IsNullOrEmpty(userOid))
         {
           return Unauthorized(new { message = "User not authenticated" });
         }
-
-        int userId = int.Parse(userIdClaim);
 
         var activeSessionId = await _context.DiningSessions
             .Join(
@@ -738,7 +729,7 @@ namespace back_end.controllers
                 ds => ds.Session_Id,
                 sp => sp.Session_Id,
                 (ds, sp) => new { ds, sp })
-            .Where(x => x.sp.User_Id == userId &&
+            .Where(x => x.sp.User_Oid == userOid &&
                         x.ds.Ended_At == null)
             .Select(x => x.ds.Session_Id)
             .FirstOrDefaultAsync();
