@@ -179,13 +179,12 @@ namespace back_end.Controllers
       {
         var sessionRequest = await _context.ServiceRequests
             .FirstOrDefaultAsync(sr => sr.request_id == request_id);
-
         if (sessionRequest is null)
         {
           return NotFound("The service request was not found");
         }
 
-        sessionRequest.Status = ServiceRequestStatus.Completed;
+        // var claimedByUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         // Get Oauth user info for staff completing the request
         var claimedByOid = ClaimsHelpers.GetUserOid(User);
@@ -195,9 +194,11 @@ namespace back_end.Controllers
         sessionRequest.Claimed_By_Name = claimedByName;
         sessionRequest.Completed_At = DateTime.UtcNow;
 
+        sessionRequest.Status = ServiceRequestStatus.Completed;
+        // sessionRequest.ClaimedByUser = claimedByUser;
+        sessionRequest.Completed_At = DateTime.UtcNow;
         _context.ServiceRequests.Update(sessionRequest);
         await _context.SaveChangesAsync();
-
         return Ok(sessionRequest);
       }
       catch (Exception ex)

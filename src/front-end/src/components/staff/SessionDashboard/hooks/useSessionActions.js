@@ -8,7 +8,7 @@ import { createApiWrapper } from "@/utils/apiWrapper";
  * @param {number} d - Default value if conversion fails (default: 0)
  * @returns {number}
  */
-const toInt = (v, d = 0) => Number.isFinite(+v) ? parseInt(v, 10): d;
+const toInt = (v, d = 0) => (Number.isFinite(+v) ? parseInt(v, 10) : d);
 
 // Validates that required IDs are present
 const validateIds = (ids) => {
@@ -22,8 +22,24 @@ export const useSessionActions = (onSuccess) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleError = (err, context) => {
-    const msg = 
-      err.response?.data?.detail || err.response?.data?.message || `Unknown error in ${context}`;
+    console.log(err);
+
+    // Ensure msg is always a string
+    let msg;
+
+    if (typeof err.response?.data === "string") {
+      msg = err.response.data;
+    } else if (err.response?.data?.message) {
+      msg = err.response.data.message;
+    } else if (err.response?.data?.detail) {
+      msg = err.response.data.detail;
+    } else if (typeof err.response?.message === "string") {
+      msg = err.response.message;
+    } else if (typeof err.message === "string") {
+      msg = err.message;
+    } else {
+      msg = `Unknown error in ${context}`;
+    }
 
     console.error(`[useSessionActions] ${context}:`, err);
     setActionError(msg);
@@ -39,41 +55,54 @@ export const useSessionActions = (onSuccess) => {
   });
 
   // DINING SESSION OPERATION
-  
+
   const createSession = (sessionData) =>
-    apiWrapper("createSession", async () => {
-      const payload = {
-        Menu_Id: toInt(sessionData?.Menu_Id),
-        Location_Id: toInt(sessionData?.Location_Id),
-        Table_Id: sessionData?.Table_Id ? toInt(sessionData?.Table_Id) : null,
-        TableGroup_Id: sessionData?.TableGroup_Id ? toInt(sessionData?.TableGroup_Id) : null,
-      };
+    apiWrapper(
+      "createSession",
+      async () => {
+        const payload = {
+          Menu_Id: toInt(sessionData?.Menu_Id),
+          Location_Id: toInt(sessionData?.Location_Id),
+          Table_Id: sessionData?.Table_Id ? toInt(sessionData?.Table_Id) : null,
+          TableGroup_Id: sessionData?.TableGroup_Id
+            ? toInt(sessionData?.TableGroup_Id)
+            : null,
+        };
 
-      if (!payload.Menu_Id) throw new Error("Menu ID is required");
-      if (!payload.Location_Id) throw new Error("Location ID is required");
+        if (!payload.Menu_Id) throw new Error("Menu ID is required");
+        if (!payload.Location_Id) throw new Error("Location ID is required");
 
-      console.log("Creating session with payload:", payload);
+        console.log("Creating session with payload:", payload);
 
-      const response = await api.post("/DiningSession/Create_Dinning_Session", payload);
-      
-      if (response.status !== 200 && response.status !== 201) {
-        throw new Error(response.data?.detail || "Failed to create session");
-      }
+        const response = await api.post(
+          "/DiningSession/Create_Dinning_Session",
+          payload
+        );
 
-      await handleSuccess();
-      return response.data;
-    }, { triggerSuccess: true });
+        if (response.status !== 200 && response.status !== 201) {
+          throw new Error(response.data?.detail || "Failed to create session");
+        }
+
+        await handleSuccess();
+        return response.data;
+      },
+      { triggerSuccess: true }
+    );
 
   /**
-  * List of dining sessions filterd by active status
-  */
+   * List of dining sessions filterd by active status
+   */
   const listDiningSessions = (activeOnly = true) =>
-    apiWrapper("listDiningSessions", async () => {
-      const res = await api.get("/DiningSession/get_list_dining_sessions", {
-        params: { ActiveOnly: activeOnly }
-      });
-      return res.data || [];
-    }, { defaultReturn: [] });
+    apiWrapper(
+      "listDiningSessions",
+      async () => {
+        const res = await api.get("/DiningSession/get_list_dining_sessions", {
+          params: { ActiveOnly: activeOnly },
+        });
+        return res.data || [];
+      },
+      { defaultReturn: [] }
+    );
 
   /**
    * Get detailed information about a specific session
@@ -91,72 +120,100 @@ export const useSessionActions = (onSuccess) => {
    * Closes dining session after all bills are paid
    */
   const closeSession = async (sessionId) =>
-    apiWrapper("closeSession", async () => {
-      const sid = toInt(sessionId);
-      validateIds({ "session ID": sid });
+    apiWrapper(
+      "closeSession",
+      async () => {
+        const sid = toInt(sessionId);
+        validateIds({ "session ID": sid });
 
-      const res = await api.put(`/DiningSession/${sid}/close`);
-      return res.data;
-    }, { triggerSuccess: true });
+        const res = await api.put(`/DiningSession/${sid}/close`);
+        return res.data;
+      },
+      { triggerSuccess: true }
+    );
 
   /**
-  * Add table to session
-  */
+   * Add table to session
+   */
   const addTable = (sessionId, tableId) =>
-    apiWrapper("addTable", async () => {
-      const sid = toInt(sessionId);
-      const tid = toInt(tableId);
-      validateIds({ "session ID": sid, "table ID": tid });
+    apiWrapper(
+      "addTable",
+      async () => {
+        const sid = toInt(sessionId);
+        const tid = toInt(tableId);
+        validateIds({ "session ID": sid, "table ID": tid });
 
-      const res = await api.post(`/DiningSession/${sid}/tables`, { table_Id: tid });
-      return res.data;
-    }, { triggerSuccess: true });
+        const res = await api.post(`/DiningSession/${sid}/tables`, {
+          table_Id: tid,
+        });
+        return res.data;
+      },
+      { triggerSuccess: true }
+    );
 
   /**
-  * Add table group to a session
-  */
+   * Add table group to a session
+   */
   const addTableGroupToSession = (sessionId, tableGroupId) =>
-    apiWrapper("addTableGroupToSession", async () => {
-      const sid = toInt(sessionId);
-      const tgid = toInt(tableGroupId);
-      validateIds({ "session ID": sid, "table group ID": tgid });
+    apiWrapper(
+      "addTableGroupToSession",
+      async () => {
+        const sid = toInt(sessionId);
+        const tgid = toInt(tableGroupId);
+        validateIds({ "session ID": sid, "table group ID": tgid });
 
-      const res = await api.post(`/DiningSession/${sid}/table-groups`, { tableGroup_Id: tgid });
-      return res.data;
-    }, { triggerSuccess: true });
+        const res = await api.post(`/DiningSession/${sid}/table-groups`, {
+          tableGroup_Id: tgid,
+        });
+        return res.data;
+      },
+      { triggerSuccess: true }
+    );
 
   /**
    * Remove table from a session
    */
   const removeTableFromSession = (sessionId, tableId) =>
-    apiWrapper("removeTableFromSession", async () => {
-      const sid = toInt(sessionId);
-      const tid = toInt(tableId);
-      validateIds({ "session ID": sid, "table ID": tid });
+    apiWrapper(
+      "removeTableFromSession",
+      async () => {
+        const sid = toInt(sessionId);
+        const tid = toInt(tableId);
+        validateIds({ "session ID": sid, "table ID": tid });
 
-      const res = await api.delete(`/DiningSession/${sid}/Tables/${tid}`);
-      return res.data;
-    }, { triggerSuccess: true });
-  
+        const res = await api.delete(`/DiningSession/${sid}/Tables/${tid}`);
+        return res.data;
+      },
+      { triggerSuccess: true }
+    );
+
   /**
    * Remove table group from a session
    */
   const removeTableGroupFromSession = (sessionId, tableGroupId) =>
-    apiWrapper("removeTableGroupFromSession", async () => {
-      const sid = toInt(sessionId);
-      const tgid = toInt(tableGroupId);
-      validateIds({ "session ID": sid, "table group ID": tgid });
+    apiWrapper(
+      "removeTableGroupFromSession",
+      async () => {
+        const sid = toInt(sessionId);
+        const tgid = toInt(tableGroupId);
+        validateIds({ "session ID": sid, "table group ID": tgid });
 
-      const res = await api.delete(`/DiningSession/${sid}/table-groups/${tgid}`);
-      return res.data;
-    }, { triggerSuccess: true });
+        const res = await api.delete(
+          `/DiningSession/${sid}/table-groups/${tgid}`
+        );
+        return res.data;
+      },
+      { triggerSuccess: true }
+    );
 
   /**
    * Get active session ID for current user
    */
   const getActiveSessionId = () =>
     apiWrapper("getActiveSessionId", async () => {
-      const res = await api.get("/DiningSession/participants/active-session-id");
+      const res = await api.get(
+        "/DiningSession/participants/active-session-id"
+      );
       return res.data?.Session_Id || res.data?.session_id || null;
     });
 
@@ -178,12 +235,14 @@ export const useSessionActions = (onSuccess) => {
    * Fetches all active sessions
    */
   const fetchActiveSessions = () =>
-    apiWrapper("fetchActiveSessions", async () => {
-      const res = await api.get("/session/active");
-      return res.data || [];
-
-    }, { defaultReturn: [] });
-
+    apiWrapper(
+      "fetchActiveSessions",
+      async () => {
+        const res = await api.get("/session/active");
+        return res.data || [];
+      },
+      { defaultReturn: [] }
+    );
 
   /**
    * Fetch a session by ID
@@ -209,20 +268,24 @@ export const useSessionActions = (onSuccess) => {
       const res = await api.get(`/session/table/${tid}`);
       return res.data;
     });
-  
+
   // TABLE OPERATIONS
 
   /**
    * List empty tables
    */
   const listEmptyTables = (locationId) =>
-    apiWrapper("listEmptyTables", async () => {
-      const params = {};
-      if (locationId) params.locationId = toInt(locationId);
+    apiWrapper(
+      "listEmptyTables",
+      async () => {
+        const params = {};
+        if (locationId) params.locationId = toInt(locationId);
 
-      const res = await api.get("/TableEntity/empty", { params });
-      return res.data || [];
-    }, { defaultReturn: [] });
+        const res = await api.get("/TableEntity/empty", { params });
+        return res.data || [];
+      },
+      { defaultReturn: [] }
+    );
 
   // TABLE GROUP OPERATIONS
 
@@ -230,14 +293,17 @@ export const useSessionActions = (onSuccess) => {
    * Fetches available table groups
    */
   const fetchAvailableTableGroups = (locationId) =>
-    apiWrapper("fetchAvailableTableGroups", async () => {
-      const params = {};
-      if (locationId) params.locationId = toInt(locationId);
+    apiWrapper(
+      "fetchAvailableTableGroups",
+      async () => {
+        const params = {};
+        if (locationId) params.locationId = toInt(locationId);
 
-      const res = await api.get("/TableGroup/available", { params });
-      return res.data || [];
-    }, { defaultReturn: [] });
-
+        const res = await api.get("/TableGroup/available", { params });
+        return res.data || [];
+      },
+      { defaultReturn: [] }
+    );
 
   // BILL OPERATIONS
 
@@ -245,53 +311,65 @@ export const useSessionActions = (onSuccess) => {
    * Create a bill for a session
    */
   const createBill = (sessionId, billData) =>
-    apiWrapper("createBill", async () => {
-      const sid = toInt(sessionId);
-      if (!sid) throw new Error("Session ID is required");
+    apiWrapper(
+      "createBill",
+      async () => {
+        const sid = toInt(sessionId);
+        if (!sid) throw new Error("Session ID is required");
 
-      const payload = {
-        bill_name: billData.billName,
-        adult_count: parseInt(billData.adultCount),
-        child_count: parseInt(billData.childCount),
-        senior_count: parseInt(billData.seniorCount),
-        tot_count: parseInt(billData.totCount),
-      };
+        const payload = {
+          bill_name: billData.billName,
+          adult_count: parseInt(billData.adultCount),
+          child_count: parseInt(billData.childCount),
+          senior_count: parseInt(billData.seniorCount),
+          tot_count: parseInt(billData.totCount),
+        };
 
-      if (!payload.bill_name) throw new Error("Bill name is required");
+        if (!payload.bill_name) throw new Error("Bill name is required");
 
-      const res = await api.post(`/Bill/create_Bill/${sid}`, payload);
-      return res.data;
-    }, { triggerSuccess: true });
-  
+        const res = await api.post(`/Bill/create_Bill/${sid}`, payload);
+        return res.data;
+      },
+      { triggerSuccess: true }
+    );
+
   /**
    * Get all bills for a session
    */
   const getBills = (sessionId, tableId) =>
-    apiWrapper("getBills", async () => {
-      const sid = toInt(sessionId);
-      if (!sid) throw new Error("Session ID is required");
+    apiWrapper(
+      "getBills",
+      async () => {
+        const sid = toInt(sessionId);
+        if (!sid) throw new Error("Session ID is required");
 
-      const params = {};
-      if (tableId) params._table_id = toInt(tableId);
+        const params = {};
+        if (tableId) params._table_id = toInt(tableId);
 
-      const res = await api.get(`/Bill/get_bills/${sid}`, { params });
-      return res.data || [];
-    }, { defaultReturn: [] });
+        const res = await api.get(`/Bill/get_bills/${sid}`, { params });
+        return res.data || [];
+      },
+      { defaultReturn: [] }
+    );
 
   /**
    * Closes a bill
    */
   const closeBill = (sessionId, billId) =>
-    apiWrapper("closeBill", async () => {
-      const sid = toInt(sessionId);
-      const bid = toInt(billId);
-      validateIds({ "session ID": sid, "bill ID": bid });
+    apiWrapper(
+      "closeBill",
+      async () => {
+        const sid = toInt(sessionId);
+        const bid = toInt(billId);
+        validateIds({ "session ID": sid, "bill ID": bid });
 
-      const res = await api.put(`/Bill/close_bill/${bid}`, null, { 
-        params: { _session_id: sid } 
-      });
-      return res.data;
-    }, { triggerSuccess: true });
+        const res = await api.put(`/Bill/close_bill/${bid}`, null, {
+          params: { _session_id: sid },
+        });
+        return res.data;
+      },
+      { triggerSuccess: true }
+    );
 
   const clearActionError = () => setActionError(null);
 
@@ -299,7 +377,7 @@ export const useSessionActions = (onSuccess) => {
     // State
     actionError,
     isLoading,
-    
+
     // Dining session operations
     createDiningSession: createSession,
     listDiningSessions,
@@ -311,23 +389,23 @@ export const useSessionActions = (onSuccess) => {
     removeTableGroupFromSession,
     getActiveSessionId,
     getSessionMenuId,
-    
+
     // Session operations
     fetchActiveSessions,
     fetchSessionById,
     fetchSessionByTable,
-    
+
     // Table operations
     listEmptyTables,
-    
+
     // Table group operations
     fetchAvailableTableGroups,
-    
+
     // Bill operations
     createBill,
     getBills,
     closeBill,
-    
+
     // Utilities
     clearActionError,
   };
