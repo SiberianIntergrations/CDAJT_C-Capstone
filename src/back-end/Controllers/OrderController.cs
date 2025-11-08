@@ -213,7 +213,7 @@ namespace back_end.Controllers
         /// Staff and Admin users can delete items from approved orders.
         /// </remarks>
         [Authorize(Roles = "Admin,Staff")]
-        [HttpDelete("{order_id}/items/{item_id}")]
+        [HttpDelete("{order_id}/items/{order_item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
