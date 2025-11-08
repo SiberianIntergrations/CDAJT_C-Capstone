@@ -93,11 +93,11 @@ namespace back_end.DTO.OrdersDTOs
         public int Bill_Id { get; set; }
     }
 
-    public class OrderUpdateDTO
-    {
-        [JsonPropertyName("status")]
-        public OrderStatus Status { get; set; }
-    }
+    // public class OrderUpdateDTO
+    // {
+    //     [JsonPropertyName("status")]
+    //     public OrderStatus Status { get; set; }
+    // }
 
     public class OrderResponseDTO
     {
@@ -123,17 +123,15 @@ namespace back_end.DTO.OrdersDTOs
         }
     }
     
-    public class OrderStatusResponseDTO
-    {
-        [JsonPropertyName("order_id")]
-        public int Order_Id { get; set; }
+    // public class OrderStatusResponseDTO
+    // {
+    //     [JsonPropertyName("order_id")]
+    //     public int Order_Id { get; set; }
 
-        [JsonPropertyName("status")]
-        public OrderStatus Status { get; set; }
+    //     [JsonPropertyName("status")]
+    //     public OrderStatus Status { get; set; }
 
-        [JsonPropertyName("bill_id")]
-        public int Bill_Id { get; set; }
-
-
-    }
+    //     [JsonPropertyName("bill_id")]
+    //     public int Bill_Id { get; set; }
+    // }
 }

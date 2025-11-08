@@ -84,13 +84,6 @@ export const useOrderActions = (onSuccess) => {
       { triggerSuccess: true }
     );
 
-  const completeBulkOrderItems = (orderId, itemIds) =>
-    apiWrapper(
-      "completeBulkOrderItems",
-      async () => orderService.completeBulkOrderItems(orderId, itemIds),
-      { triggerSuccess: true }
-    );
-
   const removeOrderItem = (orderId, orderItemId) =>
     apiWrapper(
       "removeOrderItem",
@@ -152,7 +145,6 @@ export const useOrderActions = (onSuccess) => {
     addOrderItems,
     updateOrderItem,
     completeOrderItem,
-    completeBulkOrderItems,
     removeOrderItem,
 
     // Order Retrieval

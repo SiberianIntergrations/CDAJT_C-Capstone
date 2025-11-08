@@ -521,60 +521,7 @@ namespace back_end.Controllers
         }
 
         /// <summary>
-        /// Marks multiple order items as completed/delivered in bulk
-        /// </summary>
-        [Authorize(Roles = "Admin,Staff")]
-        [HttpPatch("{order_id}/items/complete")]
-        [ProducesResponseType(typeof(List<OrderItemResponseDTO>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> CompleteBulkOrderItems(
-            int order_id, 
-            [FromBody] List<int> item_ids
-        )
-        {
-            try
-            {
-                var items = await _context.OrderItems
-                    .Where(oi => oi.Order_Key == order_id && item_ids.Contains(oi.Order_Item_Id))
-                    .ToListAsync();
-
-                if (items.Count != item_ids.Count)
-                {
-                    return NotFound("Some order items were not found");
-                }
-
-                foreach (var item in items)
-                {
-                    item.Order_Item_Status = OrderStatus.Delivered;
-                    item.Completed_At = DateTime.UtcNow;
-                }
-
-                await _context.SaveChangesAsync();
-
-                var response = items.Select(item => new OrderItemResponseDTO
-                {
-                    Order_Item_Id = item.Order_Item_Id,
-                    Order_Id = item.Order_Key,
-                    Menu_Id = item.Menu_Id,
-                    Item_Id = item.Item_Id,
-                    Quantity = item.Quantity,
-                    Price_At_Time = item.Price_At_Time,
-                    Status = item.Order_Item_Status,
-                    Completed_At = item.Completed_At
-                }).ToList();
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error completing bulk order items");
-                return StatusCode(500, "Internal Server Error");
-            }
-        }
-
-        /// <summary>
-        /// Marks the whole order as delivered/completed. (bulk order compeletion)
+        /// Marks the whole order as delivered/completed.
         /// </summary>
         [Authorize(Roles = "Admin,Staff")]
         [HttpPatch("{order_id}/complete")]
@@ -714,6 +661,7 @@ namespace back_end.Controllers
             }
         }
 
+        // TODO: Add filters by session or date range instead of returning all orders from the database.
         /// <summary>
         /// Retrieves all orders from the database.
         /// </summary>

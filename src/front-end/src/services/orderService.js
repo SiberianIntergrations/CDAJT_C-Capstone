@@ -19,7 +19,7 @@ export const orderService = {
   // ORDER MANAGEMENT
   /**
    * Approves a pending order (Staff/Admin only)
-   * Sets order status to 'Progressing'
+   * Sets order status to 'Processing'
    * @param {number} orderId - Order ID to approve
    * @returns {Promise<Object>} Updated order with items
    */
@@ -96,21 +96,6 @@ export const orderService = {
   },
 
   /**
-   * Marks multiple order items as completed in bulk (Staff/Admin only)
-   * This is different from completeOrder which completes ALL items
-   * @param {number} orderId - Order ID
-   * @param {Array<number>} itemIds - Array of Order Item IDs
-   * @returns {Promise<Array>} Array of completed order items
-   */
-  completeBulkOrderItems: async (orderId, itemIds) => {
-    const response = await api.patch(
-      `/Order/${orderId}/items/complete`,
-      itemIds
-    );
-    return response.data;
-  },
-
-  /**
    * Removes an item from an order (Staff/Admin only)
    * @param {number} orderId - Order ID
    * @param {number} orderItemId - Order Item ID to remove
@@ -125,6 +110,7 @@ export const orderService = {
 
   // ORDER RETRIEVAL
 
+  // TODO: This method needs filters by session or date range instead of returning all orders.
   /**
    * Gets all orders (Staff/Admin only)
    * @returns {Promise<Array>} Array of all orders
