@@ -148,11 +148,12 @@ namespace back_end.Controllers
             try
             {
                 var item = await _context.MenuItems
-                .Include(mi => mi.MenuAssignments)
-                    .ThenInclude(ma => ma.Menu)  // Navigate through MenuAssignments to get Menu
-                .Include(mi => mi.MenuItemTags)
-                    .ThenInclude(mit => mit.Tag)  // If you also need the Tag details
-                .FirstOrDefaultAsync(mi => mi.item_id == item_id);
+                    .Include(mi => mi.Category)  // Include Category details
+                    .Include(mi => mi.MenuAssignments)
+                        .ThenInclude(ma => ma.Menu)  // Navigate through MenuAssignments to get Menu
+                    .Include(mi => mi.MenuItemTags)
+                        .ThenInclude(mit => mit.Tag)  // If you also need the Tag details
+                    .FirstOrDefaultAsync(mi => mi.item_id == item_id);
                 if (item == null)
                 {
                     return NotFound(new { message = "Menu item was not found" });
@@ -190,9 +191,7 @@ namespace back_end.Controllers
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Menu_Item>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> List_Menu_Items(
-
-        )
+        public async Task<IActionResult> List_Menu_Items()
         {
             try
             {
@@ -566,7 +565,6 @@ namespace back_end.Controllers
         /// Valid status values: Available, Unavailable, Discontinued
         /// </remarks>
         [Authorize(Policy = "staffOnly")]
-        [Authorize(Policy = "adminOnly")]
         [HttpPut("{item_id}/status")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

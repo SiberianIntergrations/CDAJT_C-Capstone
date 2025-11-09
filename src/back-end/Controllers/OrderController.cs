@@ -111,7 +111,6 @@ namespace back_end.Controllers
         /// Approves a pending order and transitions to Approved/Processing status.
         /// </summary>
         [Authorize(Policy = "staffOnly")]
-        [Authorize(Policy = "adminOnly")]
         [HttpPatch("{order_id}/approve")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -214,7 +213,6 @@ namespace back_end.Controllers
         /// Staff and Admin users can delete items from approved orders.
         /// </remarks>
         [Authorize(Policy = "staffOnly")]
-        [Authorize(Policy = "adminOnly")]
         [HttpDelete("{order_id}/items/{order_item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -331,7 +329,6 @@ namespace back_end.Controllers
         /// Marks the whole order as delivered/completed.
         /// </summary>
         [Authorize(Policy = "staffOnly")]
-        [Authorize(Policy = "adminOnly")]
         [HttpPatch("{order_id}/complete")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -726,7 +723,6 @@ namespace back_end.Controllers
         //GET api/order
         //Get all Orders
         [Authorize(Policy = "staffOnly")]
-        [Authorize(Policy = "adminOnly")]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<SessionOrder>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
