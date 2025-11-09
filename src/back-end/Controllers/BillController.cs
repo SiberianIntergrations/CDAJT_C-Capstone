@@ -130,16 +130,20 @@ namespace back_end.controllers
             tableCapacity = session.TableGroup.Tables.Sum(t => t.seat_count);
         }
 
-        // Check total guest count across all bills in this session
+        // Check total guest count across open bills in this session
         var existingBillsGuestCount = await _context.Bills
-            .Where(b => b.Session_Id == _session_id && b.Status != BillStatus.Cancelled)
+            .Where(b => 
+                b.Session_Id == _session_id && 
+                b.Status == BillStatus.Open
+            )
             .SumAsync(b => b.Total_Count);
 
         if (existingBillsGuestCount + totalCount > tableCapacity)
         {
             return BadRequest(new 
             { 
-                message = $"Total guest count ({existingBillsGuestCount + totalCount}) exceeds table capacity ({tableCapacity})" 
+                message = $"Total guest count ({existingBillsGuestCount + totalCount}) exceeds table capacity ({tableCapacity}). " +
+                        $"Current open bills: {existingBillsGuestCount} guests, New bill: {totalCount} guests." 
             });
         }
 

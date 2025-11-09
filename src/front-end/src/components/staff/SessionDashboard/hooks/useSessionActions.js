@@ -318,14 +318,25 @@ export const useSessionActions = (onSuccess) => {
         if (!sid) throw new Error("Session ID is required");
 
       const payload = {
-        bill_name: billData.billName,
-        adult_count: parseInt(billData.adultCount) || 0,
-        child_count: parseInt(billData.childCount) || 0,
-        senior_count: parseInt(billData.seniorCount) || 0,
-        tot_count: parseInt(billData.totCount) || 0,
+        Bill_Name: billData.billName || billData.Bill_Name,
+        Adult_Count: parseInt(billData.adultCount || billData.Adult_Count) || 0,
+        Child_Count: parseInt(billData.childCount || billData.Child_Count) || 0,
+        Senior_Count: parseInt(billData.seniorCount || billData.Senior_Count) || 0,
+        Tot_Count: parseInt(billData.totCount || billData.Tot_Count) || 0,
       };
 
-        if (!payload.bill_name) throw new Error("Bill name is required");
+        if (!payload.Bill_Name?.trim()) throw new Error("Bill name is required");
+
+        // Validate at least one guest
+        const totalGuests = 
+          payload.Adult_Count + 
+          payload.Child_Count + 
+          payload.Senior_Count + 
+          payload.Tot_Count;
+
+        if (totalGuests === 0) {
+          throw new Error("At least one guest is required");
+        }
 
         const res = await api.post(`/Bill/create_Bill/${sid}`, payload);
         return res.data;

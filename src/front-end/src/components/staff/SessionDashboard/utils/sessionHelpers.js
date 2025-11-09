@@ -2,34 +2,29 @@
  * Format a date to a readable time string
  */
 export const formatTime = (dateString) => {
-  try {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch (error) {
-    console.error("Error formatting time:", error);
-    return "Invalid time";
-  }
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 };
 
 /**
  * Format UTC date to local date and time
  */
 export const formatDateTime = (dateString) => {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleString([], {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    console.error("Error formatting datetime:", error);
-    return "Invalid date";
-  }
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 };
 
 /**
@@ -68,18 +63,75 @@ export const formatBillName = (bill) => {
 };
 
 /**
- * Get status color for a bill
+ * Get color for bill status chip
  */
 export const getBillStatusColor = (status) => {
-  switch (status) {
+  if (!status) return "default";
+  
+  const normalizedStatus = status.toUpperCase();
+  
+  switch (normalizedStatus) {
     case "OPEN":
-      return "primary";
+      return "success";
     case "CLOSED":
       return "default";
     case "CANCELLED":
       return "error";
     default:
       return "default";
+  }
+};
+
+/**
+ * Format bill status for display
+ */
+export const formatBillStatus = (status) => {
+  if (!status) return "Unknown";
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};
+
+/**
+ * Sort bills by status priority: OPEN > CLOSED > CANCELLED
+ */
+export const sortBillsByStatus = (bills) => {
+  if (!Array.isArray(bills)) return [];
+  
+  const statusPriority = {
+    OPEN: 1,
+    CLOSED: 2,
+    CANCELLED: 3,
+  };
+
+  return [...bills].sort((a, b) => {
+    const aPriority = statusPriority[a.status?.toUpperCase()] ?? 999;
+    const bPriority = statusPriority[b.status?.toUpperCase()] ?? 999;
+    return aPriority - bPriority;
+  });
+};
+
+/**
+ * Format currency amount
+ */
+export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+  }).format(amount);
+};
+
+/**
+ * Format pricing type for display
+ */
+export const formatPricingType = (pricingType) => {
+  switch (pricingType) {
+    case "Weekday":
+      return "Weekday Pricing";
+    case "Weekend":
+      return "Weekend Pricing";
+    case "Holiday":
+      return "Holiday Pricing";
+    default:
+      return pricingType;
   }
 };
 
@@ -108,37 +160,6 @@ export const getTableDescription = (tableNumbers) => {
   if (!tableNumbers || tableNumbers.length === 0) return "No tables assigned";
   if (tableNumbers.length === 1) return `Table ${tableNumbers[0]}`;
   return `Tables ${tableNumbers.join(", ")}`;
-};
-
-/**
- * Sort bills by status (OPEN first, then CLOSED, then CANCELLED)
- */
-export const sortBillsByStatus = (bills) => {
-  const statusOrder = {
-    OPEN: 0,
-    CLOSED: 1,
-    CANCELLED: 2,
-  };
-
-  return [...bills].sort(
-    (a, b) => statusOrder[a.status] - statusOrder[b.status]
-  );
-};
-
-/**
- * Format bill status for display
- */
-export const formatBillStatus = (status) => {
-  switch (status) {
-    case "OPEN":
-      return "Active";
-    case "CLOSED":
-      return "Completed";
-    case "CANCELLED":
-      return "Cancelled";
-    default:
-      return status;
-  }
 };
 
 /**
@@ -171,42 +192,55 @@ export const getSessionDuration = (startTime, endTime = null) => {
 };
 
 /**
- * Format currency amount
- */
-export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
-};
-
-/**
- * Format pricing type for display
- */
-export const formatPricingType = (pricingType) => {
-  switch (pricingType) {
-    case "Weekday":
-      return "Weekday Pricing";
-    case "Weekend":
-      return "Weekend Pricing";
-    case "Holiday":
-      return "Holiday Pricing";
-    default:
-      return pricingType;
-  }
-};
-
-/**
  * Format guest breakdown for display
  */
 export const formatGuestBreakdown = (bill) => {
+  if (!bill) return "No guests";
   const parts = [];
-  if (bill.adult_count > 0) parts.push(`${bill.adult_count} Adult${bill.adult_count > 1 ? 's' : ''}`);
-  if (bill.senior_count > 0) parts.push(`${bill.senior_count} Senior${bill.senior_count > 1 ? 's' : ''}`);
-  if (bill.child_count > 0) parts.push(`${bill.child_count > 1 ? 'ren' : ''}`);
-  if (bill.tot_count > 0) parts.push(`${bill.tot_count} Toddler${bill.tot_count > 1 ? 's' : ''}`);
+  const adultCount = 
+    bill.Adult_Count ?? 
+    bill.adult_Count ?? 
+    0;
+    
+  const seniorCount = 
+    bill.Senior_Count ?? 
+    bill.senior_Count ?? 
+    0;
+    
+  const childCount = 
+    bill.Child_Count ?? 
+    bill.child_Count ?? 
+    0;
+    
+  const totCount = 
+    bill.Tot_Count ?? 
+    bill.tot_Count ?? 
+    0;
+    
+  const totalCount = 
+    bill.Total_Guests ??
+    bill.total_Guests ?? 
+    0;
   
-  return parts.length > 0 ? parts.join(', ') : 'No guests';
+  if (adultCount > 0) {
+    parts.push(`${adultCount} Adult${adultCount !== 1 ? 's' : ''}`);
+  }
+  if (seniorCount > 0) {
+    parts.push(`${seniorCount} Senior${seniorCount !== 1 ? 's' : ''}`);
+  }
+  if (childCount > 0) {
+    parts.push(`${childCount} Child${childCount !== 1 ? 'ren' : ''}`);
+  }
+  if (totCount > 0) {
+    parts.push(`${totCount} Toddler${totCount !== 1 ? 's' : ''}`);
+  }
+
+  // If no breakdown available, show total count
+  if (parts.length === 0) {
+    return `${totalCount} guest${totalCount !== 1 ? 's' : ''}`;
+  }
+  
+  return parts.join(", ");
 };
 
 /**
@@ -233,17 +267,4 @@ export const validateBillData = (billData) => {
     isValid: Object.keys(errors).length === 0,
     errors,
   };
-};
-
-/**
- * Group bills by status
- */
-export const groupBillsByStatus = (bills) => {
-  return bills.reduce((acc, bill) => {
-    if (!acc[bill.status]) {
-      acc[bill.status] = [];
-    }
-    acc[bill.status].push(bill);
-    return acc;
-  }, {});
 };
