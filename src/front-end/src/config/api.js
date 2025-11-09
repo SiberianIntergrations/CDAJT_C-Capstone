@@ -15,6 +15,12 @@ export const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
+
+    //Skip MSAL for guest users
+  if (typeof window !== "undefined" && localStorage.getItem("guest") === "true") {
+    return config;
+  }
+
   try {
     // Get the currently signed-in account
     const activeAccount = msalInstance.getActiveAccount();
@@ -32,7 +38,7 @@ api.interceptors.request.use(async (config) => {
     return config;
 
   } catch (error) {
-    console.warn("⚠️ Silent token acquisition failed:", error);
+    console.warn("Silent token acquisition failed:", error);
 
     // Optional fallback to popup if the token is expired or missing
     try {

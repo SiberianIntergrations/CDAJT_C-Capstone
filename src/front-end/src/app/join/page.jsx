@@ -28,12 +28,12 @@ const Join = () => {
 
         console.log("Session created:", res.data);
 
-        // Store guest session
+        //Store guest session
         localStorage.setItem("guest", "true");
         localStorage.setItem("session_id", res.data.session_Id);
-        localStorage.setItem("guest_oid", `guest-${crypto.randomUUID()}`);
+        localStorage.setItem("guest_oid", res.data.guest_oid || `guest-${crypto.randomUUID()}`);
 
-        // ✅ Force full reload so HomePage re-runs and shows AppBar
+        //force full reload so HomePage re-runs and shows AppBar
         window.location.href = "/";
       } catch (err) {
         console.error("Error creating guest session:", err);
