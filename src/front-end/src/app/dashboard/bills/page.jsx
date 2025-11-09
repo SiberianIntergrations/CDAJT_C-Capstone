@@ -17,7 +17,7 @@ import api from "@/config/api";
 import NewBillDialog from "@/components/staff/SessionDashboard/components/dialogs/NewBillDialog";
 import BillSummaryDialog from "@/components/staff/SessionDashboard/components/dialogs/BillSummaryDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
-import { formatGuestBreakdown, formatDateTime, getBillStatusColor, formatBillStatus, getTableDescription, sortBillsByStatus } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
+import { getStatusColorValue, formatDateTime, formatBillStatus, getTableDescription, sortBillsByStatus } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const AddButton = styled(IconButton)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
@@ -183,15 +183,6 @@ const BillsDashboard = () => {
     setSelectedBillId(billId);
     setSummaryDialogOpen(true);
   };
-  
-  const getStatusColorValue = (status) => {
-    const colorMap = {
-      'primary': '#4caf50',
-      'default': '#757575',
-      'error': '#f44336'
-    };
-    return colorMap[getBillStatusColor(status)] || '#757575';
-  };
 
   if (loading) {
     return (
@@ -253,10 +244,6 @@ const BillsDashboard = () => {
                     <StatusChip $statusColor={statusColor}>
                       {formatBillStatus(bill.status)}
                     </StatusChip>
-
-                    <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
-                      {formatGuestBreakdown(bill)}
-                    </Typography>
 
                     <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: "medium" }}>
                       Total: {bill.total_count || 0} guest{bill.total_count !== 1 ? 's' : ''}

@@ -4,6 +4,7 @@ import { Box, Alert } from "@mui/material";
 export const DataGrid = ({ 
   items = [],
   renderItem,
+  keyExtractor,
   emptyMessage = "No items found",
   emptyVariant = "info",
   gridColumns = {
@@ -33,7 +34,14 @@ export const DataGrid = ({
         ...sx
       }}
     >
-      {items.map((item, index) => renderItem(item, index))}
+      {items.map((item, index) => {
+        const key = keyExtractor ? keyExtractor(item, index) : `item-${index}`;
+        return (
+          <React.Fragment key={key}>
+            {renderItem(item, index)}
+          </React.Fragment>
+        );
+      })}
     </Box>
   );
 };

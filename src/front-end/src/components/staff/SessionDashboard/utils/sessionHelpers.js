@@ -83,6 +83,27 @@ export const getBillStatusColor = (status) => {
 };
 
 /**
+ * 
+ * get hex color value for bill status
+ */
+export const getStatusColorValue = (status) => {
+  if (!status) return "#9e9e9e";
+  
+  const normalizedStatus = status.toUpperCase();
+  
+  switch (normalizedStatus) {
+    case "OPEN":
+      return "#4caf50";  // Green
+    case "CLOSED":
+      return "#9e9e9e";  // Gray
+    case "CANCELLED":
+      return "#f44336";  // Red
+    default:
+      return "#9e9e9e";
+  }
+};
+
+/**
  * Format bill status for display
  */
 export const formatBillStatus = (status) => {
@@ -198,26 +219,31 @@ export const formatGuestBreakdown = (bill) => {
   if (!bill) return "No guests";
   const parts = [];
   const adultCount = 
+    bill.adult_count ??
     bill.Adult_Count ?? 
-    bill.adult_Count ?? 
+    bill.adult_Count ??
     0;
     
   const seniorCount = 
+    bill.senior_count ??
     bill.Senior_Count ?? 
     bill.senior_Count ?? 
     0;
     
   const childCount = 
+    bill.child_count ??
     bill.Child_Count ?? 
     bill.child_Count ?? 
     0;
     
   const totCount = 
+    bill.tot_count ??
     bill.Tot_Count ?? 
     bill.tot_Count ?? 
     0;
     
   const totalCount = 
+    bill.total_count ??
     bill.Total_Guests ??
     bill.total_Guests ?? 
     0;
