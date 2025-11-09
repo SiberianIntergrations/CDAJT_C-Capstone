@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Seeders;
+using back_end.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -150,6 +151,9 @@ builder.Services.AddCors(options =>
         }
     });
 });
+
+// Services
+builder.Services.AddScoped<IPricingService, PricingService>();
 
 var app = builder.Build();
 
