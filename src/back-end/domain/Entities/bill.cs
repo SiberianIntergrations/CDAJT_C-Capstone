@@ -23,6 +23,8 @@ namespace back_end.domain.Entities
 
         public int Child_Count { get; set; }
 
+        public int Tot_Count { get; set; } // toddler
+
         public int Total_Count { get; set; }
 
         public BillStatus Status { get; set; } = BillStatus.Open;

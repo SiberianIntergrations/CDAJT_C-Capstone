@@ -16,7 +16,8 @@ namespace back_end.DTO.DashBoardDTOs
     {
         public int Session_Id { get; set; }
         public int Menu_Id { get; set; }
-
+        public int Location_Id { get; set; }
+        public string? Location_Name { get; set; }
         public DateTime Started_At { get; set; }
         public DateTime? Ended_At { get; set; }
         public DateTime? First_Order_At { get; set; }
@@ -30,6 +31,8 @@ namespace back_end.DTO.DashBoardDTOs
 
     public class DashBoardSummaryDTO
     {
+        public int? Location_Id { get; set; }
+        public string? Location_Name { get; set; }
         public int Total_Active_Sessions { get; set; }
         public int Total_Tables_In_Use { get; set; }
         public int Total_Active_Bills { get; set; }

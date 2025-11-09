@@ -15,9 +15,11 @@ namespace back_end.DTO.bill
     [JsonPropertyName("child_count")]
     public int Child_Count { get; set; }
 
-    // Removed as Total_Count can be calculated
-    // [JsonPropertyName("tot_count")]
-    // public int Tot_Count { get; set; }
+    [JsonPropertyName("tot_count")]
+    public int Tot_Count { get; set; }
+
+    [JsonPropertyName("total_count")]
+    public int? Total_Count { get; set; }
   }
 
   public class BillResponse
@@ -40,6 +42,9 @@ namespace back_end.DTO.bill
     [JsonPropertyName("child_count")]
     public int Child_Count { get; set; }
 
+    [JsonPropertyName("tot_count")]
+    public int Tot_Count { get; set; } // toddler
+
     [JsonPropertyName("total_count")]
     public int Total_Count { get; set; }
 
@@ -50,7 +55,7 @@ namespace back_end.DTO.bill
     public DateTime Created_At { get; set; }
 
     [JsonPropertyName("closed_at")]
-    public string? Closed_At { get; set; }
+    public DateTime? Closed_At { get; set; }
 
     [JsonPropertyName("table_numbers")]
     public List<int> Table_Numbers { get; set; } = new List<int>();

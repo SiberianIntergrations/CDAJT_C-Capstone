@@ -38,10 +38,8 @@ namespace back_end.domain.Seeders
           .Include(s => s.Table)
           .Include(s => s.TableGroup)
               .ThenInclude(tg => tg.Tables)
-          // .Where(s => s.Session_Id <= 5)
           .Where(s => s.Ended_At == null)
           .OrderBy(s => s.Session_Id)
-          .Take(10) // Limit to first 10 active sessions (5 per location)
           .ToList();
       
       if (!sessions.Any())
@@ -54,7 +52,9 @@ namespace back_end.domain.Seeders
       var userUsageCount = new Dictionary<string, int>();
       var userOids = _userSeedData.Keys.ToList();
 
-      foreach (var s in sessions)
+      var sessionsToProcess = sessions.Take(20).ToList();
+
+      foreach (var s in sessionsToProcess)
       {
         int totalSeats;
         List<int> tableNumbers;
@@ -75,7 +75,7 @@ namespace back_end.domain.Seeders
         }
 
         var remaining = totalSeats;
-          
+
         var numBillsForSession = _rng.Next(1, Math.Min(4, totalSeats + 1));
 
         for (int billIndex = 0; billIndex < numBillsForSession; billIndex++)
@@ -90,22 +90,34 @@ namespace back_end.domain.Seeders
           var adult = _rng.Next(1, maxGuests + 1);
           var senior = _rng.Next(0, Math.Max(0, maxGuests - adult) + 1);
           var child = _rng.Next(0, Math.Max(0, maxGuests - adult - senior) + 1);
-          var total = adult + senior + child;
-          
+          var tot = _rng.Next(0, Math.Max(0, maxGuests - adult - senior - child) + 1);
+          var total = adult + senior + child + tot;
+
           if (total == 0)
           {
-              adult = 1;
-              total = 1;
+            // Ensure at least one guest
+            adult = 1;
+            total = 1;
           }
 
           remaining -= total;
 
           BillStatus status;
-          if (s.Ended_At != null) 
+          if (s.Ended_At != null)
+          {
+            status = BillStatus.Closed;
+          }
+          else
+          {
+            // 70% Open, 20% Closed, 10% Cancelled for active sessions
+            var rand = _rng.NextDouble();
+            if (rand < 0.7)
+              status = BillStatus.Open;
+            else if (rand < 0.9)
               status = BillStatus.Closed;
-          else 
-              status = s.Session_Id <= 5 ? BillStatus.Open
-                                                : (new[] { BillStatus.Closed, BillStatus.Cancelled })[_rng.Next(2)];
+            else
+              status = BillStatus.Cancelled;
+          }
 
           var tableNumbersStr = tableNumbers.Select(n => n.ToString());
           var billName = $"Table {string.Join(" & ", tableNumbersStr)} - Party of {total}";
@@ -118,26 +130,28 @@ namespace back_end.domain.Seeders
           // Track user usage
           if (!userUsageCount.ContainsKey(userOid))
             userUsageCount[userOid] = 0;
-            userUsageCount[userOid]++;
+          userUsageCount[userOid]++;
 
-            var bill = new Billing
-            {
-                Session_Id = s.Session_Id,
-                Bill_Name = billName,
-                Senior_Count = senior,
-                Adult_Count = adult,
-                Child_Count = child,
-                Total_Count = total,
-                Status = status,
-                Created_At = createdAt,
-                Closed_At = status == BillStatus.Closed ? s.Ended_At : null
-            };
+          var bill = new Billing
+          {
+            Session_Id = s.Session_Id,
+            Bill_Name = billName,
+            Senior_Count = senior,
+            Adult_Count = adult,
+            Child_Count = child,
+            Tot_Count = tot,
+            Total_Count = total,
+            Status = status,
+            Created_At = createdAt,
+            Closed_At = status == BillStatus.Closed ? s.Ended_At : null
+          };
 
-            _context.Bills.Add(bill);
-            created++;
+          _context.Bills.Add(bill);
+          created++;
         }
       }
-        var unusedUsers = _userSeedData.Keys.Where(oid => !userUsageCount.ContainsKey(oid)).ToList();
+      // Ensure unused users get bills too (distributed across sessions)
+      var unusedUsers = _userSeedData.Keys.Where(oid => !userUsageCount.ContainsKey(oid)).ToList();
     
       if (unusedUsers.Any() && sessions.Any())
       {
@@ -156,15 +170,16 @@ namespace back_end.domain.Seeders
 
           var bill = new Billing
           {
-              Session_Id = session.Session_Id,
-              Bill_Name = $"Bill for {name}",
-              Senior_Count = 0,
-              Adult_Count = 1,
-              Child_Count = 0,
-              Total_Count = 1,
-              Status = BillStatus.Open,
-              Created_At = DateTime.UtcNow.AddMinutes(_rng.Next(1, 60)),
-              Closed_At = null
+            Session_Id = session.Session_Id,
+            Bill_Name = $"Bill for {name}",
+            Senior_Count = 0,
+            Adult_Count = 1,
+            Child_Count = 0,
+            Tot_Count = 0,
+            Total_Count = 1,
+            Status = BillStatus.Open,
+            Created_At = DateTime.UtcNow.AddMinutes(_rng.Next(1, 60)),
+            Closed_At = null
           };
             
           _context.Bills.Add(bill);
