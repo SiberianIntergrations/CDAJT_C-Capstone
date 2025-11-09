@@ -99,9 +99,9 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
-        
 
-        
+
+
         /// <summary>
         /// Updates a menu item assignment including price, limits, and statistics.
         /// </summary>
@@ -139,7 +139,7 @@ namespace back_end.Controllers
         /// Validates that individual limits do not exceed total limit and follow hierarchy rules.
         /// Total_Views and Total_View_Seconds are incremented (not replaced) when provided.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPut("{menu_id}/{item_id}")]
         [ProducesResponseType(typeof(MenuItemAssignment), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -244,7 +244,7 @@ namespace back_end.Controllers
         /// This endpoint requires Admin or Staff role authorization.
         /// Removes the association between the specified menu item and menu.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpDelete("{menu_id}/{Item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -300,7 +300,7 @@ namespace back_end.Controllers
         /// Creates a new menu with the specified name and copies all item assignments (including prices and limits) from the source menu.
         /// The new menu will be inactive by default.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPost("copy_menu/{source_menu_id}")]
         [ProducesResponseType(typeof(IEnumerable<MenuItemAssignment>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
