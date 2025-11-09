@@ -32,10 +32,18 @@ namespace back_end.domain.Seeders
 
         public void Seed()
         {
-            var sessions = _context.DiningSessions
+            var activeSessions = _context.DiningSessions
+                .Where(s => s.Ended_At == null)
                 .OrderByDescending(s => s.Started_At)
-                .Take(50)
                 .ToList();
+
+            var historicalSessions = _context.DiningSessions
+                .Where(s => s.Ended_At != null)
+                .OrderByDescending(s => s.Started_At)
+                .Take(40)
+                .ToList();
+
+            var sessions = activeSessions.Concat(historicalSessions).ToList();
 
             if (!sessions.Any())
                 throw new InvalidOperationException("No dining sessions found. Seed sessions first.");
@@ -64,7 +72,7 @@ namespace back_end.domain.Seeders
                 });
                 created++;
 
-                var numCustomers = _rng.Next(1, 6);
+                var numCustomers = isActive ? _rng.Next(2, 6) : _rng.Next(1, 4);
                 var customerOids = staffOids.Where(oid => oid != staffOid).OrderBy(_ => _rng.Next()).Take(numCustomers).ToList();
 
                 foreach (var customerOid in customerOids)
@@ -85,21 +93,28 @@ namespace back_end.domain.Seeders
                 }
             }
 
-            // Ensure every account is used at least twice
-            foreach (var kvp in _userSeedData)
+            var unusedUsers = _userSeedData.Keys.Where(oid => !userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2).ToList();
+
+            if (unusedUsers.Any() && activeSessions.Any())
             {
-                var oid = kvp.Key;
-                var info = kvp.Value;
-                if (!userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2)
+                int sessionIndex = 0;
+
+                foreach (var oid in unusedUsers)
                 {
-                    for (int i = userUsageCount.GetValueOrDefault(oid, 0); i < 2; i++)
+                    var usage = userUsageCount.GetValueOrDefault(oid, 0);
+                    for (int i = usage; i < 2; i++)
                     {
+                        var session = activeSessions[sessionIndex % activeSessions.Count];
+                        sessionIndex++;
+
+                        var info = _userSeedData[oid];
+
                         _context.SessionParticipants.Add(new SessionParticipant
                         {
-                            Session_Id = sessions.FirstOrDefault()?.Session_Id ?? 1,
+                            Session_Id = session.Session_Id,
                             User_Oid = oid,
                             User_Name = $"{info.GivenName} {info.Surname}".Trim(),
-                            Joined_At = DateTime.UtcNow.AddMinutes(_rng.Next(1, 60)),
+                            Joined_At = session.Started_At.AddMinutes(_rng.Next(1, 30)),
                             Left_At = null
                         });
                         created++;
@@ -111,6 +126,5 @@ namespace back_end.domain.Seeders
             var totalCompleted = _context.SessionParticipants.Count(p => p.Left_At != null);
             _logger.LogInformation($"Created {created} session participants ({totalActive} active, {totalCompleted} completed)");
         }
-
     }
 }
