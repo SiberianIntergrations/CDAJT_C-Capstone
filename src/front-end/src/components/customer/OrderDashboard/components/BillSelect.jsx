@@ -11,6 +11,7 @@ import {
   Chip,
 } from "@mui/material";
 import api from "@/config/api";
+import { formatGuestBreakdown } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const BillSelect = (props) => {
   // Accept both prop names; prefer `session_id` if provided
@@ -76,15 +77,6 @@ const BillSelect = (props) => {
     (bill) => Number(bill.bill_id) === Number(value)
   );
 
-  const formatGuestCount = (bill) => {
-    const counts = [];
-    if (bill.adult_count > 0) counts.push(`${bill.adult_count} Adults`);
-    if (bill.child_count > 0) counts.push(`${bill.child_count} Children`);
-    if (bill.senior_count > 0) counts.push(`${bill.senior_count} Seniors`);
-    if (bill.tot_count > 0) counts.push(`${bill.tot_count} Tots`);
-    return counts.join(" • ");
-  };
-
   const renderBillMenuItem = (bill) => {
   return(
     <MenuItem key={bill.bill_id} value={Number(bill.bill_id)}>
@@ -92,18 +84,15 @@ const BillSelect = (props) => {
         <Typography variant="subtitle1">
           {bill.bill_name}
           <Chip
-            size="small"
-            label={`${
-              bill.adult_count +
-              bill.child_count +
-              bill.senior_count +
-              bill.total_count
-            } guests`}
-            sx={{ ml: 1 }}
-          />
+              size="small"
+              label={`${bill.total_count || 0} guest${bill.total_count !== 1 ? 's' : ''}`}
+              color="primary"
+              variant="outlined"
+              sx={{ ml: 1 }}
+            />
         </Typography>
         <Typography variant="caption" color="text.secondary">
-          {formatGuestCount(bill)}
+          {formatGuestBreakdown(bill)}
         </Typography>
       </Box>
     </MenuItem>
