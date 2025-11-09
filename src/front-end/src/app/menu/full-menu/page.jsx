@@ -414,56 +414,36 @@ const FullMenu = () => {
     const hasItems = Object.values(quantities).some((category) =>
       Object.values(category).some((quantity) => quantity > 0)
     );
-
     if (!hasItems) {
       setError("Please select at least one item");
       return;
     }
 
-    // Clear any previous errors
     setError(null);
     clearActionError();
 
     try {
-      console.log("Creating order for session:", sessionId, "bill:", selectedBillId);
+      console.log("🧩 handleConfirmOrder → Creating order for session:", sessionId, "bill:", selectedBillId);
 
       const orderResponse = await createOrder(sessionId, selectedBillId);
+      console.log("🧩 orderResponse:", orderResponse);
 
-      if (!orderResponse) {
-        throw new Error("Failed to create order");
-      }
+      if (!orderResponse) throw new Error("Failed to create order");
 
-      const newOrderId = Number(
-        orderResponse.order_id ??
-          orderResponse.orderId ??
-          orderResponse.Order_Id ??
-          orderResponse.order_Id ??
-          orderResponse.OrderID
-      );
+      const newOrderId = Number(orderResponse.order_Id);
 
-      if (!newOrderId) {
-        setError("Couldn't read new order id from server response.");
-        return;
-      }
+      console.log("🧩 newOrderId parsed:", newOrderId);
 
-      console.log("Order created with ID:", newOrderId);
-
-      // Create order items
       const orderItems = createOrderItems();
+      console.log("🧩 addOrderItems called with:", newOrderId, orderItems);
 
-      if (orderItems.length === 0) {
-        throw new Error("No items to add to order");
-      }
-
-      console.log("Adding items to order:", orderItems);
-
-      // Add items to the order using the hook
       await addOrderItems(newOrderId, orderItems);
     } catch (error) {
-      console.error("Error processing order:", error);
+      console.error("❌ Error processing order:", error);
       setError(error.message || "Error processing order");
     }
   };
+
 
   // Combine local and hook errors
   const displayError = error || actionError;

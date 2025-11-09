@@ -24,5 +24,12 @@ namespace back_end.Helpers
             var name = user.FindFirst("name")?.Value?.Trim();
             return string.IsNullOrWhiteSpace(name) ? "Unknown" : name;
         }
+
+        public static string? GetUserRole(ClaimsPrincipal user)
+        {
+            return user?.Claims
+                .FirstOrDefault(c => c.Type == ClaimTypes.Role || c.Type == "roles" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
+                ?.Value;
+        }
     }
 }

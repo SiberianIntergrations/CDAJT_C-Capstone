@@ -54,7 +54,17 @@ const OrdersAccordion = () => {
         }
       }
       try {
-        const response = await apiClient.get("/DiningSession/participants/active-session-id");
+        let response;
+        if (isGuest()) {
+          const sid = localStorage.getItem("session_id");
+          if (!sid) {
+            setError("Guest session not found. Please scan your table QR again.");
+            return;
+          }
+          response = await publicApi.get(`/Order/by-session/${sid}`, { params }); 
+        } else {
+          response = await api.get("/Order/active-session/orders", { params });
+        }
 
         if (response.status < 200 || response.status >= 300) {
           throw new Error("Failed to fetch active session");
@@ -88,7 +98,20 @@ const fetchOrders = async (billId = "") => {
 
     //If a bill is selected - include it as a param to the endpoint
     const params = billId ? { bill_id: billId } : {};
-    const response = await apiClient.get("/Order/active-session/orders", { params });
+    
+    let response;
+    if (isGuest()) {
+      const sid = localStorage.getItem("session_id");
+      if (!sid) {
+        setError("Guest session not found. Please scan your table QR again.");
+        setLoading(false);
+        return;
+      }
+      response = await publicApi.get(`/Order/session/${sid}`, { params });
+    } else {
+      response = await api.get("/Order/active-session/orders", { params });
+    }
+
 
     //Check if there are no orders
     const orders = response.data || [];
@@ -204,7 +227,7 @@ const fetchOrders = async (billId = "") => {
                   >
                     {item.price === 0
                       ? "Included item"
-                      : `Price: $${item.price.toFixed(2)}`}
+                      : item?.price ? `Price: $${Number(item.price).toFixed(2)}` : "Price unavailable"}
                   </Typography>
                 </Box>
 
