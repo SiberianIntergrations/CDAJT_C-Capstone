@@ -40,7 +40,7 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${popupResponse.accessToken}`;
       return config;
     } catch (popupError) {
-      console.error("❌ Token acquisition failed completely:", popupError);
+      console.error("Token acquisition failed completely:", popupError);
       return Promise.reject(popupError);
     }
   }
