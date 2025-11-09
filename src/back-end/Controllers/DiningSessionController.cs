@@ -5,6 +5,7 @@ using back_end.domain.Entities;
 using back_end.domain.enums;
 using back_end.DTO.DiningSessionDTOs;
 using back_end.DTO.TableGroupDTOs;
+using back_end.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
 using back_end.Helpers;
@@ -917,6 +918,42 @@ namespace back_end.controllers
         _logger.LogError(ex, "Error closing dining session");
         return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
       }
+    }
+
+    [HttpPost("AddGuestParticipant")]
+    [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> AddGuestParticipant([FromBody] GuestParticipantDTOs dto)
+    {
+
+        //Find the next available empty session
+        var session = await _context.DiningSessions
+            .FirstOrDefaultAsync(s => s.Session_Id == dto.Session_Id && s.Ended_At == null);
+
+        if (session == null)
+            return NotFound(new { message = "Session not found or already closed" });
+
+        //Check if guest is already in this session
+        bool alreadyJoined = await _context.SessionParticipants
+            .AnyAsync(sp => sp.Session_Id == dto.Session_Id && sp.User_Oid == dto.User_Oid);
+        if (alreadyJoined)
+            return BadRequest(new { message = "Guest already joined this session" });
+
+        //Add guest with default name and a new session and Oid
+        var guest = new SessionParticipant
+        {
+            Session_Id = dto.Session_Id,
+            User_Name = "Guest",
+            User_Oid = dto.User_Oid,
+            Joined_At = DateTime.UtcNow
+        };
+
+        _context.SessionParticipants.Add(guest);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Guest added successfully" });
     }
   }
 }

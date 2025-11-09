@@ -52,6 +52,8 @@ const AppBarWithTitle = ({ title }) => {
   );
   const [allLocations, setAllLocations] = useState([]);
   const { isAuthenticated, userRole, loading } = useAuth();
+  const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true";
+
 
   useEffect(() => {
     const fetchAllLocations = async () => {
@@ -152,6 +154,8 @@ const AppBarWithTitle = ({ title }) => {
     ],
   };
 
+  const effectiveRole = userRole || (isGuest ? "customer" : null);
+
   const renderMenuList = () => (
     <List
       sx={{
@@ -159,8 +163,8 @@ const AppBarWithTitle = ({ title }) => {
         pt: 3,
       }}
     >
-      {userRole &&
-        menuItems[userRole].map((item, index) => {
+      {effectiveRole &&
+        menuItems[effectiveRole].map((item, index) => {
           const Icon = item.icon;
           return (
             <ListItemButton
@@ -213,7 +217,7 @@ const AppBarWithTitle = ({ title }) => {
             flex: "1 1 0",
           }}
         >
-          {isAuthenticated && (
+          {(isAuthenticated  || isGuest) && (
             <IconButton
               color="inherit"
               aria-label="menu"
@@ -324,11 +328,11 @@ const AppBarWithTitle = ({ title }) => {
           <Button
             color="inherit"
             onClick={
-              isAuthenticated
+              isAuthenticated || isGuest
                 ? handleLogout
                 : handleLogin
             }
-            startIcon={isAuthenticated ? <LogOut /> : <LogIn />}
+            startIcon={isAuthenticated || isGuest ? <LogOut /> : <LogIn />}
             sx={{
               minWidth: { xs: 40, sm: "auto" },
               px: { xs: 1, sm: 2 },
@@ -338,7 +342,7 @@ const AppBarWithTitle = ({ title }) => {
             }}
           >
             <Typography sx={{ display: { xs: "none", sm: "block" } }}>
-              {isAuthenticated ? "Logout" : "Login"}
+              {isAuthenticated || isGuest ? "Logout" : "Login"}
             </Typography>
           </Button>
         </Box>
