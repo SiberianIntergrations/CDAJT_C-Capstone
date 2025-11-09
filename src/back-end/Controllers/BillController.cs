@@ -37,6 +37,12 @@ namespace back_end.controllers
       return new List<int>();
     }
 
+    // Helper method for total count
+    private int CalculateTotalCount(int adultCount, int seniorCount, int childCount)
+    {
+      return adultCount + seniorCount + childCount;
+    }
+
     /// <summary>
     /// Creates a new bill for a dining session.
     /// </summary>
@@ -112,7 +118,7 @@ namespace back_end.controllers
         }
 
         // Calculate total count
-        int totalCount = bill_data.Adult_Count + bill_data.Senior_Count + bill_data.Child_Count;
+        int totalCount = CalculateTotalCount(bill_data.Adult_Count, bill_data.Senior_Count, bill_data.Child_Count);
 
         if (totalCount == 0)
         {
