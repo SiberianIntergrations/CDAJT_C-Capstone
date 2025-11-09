@@ -2,12 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using Microsoft.AspNetCore.Mvc;
 using back_end.DTO.Analytics;
-<<<<<<< HEAD
 using Microsoft.AspNetCore.Http.Features;
-=======
 using back_end.Helpers;
 
->>>>>>> main
 
 namespace back_end.controllers
 {
@@ -270,23 +267,22 @@ namespace back_end.controllers
 
 
 
-        [HttpGet("order-timing")]
+        [HttpGet("order-timing/{location_id}")]
         [ProducesResponseType(typeof(TableTurnOverResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetOrderTimingMetrics()
+        public async Task<IActionResult> GetOrderTimingMetrics(
+            string location_id
+        )
         {
             try
             {
-<<<<<<< HEAD
-                var orderTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null)
-=======
                 // Use ClaimsHelpers for user identification
                 string userOid = ClaimsHelpers.GetUserOid(User);
 
                 // Get user's location from claims (if available)
-                string? locationIdStr = User.FindFirst("location_id")?.Value;
+                // string? locationIdStr = User.FindFirst("location_id")?.Value;
+                string locationIdStr = location_id;
                 int? locationId = null;
                 if (int.TryParse(locationIdStr, out var locId))
                     locationId = locId;
@@ -298,7 +294,6 @@ namespace back_end.controllers
 
                 var orderTiming = await _context.DiningSessions
                     .Where(ds => ds.Location_Id == locationId)
->>>>>>> main
                     .Select(ds => new
                     {
                         sessionId = ds.Session_Id,

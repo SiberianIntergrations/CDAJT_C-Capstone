@@ -12,8 +12,8 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251108000940_OauthRemodel")]
-    partial class OauthRemodel
+    [Migration("20251108045245_InitialMigrationTimT")]
+    partial class InitialMigrationTimT
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

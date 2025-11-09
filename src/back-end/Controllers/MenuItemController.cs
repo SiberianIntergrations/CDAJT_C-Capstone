@@ -3,9 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
+using System.Linq.Expressions;
 using back_end.DTO.MenuItems;
 using Microsoft.AspNetCore.Authorization;
-using back_end.Helpers;
+using back_end.DTO.MenuDTO;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using back_end.domain.Seeders;
+using Pomelo.EntityFrameworkCore.MySql.Storage.Internal;
+using System.Formats.Asn1;
+using System.Security.Cryptography.X509Certificates;
 
 namespace back_end.Controllers
 {
@@ -53,7 +59,7 @@ namespace back_end.Controllers
         /// The menu item is automatically created with 'Available' status.
         /// Tags are optional and will be associated with the item if provided.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "adminOnly")]
         [HttpPost]
         [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -136,7 +142,7 @@ namespace back_end.Controllers
         /// This endpoint requires authentication.
         /// Returns the menu item with all associated tags.
         /// </remarks>
-        [Authorize]
+
         [HttpGet("{item_id}")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -186,7 +192,7 @@ namespace back_end.Controllers
         /// This endpoint requires authentication.
         /// Returns all menu items in the system with their associated tags.
         /// </remarks>
-        [Authorize]
+
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Menu_Item>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -260,7 +266,7 @@ namespace back_end.Controllers
         /// All fields in the request body are optional - only provided fields will be updated.
         /// Tag IDs will be added to existing tags (not replaced).
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "adminOnly")]
         [HttpPut("{item_id}")]
         [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -370,7 +376,7 @@ namespace back_end.Controllers
         /// Supported formats: JPEG, PNG, WebP
         /// The image will be saved to the front-end public directory and the URL will be stored in the database.
         /// </remarks>
-[Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "adminOnly")]
 [HttpPost("{item_id:int}/image")]
 [RequestSizeLimit(5 * 1024 * 1024)]
 [Consumes("multipart/form-data")]
@@ -385,7 +391,8 @@ public async Task<IActionResult> Upload_Item_Image(
     CancellationToken ct)
 {
     try
-    {
+        {
+        
         // 1) Fetch item
         var item = await _context.MenuItems
             .FirstOrDefaultAsync(mi => mi.item_id == item_id, ct);
@@ -405,8 +412,9 @@ public async Task<IActionResult> Upload_Item_Image(
         if (string.IsNullOrWhiteSpace(extension))
             return BadRequest("File must have an extension.");
 
-        // 4) Create new filename: ItemName_Date.ext
+                // 4) Create new filename: ItemName_Date.ext
         var safeItemName = string.Join("_", item.Name.Split(Path.GetInvalidFileNameChars()));
+        safeItemName = safeItemName.Replace(' ', '_');
         var dateStamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
         var newFileName = $"{safeItemName}_{dateStamp}{extension}";
 
@@ -490,7 +498,7 @@ public async Task<IActionResult> Upload_Item_Image(
         /// The menu item can only be deleted if it has no active menu assignments.
         /// Both the database record and the associated image file will be deleted.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "adminOnly")]
         [HttpDelete("{item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -565,7 +573,7 @@ public async Task<IActionResult> Upload_Item_Image(
         /// This endpoint requires Admin or Staff role authorization.
         /// Valid status values: Available, Unavailable, Discontinued
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "staffOnly")]
         [HttpPut("{item_id}/status")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -617,7 +625,7 @@ public async Task<IActionResult> Upload_Item_Image(
         /// This endpoint requires authentication.
         /// Returns all tags for the specified menu item, sorted alphabetically by tag name.
         /// </remarks>
-        [Authorize]
+
         [HttpGet("{item_id}/tags")]
         [ProducesResponseType(typeof(IEnumerable<TagResponseDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -675,7 +683,7 @@ public async Task<IActionResult> Upload_Item_Image(
         /// This endpoint requires authentication.
         /// Returns all tags for the specified menu item with their color codes, sorted alphabetically by tag name.
         /// </remarks>
-        [Authorize]
+ [Authorize(Policy = "staffOnly")]
         [HttpGet("{item_id}/tags-with-colors")]
         [ProducesResponseType(typeof(IEnumerable<FullTagResponseDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -718,7 +726,7 @@ public async Task<IActionResult> Upload_Item_Image(
             }
         }          
  
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "staffOnly")]
         [HttpPost("{item_id}/tags/{tag_id}")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -765,7 +773,7 @@ public async Task<IActionResult> Upload_Item_Image(
                 _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
-        }           
+        }
 
         /// <summary>
         /// Removes a tag from a menu item.
@@ -791,7 +799,8 @@ public async Task<IActionResult> Upload_Item_Image(
         /// This endpoint requires Admin or Staff role authorization.
         /// Removes the association between the specified tag and menu item.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+
+        [Authorize(Policy = "staffOnly")]
         [HttpDelete("{item_id}/tags/{tag_id}")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

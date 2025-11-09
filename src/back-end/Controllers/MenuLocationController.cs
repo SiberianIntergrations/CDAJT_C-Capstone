@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
+using Microsoft.AspNetCore.Authorization;
 
 namespace back_end.Controllers
 {
@@ -21,7 +22,7 @@ namespace back_end.Controllers
             _logger = logger;
             _env = env;
         }
-
+ [Authorize(Policy = "adminOnly")]
         [HttpPut("menu/{menu_id}/location/{location_id}")]
         public async Task<IActionResult> AddLocationToMenu(
             [FromRoute] int menu_id = -1,
@@ -62,7 +63,7 @@ namespace back_end.Controllers
                 return BadRequest(error);
             }
         }
-        
+ [Authorize(Policy = "adminOnly")]        
         [HttpDelete("menu/{menu_id}/location/{location_id}")]
         public async Task<IActionResult> DeleteLocationToMenu(
         [FromRoute] int menu_id,

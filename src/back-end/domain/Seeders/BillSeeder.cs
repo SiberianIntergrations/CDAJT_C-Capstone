@@ -126,7 +126,7 @@ namespace back_end.domain.Seeders
       var totalOpen = _context.Bills.Count(b => b.Status == BillStatus.Open);
       var totalClosed = _context.Bills.Count(b => b.Status == BillStatus.Closed);
       var totalCancelled = _context.Bills.Count(b => b.Status == BillStatus.Cancelled);
-      _logger.LogInformation($"Created {created} bills ({totalOpen} open, {totalClosed} closed, {totalCancelled} cancelled)");
+      // _logger.LogInformation($"Created {created} bills ({totalOpen} open, {totalClosed} closed, {totalCancelled} cancelled)");
 
       // Ensure every account is used at least twice
       foreach (var kvp in _userSeedData)

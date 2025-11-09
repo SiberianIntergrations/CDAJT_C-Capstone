@@ -130,7 +130,7 @@ namespace back_end.domain.Seeders
                         Tot_Limit = categoryConfig.TotLimit,
                         Total_Units_Ordered = randomNumber.Next(100),
                         Total_Views = randomNumber.Next(30),
-                        Total_View_Seconds = randomNumber.Next(20,100),
+                        Total_View_Seconds = randomNumber.Next(60,400),
                         Status = MenuItemStatus.Available,
                         Is_Add_On = false
                     };

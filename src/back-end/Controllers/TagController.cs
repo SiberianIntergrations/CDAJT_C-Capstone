@@ -37,7 +37,7 @@ namespace back_end.controllers
     /// <response code="403">The user does not have permission to create tags.</response>
     /// <response code="409">A tag with the same name already exists.</response>
     /// <response code="500">An unexpected error occurred while creating the tag.</response>
-    [Authorize(Policy = "adminOnly")]
+    [Authorize(Policy = "adminOnly,")]
     [HttpPost]
     [Consumes("application/json")]
     [Produces("application/json")]
@@ -95,7 +95,7 @@ namespace back_end.controllers
     /// <response code="200">A list of tags and their associated colors was returned successfully.</response>
     /// <response code="403">The user is not authorized to access this resource.</response>
     /// <response code="500">An internal server error occurred while retrieving tag colors.</response>
-    [Authorize]
+
     [HttpGet("colors")]
     [Produces("application/json")]
     [SwaggerOperation(
@@ -140,7 +140,7 @@ namespace back_end.controllers
     /// <response code="403">The user is not authorized to access this resource.</response>
     /// <response code="404">No tag exists with the specified <paramref name="tag_id"/>.</response>
     /// <response code="500">An internal server error occurred while retrieving the tag.</response>
-    [Authorize]
+
     [HttpGet("{tag_id:int}")]
     [Produces("application/json")]
     [SwaggerOperation(

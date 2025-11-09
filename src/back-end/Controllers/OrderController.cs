@@ -110,7 +110,7 @@ namespace back_end.Controllers
          /// <summary>
         /// Approves a pending order and transitions to Approved/Processing status.
         /// </summary>
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/approve")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -212,7 +212,7 @@ namespace back_end.Controllers
         /// Users can only delete items from their own pending orders.
         /// Staff and Admin users can delete items from approved orders.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "staffOnly")]
         [HttpDelete("{order_id}/items/{order_item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -328,7 +328,7 @@ namespace back_end.Controllers
         /// <summary>
         /// Marks the whole order as delivered/completed.
         /// </summary>
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/complete")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -596,7 +596,7 @@ namespace back_end.Controllers
         /// <summary>
         /// Updates order items before approval (pending orders only).
         /// </summary>
-        [Authorize]
+ [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/items/{item_id}")]
         [ProducesResponseType(typeof(OrderItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -722,7 +722,7 @@ namespace back_end.Controllers
         /// </remarks>
         //GET api/order
         //Get all Orders
-        [Authorize(Roles = "Admin,Staff")]
+ [Authorize(Policy = "staffOnly")]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<SessionOrder>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -1000,7 +1000,7 @@ namespace back_end.Controllers
         //GET: api/Order/active-session/orders
         //Get all of the orders for the user's ACTIVE session
         //Add an optional Bill ID parameter in-case of bill splitting
-        [Authorize]
+
         [HttpGet("active-session/orders")]
         public async Task<ActionResult<IEnumerable<object>>> GetOrdersForActiveSession([FromQuery] int? bill_id = null)
         {

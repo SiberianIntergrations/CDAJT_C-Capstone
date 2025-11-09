@@ -25,6 +25,7 @@ ChartJS.register(
   Legend
 );
 import api from "@/config/api";
+  import storage from "@/utils/storage";
 
 const OrderTiming = () => {
   const [data, setData] = useState(null);
@@ -32,6 +33,9 @@ const OrderTiming = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const [selectedLocation, setSelectedLocation] = useState(
+    storage.get("branch-location")
+  );
 
   useEffect(() => {
     const fetchData = async () => {
@@ -44,7 +48,7 @@ const OrderTiming = () => {
       // }
 
       try {
-        const response = await api.get("analytics/order-timing");
+        const response = await api.get(`analytics/order-timing/${selectedLocation}`);
 
         setData(response.data);
         console.log(response.data)

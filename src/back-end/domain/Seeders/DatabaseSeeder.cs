@@ -77,6 +77,7 @@ namespace back_end.domain.Seeders
     private Dictionary<string, (string DisplayName, string GivenName, string Surname)> LoadUserSeedData()
     {
       var csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "domain", "Seeders", "userSeedData.csv");
+      var rootPath = AppDomain.CurrentDomain.BaseDirectory;
       var userSeedMap = new Dictionary<string, (string, string, string)>();
       if (File.Exists(csvPath))
       {
