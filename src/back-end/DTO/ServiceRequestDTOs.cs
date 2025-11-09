@@ -35,7 +35,7 @@ namespace back_end.DTO.ServiceRequestDTOs
         [JsonPropertyName("claimed_at")]
         public DateTime? Claimed_At { get; set; }
         [JsonPropertyName("completed_at")]
-        public DateTime? Completed_at    { get; set; }
+        public DateTime? Completed_At    { get; set; }
         [JsonPropertyName("table_number")]
         public int Table_Number{ get; set; }
     }
