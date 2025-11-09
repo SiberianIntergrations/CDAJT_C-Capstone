@@ -19,10 +19,14 @@ import OrderSummary from "@/components/customer/OrderDashboard/components/OrderS
 import useMenuSearch from "@/components/menu/searchUtils";
 import Tags from "@/components/Tags";
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
 import { useOrderActions } from "@/hooks/useOrderActions";
 
 const SWIPE_THRESHOLD = 50;
 const ANIMATION_DURATION = 300;
+
+//Check if the logged in user is a guest.
+const isGuest = () => typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
 const SwipeableItem = ({
   children,
@@ -213,9 +217,22 @@ const FullMenu = () => {
 
   useEffect(() => {
     const getActiveSession = async () => {
+
+      if (isGuest()) {
+        const sid = localStorage.getItem("session_id");
+        if (sid) {
+          setSessionId(parseInt(sid));
+          return;
+        } else {
+          setError("Guest session not found. Please scan your table QR again.");
+          return;
+        }
+      }
+
+      const apiClient = isGuest() ? publicApi : api;
       try {
         setError(null);
-        const response = await api.get(
+        const response = await apiClient.get(
           "/DiningSession/participants/active-session-id"
         );
         if (response?.status >= 200 && response.status < 300 && response.data) {
@@ -240,10 +257,12 @@ const FullMenu = () => {
     }
 
     const fetchMenu = async () => {
+
+      const apiClient = isGuest() ? publicApi : api;
       try {
         setError(null);
 
-        const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
+        const response = await apiClient.get(`/DiningSession/session-menu/${sessionId}`);
 
         if (response?.status >= 200 && response.status < 300 && response.data) {
           const raw = response.data;
@@ -288,9 +307,12 @@ const FullMenu = () => {
 
   useEffect(() => {
     const fetchCategories = async () => {
+
+      const apiClient = isGuest() ? publicApi : api;
+
       try {
         setError(null);
-        const response = await api.get("/Category");
+        const response = await apiClient.get("/Category");
         const data = Array.isArray(response.data) ? response.data : [];
         setCategories(
           data.map((c) => ({
@@ -315,9 +337,11 @@ const FullMenu = () => {
     //Make sure the menu ID is valid or if we already loaded the menu items
     if (!menu_id || menuItems[categoryId]) return;
 
+    const apiClient = isGuest() ? publicApi : api;
+
     try {
       //Call GetItemsByMenu and check if it's in an array
-      const response = await api.get(`/Menu/${menu_id}/item`);
+      const response = await apiClient.get(`/Menu/${menu_id}/item`);
       const items = Array.isArray(response.data) ? response.data : [];
 
       //Clean up the field names so it's the same everywhere on the page

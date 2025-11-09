@@ -15,10 +15,14 @@ const Join = () => {
       try {
         console.log("Joining table:", tableNumber);
 
+        const guestOid = `guest-${crypto.randomUUID()}`;
+
         const payload = {
           menu_Id: 1,
           location_Id: 1,
           table_Id: parseInt(tableNumber),
+          request_By_Oid: guestOid,
+          request_By_Name: "Guest",
         };
 
         const res = await publicApi.post(
@@ -31,7 +35,7 @@ const Join = () => {
         //Store guest session
         localStorage.setItem("guest", "true");
         localStorage.setItem("session_id", res.data.session_Id);
-        localStorage.setItem("guest_oid", res.data.guest_oid || `guest-${crypto.randomUUID()}`);
+        localStorage.setItem("guest_oid", guestOid);
 
         //force full reload so HomePage re-runs and shows AppBar
         window.location.href = "/";

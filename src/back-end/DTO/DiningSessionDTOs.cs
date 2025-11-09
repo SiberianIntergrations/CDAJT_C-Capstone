@@ -21,6 +21,9 @@ namespace back_end.DTO.DiningSessionDTOs
     public int Location_Id { get; set; }
     public int? Table_Id { get; set; }
     public int? TableGroup_Id { get; set; }
+
+    public string? Request_By_Oid { get; set; }
+    public string? Request_By_Name { get; set; }
   }
 
   public class DiningSessionResponseDTO

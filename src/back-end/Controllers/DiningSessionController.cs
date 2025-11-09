@@ -86,133 +86,151 @@ namespace back_end.controllers
         [FromBody] CreateSessionRequestDTO sessionData,
         [FromQuery] string assignmentType = "none")
     {
-      try
-      {
-        var menu = await _context.Menus.Where(m => m.Menu_id == sessionData.Menu_Id).FirstOrDefaultAsync();
-        if (menu == null)
+        try
         {
-          return BadRequest("Menu Does not Exist");
+            var menu = await _context.Menus.Where(m => m.Menu_id == sessionData.Menu_Id).FirstOrDefaultAsync();
+            if (menu == null) return BadRequest("Menu Does not Exist");
+
+            var location = await _context.Locations.Where(l => l.Location_Id == sessionData.Location_Id).FirstOrDefaultAsync();
+            if (location == null) return BadRequest("Location Does not Exist");
+
+            assignmentType = assignmentType.ToLower();
+            int? tableId = null;
+            int? tableGroupId = null;
+            List<int> tableNumbers = new();
+
+            if (assignmentType == "table")
+            {
+                if (!sessionData.Table_Id.HasValue)
+                    return BadRequest("Table_Id is required when assignmentType is 'table'");
+
+                var table = await _context.Tables
+                    .FirstOrDefaultAsync(t => t.Table_Id == sessionData.Table_Id.Value && t.is_active);
+
+                if (table == null) return BadRequest($"Table: {sessionData.Table_Id} not found or inactive");
+                if (table.Location_Id != sessionData.Location_Id)
+                    return BadRequest($"Table belongs to a different location");
+
+                var existingSession = await _context.DiningSessions
+                    .FirstOrDefaultAsync(d => d.Ended_At == null && d.Table_Id == table.Table_Id);
+
+                if (existingSession != null)
+                {
+                    var existingParticipant = await _context.SessionParticipants
+                        .FirstOrDefaultAsync(p => p.Session_Id == existingSession.Session_Id &&
+                                              p.User_Oid == sessionData.Request_By_Oid);
+
+                    if (existingParticipant == null)
+                    {
+                        _context.SessionParticipants.Add(new SessionParticipant
+                        {
+                            Session_Id = existingSession.Session_Id,
+                            User_Oid = sessionData.Request_By_Oid,
+                            User_Name = sessionData.Request_By_Name ?? "Guest",
+                            Joined_At = DateTime.UtcNow
+                        });
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return Ok(new
+                    {
+                        message = $"Joined existing session at table {table.Table_Id}",
+                        session_Id = existingSession.Session_Id
+                    });
+                }
+
+                tableId = table.Table_Id;
+                tableNumbers.Add(table.table_number);
+            }
+            else if (assignmentType == "table_group")
+            {
+                if (!sessionData.TableGroup_Id.HasValue)
+                    return BadRequest("TableGroup_Id is required when assignmentType is 'table_group'");
+
+                var tableGroup = await _context.TableGroups
+                    .Include(tg => tg.Tables)
+                    .FirstOrDefaultAsync(tg => tg.TableGroup_Id == sessionData.TableGroup_Id.Value && tg.Is_Active);
+
+                if (tableGroup == null)
+                    return BadRequest($"Table group: {sessionData.TableGroup_Id} not found or inactive");
+                if (tableGroup.Location_Id != sessionData.Location_Id)
+                    return BadRequest($"Table group belongs to a different location");
+
+                var tableIds = tableGroup.Tables.Select(t => t.Table_Id).ToList();
+                var checkIfTablesInActiveSession = await _context.DiningSessions
+                    .AnyAsync(d => d.Ended_At == null &&
+                                  (d.Table_Id.HasValue && tableIds.Contains(d.Table_Id.Value) ||
+                                  d.TableGroup_Id.HasValue && d.TableGroup.Tables.Any(t => tableIds.Contains(t.Table_Id))));
+
+                if (checkIfTablesInActiveSession)
+                    return BadRequest($"One or more tables in table group {tableGroup.TableGroup_Id} are currently in another active dining session");
+
+                tableGroupId = tableGroup.TableGroup_Id;
+                tableNumbers = tableGroup.Tables.Select(t => t.table_number).ToList();
+            }
+            else if (assignmentType != "none")
+            {
+                return BadRequest("Invalid assignmentType. Must be 'table', 'table_group', or 'none'");
+            }
+
+            var newSession = new DiningSession
+            {
+                Menu_Id = sessionData.Menu_Id,
+                Location_Id = sessionData.Location_Id,
+                Table_Id = tableId,
+                TableGroup_Id = tableGroupId,
+                Started_At = DateTime.UtcNow
+            };
+
+            ValidateTableAssignment(newSession);
+            _context.Add<DiningSession>(newSession);
+            await _context.SaveChangesAsync();
+
+            var newDiningSession = await _context.DiningSessions
+                .OrderByDescending(s => s.Session_Id)
+                .FirstOrDefaultAsync();
+
+            if (sessionData.Request_By_Oid != null && sessionData.Request_By_Name == "Guest")
+            {
+                var alreadyExists = _context.SessionParticipants
+                    .Any(sp => sp.Session_Id == newDiningSession.Session_Id && sp.User_Oid == sessionData.Request_By_Oid);
+
+                if (!alreadyExists)
+                {
+                    var guestParticipant = new SessionParticipant
+                    {
+                        Session_Id = newDiningSession.Session_Id,
+                        User_Oid = sessionData.Request_By_Oid,
+                        User_Name = "Guest",
+                        Joined_At = DateTime.UtcNow
+                    };
+
+                    _context.SessionParticipants.Add(guestParticipant);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return Ok(new DiningSessionResponseDTO
+            {
+                Session_Id = newSession.Session_Id,
+                Menu_Id = newSession.Menu_Id,
+                Started_at = newSession.Started_At,
+                Ended_at = newSession.Ended_At,
+                First_Order_Time = newSession.First_Order_At,
+                Table_Numbers = tableNumbers,
+                Active_Participants = 0
+            });
         }
-
-        var location = await _context.Locations.Where(l => l.Location_Id == sessionData.Location_Id).FirstOrDefaultAsync();
-        if (location == null)
+        catch (ValidationException vex)
         {
-          return BadRequest("Location Does not Exist");
+            return BadRequest(vex.Message);
         }
-
-        // Normalize assignment type to lowercase
-        assignmentType = assignmentType.ToLower();
-
-        int? tableId = null;
-        int? tableGroupId = null;
-        List<int> tableNumbers = new List<int>();
-
-        // Handle table assignment based on query parameter
-        if (assignmentType == "table")
+        catch (Exception ex)
         {
-          if (!sessionData.Table_Id.HasValue)
-          {
-            return BadRequest("Table_Id is required when assignmentType is 'table'");
-          }
-
-          var table = await _context.Tables
-              .FirstOrDefaultAsync(t => t.Table_Id == sessionData.Table_Id.Value && t.is_active);
-
-          if (table == null)
-          {
-            return BadRequest($"Table: {sessionData.Table_Id} not found or inactive");
-          }
-
-          if (table.Location_Id != sessionData.Location_Id)
-          {
-            return BadRequest($"Table belongs to a different location");
-          }
-
-          var checkIfAlreadyActiveSession = await _context.DiningSessions
-              .AnyAsync(d => d.Ended_At == null && d.Table_Id == table.Table_Id);
-
-          if (checkIfAlreadyActiveSession)
-          {
-            return BadRequest($"Table ID: {table.Table_Id} is currently in another active dining session");
-          }
-
-          tableId = table.Table_Id;
-          tableNumbers.Add(table.table_number);
+            return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
         }
-        else if (assignmentType == "table_group")
-        {
-          if (!sessionData.TableGroup_Id.HasValue)
-          {
-            return BadRequest("TableGroup_Id is required when assignmentType is 'table_group'");
-          }
-
-          var tableGroup = await _context.TableGroups
-              .Include(tg => tg.Tables)
-              .FirstOrDefaultAsync(tg => tg.TableGroup_Id == sessionData.TableGroup_Id.Value && tg.Is_Active);
-
-          if (tableGroup == null)
-          {
-            return BadRequest($"Table group: {sessionData.TableGroup_Id} not found or inactive");
-          }
-
-          if (tableGroup.Location_Id != sessionData.Location_Id)
-          {
-            return BadRequest($"Table group belongs to a different location");
-          }
-
-          var tableIds = tableGroup.Tables.Select(t => t.Table_Id).ToList();
-          var checkIfTablesInActiveSession = await _context.DiningSessions
-              .AnyAsync(d => d.Ended_At == null &&
-                            (d.Table_Id.HasValue && tableIds.Contains(d.Table_Id.Value) ||
-                             d.TableGroup_Id.HasValue && d.TableGroup.Tables.Any(t => tableIds.Contains(t.Table_Id))));
-
-          if (checkIfTablesInActiveSession)
-          {
-            return BadRequest($"One or more tables in table group {tableGroup.TableGroup_Id} are currently in another active dining session");
-          }
-
-          tableGroupId = tableGroup.TableGroup_Id;
-          tableNumbers = tableGroup.Tables.Select(t => t.table_number).ToList();
-        }
-        else if (assignmentType != "none")
-        {
-          return BadRequest("Invalid assignmentType. Must be 'table', 'table_group', or 'none'");
-        }
-
-        var newSession = new DiningSession
-        {
-          Menu_Id = sessionData.Menu_Id,
-          Location_Id = sessionData.Location_Id,
-          Table_Id = tableId,
-          TableGroup_Id = tableGroupId,
-          Started_At = DateTime.UtcNow
-        };
-
-        ValidateTableAssignment(newSession);
-
-        _context.Add<DiningSession>(newSession);
-        await _context.SaveChangesAsync();
-
-        return Ok(new DiningSessionResponseDTO
-        {
-          Session_Id = newSession.Session_Id,
-          Menu_Id = newSession.Menu_Id,
-          Started_at = newSession.Started_At,
-          Ended_at = newSession.Ended_At,
-          First_Order_Time = newSession.First_Order_At,
-          Table_Numbers = tableNumbers,
-          Active_Participants = 0
-        });
-      }
-      catch (ValidationException vex)
-      {
-        return BadRequest(vex.Message);
-      }
-      catch (Exception ex)
-      {
-        return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
-      }
     }
+
 
     /// <summary>
     /// Retrieves a list of dining sessions filtered by their active status.
@@ -445,16 +463,6 @@ namespace back_end.controllers
         if (table.Location_Id != session.Location_Id)
         {
           return BadRequest($"Table belongs to a different location. Session is for location {session.Location_Id}, table is for location {table.Location_Id}");
-        }
-
-        var checkIfAlreadyActiveSession = await _context.DiningSessions
-            .AnyAsync(d => d.Ended_At == null &&
-                          d.Session_Id != session_id &&
-                          d.Table_Id == table.Table_Id);
-
-        if (checkIfAlreadyActiveSession)
-        {
-          return BadRequest($"Table ID: {table.Table_Id} is currently in another active dining session.");
         }
 
         session.Table_Id = table.Table_Id;

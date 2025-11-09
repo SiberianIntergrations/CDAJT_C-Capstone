@@ -16,6 +16,7 @@ import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import BillSelect from "@/components/customer/OrderDashboard/components/BillSelect";
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
 
 const OrdersAccordion = () => {
   const router = useRouter();
@@ -24,6 +25,8 @@ const OrdersAccordion = () => {
   const [error, setError] = useState(null);
   const [sessionId, setSessionId] = useState(null);
   const [selectedBillId, setSelectedBillId] = useState("");
+
+  const isGuest = () => typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
   const statusOrder = ["PENDING", "PROCESSING", "DELIVERED", "CANCELLED"];
   const statusColors = {
@@ -37,8 +40,21 @@ const OrdersAccordion = () => {
   // Fetch active session ID
   useEffect(() => {
     const getActiveSession = async () => {
+
+      const apiClient = isGuest() ? publicApi : api;
+
+      if (isGuest()) {
+        const sid = localStorage.getItem("session_id");
+        if (sid) {
+          setSessionId({ session_id: parseInt(sid) });
+          return;
+        } else {
+          setError("Guest session not found. Please scan your table QR again.");
+          return;
+        }
+      }
       try {
-        const response = await api.get("/DiningSession/participants/active-session-id");
+        const response = await apiClient.get("/DiningSession/participants/active-session-id");
 
         if (response.status < 200 || response.status >= 300) {
           throw new Error("Failed to fetch active session");
@@ -63,13 +79,16 @@ const OrdersAccordion = () => {
   }, []);
 
 const fetchOrders = async (billId = "") => {
+
+  const apiClient = isGuest() ? publicApi : api;
+
   try {
     setLoading(true);
     setError(null);
 
     //If a bill is selected - include it as a param to the endpoint
     const params = billId ? { bill_id: billId } : {};
-    const response = await api.get("/Order/active-session/orders", { params });
+    const response = await apiClient.get("/Order/active-session/orders", { params });
 
     //Check if there are no orders
     const orders = response.data || [];

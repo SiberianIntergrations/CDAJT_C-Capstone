@@ -8,6 +8,13 @@ namespace back_end.DTO.ServiceRequestDTOs
     {
         [JsonPropertyName("notes")]
         public string? Notes { get; set; }
+
+        [JsonPropertyName("request_by_oid")]
+        public string? Request_By_Oid { get; set; }
+
+        [JsonPropertyName("request_by_name")]
+        public string? Request_By_Name { get; set; }
+
     }
 
     public class ServiceRequestResponseDTO
