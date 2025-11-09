@@ -53,7 +53,7 @@ namespace back_end.Controllers
         /// The menu item is automatically created with 'Available' status.
         /// Tags are optional and will be associated with the item if provided.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPost]
         [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -148,11 +148,12 @@ namespace back_end.Controllers
             try
             {
                 var item = await _context.MenuItems
-                .Include(mi => mi.MenuAssignments)
-                    .ThenInclude(ma => ma.Menu)  // Navigate through MenuAssignments to get Menu
-                .Include(mi => mi.MenuItemTags)
-                    .ThenInclude(mit => mit.Tag)  // If you also need the Tag details
-                .FirstOrDefaultAsync(mi => mi.item_id == item_id);
+                    .Include(mi => mi.Category)  // Include Category details
+                    .Include(mi => mi.MenuAssignments)
+                        .ThenInclude(ma => ma.Menu)  // Navigate through MenuAssignments to get Menu
+                    .Include(mi => mi.MenuItemTags)
+                        .ThenInclude(mit => mit.Tag)  // If you also need the Tag details
+                    .FirstOrDefaultAsync(mi => mi.item_id == item_id);
                 if (item == null)
                 {
                     return NotFound(new { message = "Menu item was not found" });
@@ -190,9 +191,7 @@ namespace back_end.Controllers
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Menu_Item>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> List_Menu_Items(
-
-        )
+        public async Task<IActionResult> List_Menu_Items()
         {
             try
             {
@@ -260,7 +259,7 @@ namespace back_end.Controllers
         /// All fields in the request body are optional - only provided fields will be updated.
         /// Tag IDs will be added to existing tags (not replaced).
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPut("{item_id}")]
         [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -370,100 +369,100 @@ namespace back_end.Controllers
         /// Supported formats: JPEG, PNG, WebP
         /// The image will be saved to the front-end public directory and the URL will be stored in the database.
         /// </remarks>
-[Authorize(Roles = "Admin,Staff")]
-[HttpPost("{item_id:int}/image")]
-[RequestSizeLimit(5 * 1024 * 1024)]
-[Consumes("multipart/form-data")]
-[ProducesResponseType(StatusCodes.Status200OK)]
-[ProducesResponseType(StatusCodes.Status400BadRequest)]
-[ProducesResponseType(StatusCodes.Status404NotFound)]
-[ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
-[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-public async Task<IActionResult> Upload_Item_Image(
-    int item_id,
-    IFormFile file,
-    CancellationToken ct)
-{
-    try
-    {
-        // 1) Fetch item
-        var item = await _context.MenuItems
-            .FirstOrDefaultAsync(mi => mi.item_id == item_id, ct);
-        if (item is null) return NotFound("Menu item not found.");
-
-        // 2) Basic file checks
-        if (file is null || file.Length == 0)
-            return BadRequest("No file uploaded.");
-
-        const long MAX_BYTES = 5 * 1024 * 1024;
-        if (file.Length > MAX_BYTES)
-            return StatusCode(StatusCodes.Status413PayloadTooLarge, "File too large.");
-
-        // 3) Get file extension
-        var originalFileName = Path.GetFileName(file.FileName);
-        var extension = Path.GetExtension(originalFileName);
-        if (string.IsNullOrWhiteSpace(extension))
-            return BadRequest("File must have an extension.");
-
-        // 4) Create new filename: ItemName_Date.ext
-        var safeItemName = string.Join("_", item.Name.Split(Path.GetInvalidFileNameChars()));
-        var dateStamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-        var newFileName = $"{safeItemName}_{dateStamp}{extension}";
-
-        // 5) Setup public folder path
-        var backendRoot = _env.ContentRootPath;
-        var publicRoot = Path.GetFullPath(
-            Path.Combine(backendRoot, "..", "front-end", "public")
-        );
-        var targetFolder = Path.Combine(publicRoot, "menu-items");
-        
-        if (!Directory.Exists(targetFolder))
-            Directory.CreateDirectory(targetFolder);
-
-        // 6) Delete old image if it exists
-        if (!string.IsNullOrEmpty(item.image_url))
+        [Authorize(Policy = "staffOnly")]
+        [HttpPost("{item_id:int}/image")]
+        [RequestSizeLimit(5 * 1024 * 1024)]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> Upload_Item_Image(
+            int item_id,
+            IFormFile file,
+            CancellationToken ct)
         {
-            var oldImageRelativePath = item.image_url.TrimStart('/');
-            var oldImageFullPath = Path.Combine(publicRoot, oldImageRelativePath);
-            
-            if (System.IO.File.Exists(oldImageFullPath))
+            try
             {
-                try
+                // 1) Fetch item
+                var item = await _context.MenuItems
+                    .FirstOrDefaultAsync(mi => mi.item_id == item_id, ct);
+                if (item is null) return NotFound("Menu item not found.");
+
+                // 2) Basic file checks
+                if (file is null || file.Length == 0)
+                    return BadRequest("No file uploaded.");
+
+                const long MAX_BYTES = 5 * 1024 * 1024;
+                if (file.Length > MAX_BYTES)
+                    return StatusCode(StatusCodes.Status413PayloadTooLarge, "File too large.");
+
+                // 3) Get file extension
+                var originalFileName = Path.GetFileName(file.FileName);
+                var extension = Path.GetExtension(originalFileName);
+                if (string.IsNullOrWhiteSpace(extension))
+                    return BadRequest("File must have an extension.");
+
+                // 4) Create new filename: ItemName_Date.ext
+                var safeItemName = string.Join("_", item.Name.Split(Path.GetInvalidFileNameChars()));
+                var dateStamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+                var newFileName = $"{safeItemName}_{dateStamp}{extension}";
+
+                // 5) Setup public folder path
+                var backendRoot = _env.ContentRootPath;
+                var publicRoot = Path.GetFullPath(
+                    Path.Combine(backendRoot, "..", "front-end", "public")
+                );
+                var targetFolder = Path.Combine(publicRoot, "menu-items");
+                
+                if (!Directory.Exists(targetFolder))
+                    Directory.CreateDirectory(targetFolder);
+
+                // 6) Delete old image if it exists
+                if (!string.IsNullOrEmpty(item.image_url))
                 {
-                    System.IO.File.Delete(oldImageFullPath);
-                    _logger.LogInformation("Deleted old image: {OldImage}", oldImageFullPath);
+                    var oldImageRelativePath = item.image_url.TrimStart('/');
+                    var oldImageFullPath = Path.Combine(publicRoot, oldImageRelativePath);
+                    
+                    if (System.IO.File.Exists(oldImageFullPath))
+                    {
+                        try
+                        {
+                            System.IO.File.Delete(oldImageFullPath);
+                            _logger.LogInformation("Deleted old image: {OldImage}", oldImageFullPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to delete old image: {OldImage}", oldImageFullPath);
+                            // Continue even if deletion fails
+                        }
+                    }
                 }
-                catch (Exception ex)
+
+                // 7) Save uploaded file with new name
+                var filePath = Path.Combine(targetFolder, newFileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
                 {
-                    _logger.LogWarning(ex, "Failed to delete old image: {OldImage}", oldImageFullPath);
-                    // Continue even if deletion fails
+                    await file.CopyToAsync(stream, ct);
                 }
+
+                // 8) Assign URL
+                var publicUrl = $"/menu-items/{newFileName}";
+                item.image_url = publicUrl;
+
+                await _context.SaveChangesAsync(ct);
+
+                _logger.LogInformation("Image uploaded successfully for item {ItemId}: {ImageUrl}", item_id, publicUrl);
+
+                return Ok(new { item_id, image_url = publicUrl });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error Saving the File selected");
+                return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
         }
-
-        // 7) Save uploaded file with new name
-        var filePath = Path.Combine(targetFolder, newFileName);
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream, ct);
-        }
-
-        // 8) Assign URL
-        var publicUrl = $"/menu-items/{newFileName}";
-        item.image_url = publicUrl;
-
-        await _context.SaveChangesAsync(ct);
-
-        _logger.LogInformation("Image uploaded successfully for item {ItemId}: {ImageUrl}", item_id, publicUrl);
-
-        return Ok(new { item_id, image_url = publicUrl });
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error Saving the File selected");
-        return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
-    }
-}
 
 
          /// <summary>
@@ -490,7 +489,7 @@ public async Task<IActionResult> Upload_Item_Image(
         /// The menu item can only be deleted if it has no active menu assignments.
         /// Both the database record and the associated image file will be deleted.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpDelete("{item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -565,7 +564,7 @@ public async Task<IActionResult> Upload_Item_Image(
         /// This endpoint requires Admin or Staff role authorization.
         /// Valid status values: Available, Unavailable, Discontinued
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPut("{item_id}/status")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -718,7 +717,7 @@ public async Task<IActionResult> Upload_Item_Image(
             }
         }          
  
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPost("{item_id}/tags/{tag_id}")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -791,7 +790,7 @@ public async Task<IActionResult> Upload_Item_Image(
         /// This endpoint requires Admin or Staff role authorization.
         /// Removes the association between the specified tag and menu item.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpDelete("{item_id}/tags/{tag_id}")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

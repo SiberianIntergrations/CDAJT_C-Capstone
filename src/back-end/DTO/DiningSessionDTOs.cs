@@ -27,6 +27,8 @@ namespace back_end.DTO.DiningSessionDTOs
   {
     public int Session_Id { get; set; }
     public int Menu_Id { get; set; }
+    public int Location_Id { get; set; }
+    public string? Location_Name { get; set; }
     public DateTime Started_at { get; set; }
     public DateTime? Ended_at { get; set; }
     public DateTime? First_Order_Time { get; set; }

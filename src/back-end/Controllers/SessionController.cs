@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
+using back_end.DTO.DiningSessionDTOs;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace back_end.Controllers
@@ -46,17 +47,54 @@ namespace back_end.Controllers
       return new List<object>();
     }
 
+    // Helper method to get table numbers from either single table or table group
+    private List<int> GetTableNumbers(DiningSession session)
+    {
+      if (session.Table != null)
+      {
+        return new List<int> { session.Table.table_number };
+      }
+      else if (session.TableGroup != null && session.TableGroup.Tables != null)
+      {
+        return session.TableGroup.Tables.Select(t => t.table_number).ToList();
+      }
+      return new List<int>();
+    }
+
     // GET: api/session
     /// <summary>Retrieves all dining sessions.</summary>
     /// <response code="200">A list of all sessions was returned.</response>
     /// <response code="500">An error occurred while retrieving sessions.</response>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<DiningSession>>> GetAllSessions()
+    [ProducesResponseType(typeof(IEnumerable<DiningSessionResponseDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<DiningSessionResponseDTO>>> GetAllSessions()
     {
       try
       {
-        var sessions = await _context.DiningSessions.ToListAsync();
-        return Ok(sessions);
+        var sessions = await _context.DiningSessions
+          .Include(s => s.Table)
+          .Include(s => s.TableGroup)
+              .ThenInclude(tg => tg.Tables)
+          .Include(s => s.Participants)
+          .Include(s => s.Location)
+          .OrderByDescending(s => s.Started_At)
+          .ToListAsync();
+        
+        var sessionDtos = sessions.Select(s => new DiningSessionResponseDTO
+        {
+          Session_Id = s.Session_Id,
+          Menu_Id = s.Menu_Id,
+          Location_Id = s.Location_Id,
+          Location_Name = s.Location?.Name,
+          Started_at = s.Started_At,
+          Ended_at = s.Ended_At,
+          First_Order_Time = s.First_Order_At,
+          Table_Numbers = GetTableNumbers(s),
+          Active_Participants = s.Participants.Count(p => p.Left_At == null)
+        }).ToList();
+    
+    return Ok(sessionDtos);
       }
       catch (Exception ex)
       {
@@ -64,6 +102,7 @@ namespace back_end.Controllers
         return StatusCode(500, "Internal Server Error");
       }
     }
+    
 
     // GET: api/session/{id}
     /// <summary>Gets a dining session with users, menu, orders, and table assignments.</summary>

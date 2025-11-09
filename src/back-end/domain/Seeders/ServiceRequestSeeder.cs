@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
 using back_end.domain.DbContexts;
 using back_end.domain.enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace back_end.domain.Seeders
 {
@@ -16,6 +17,17 @@ namespace back_end.domain.Seeders
         private readonly ILogger<ServiceRequestSeeder> _logger;
         private Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
         private readonly Random _rng = new(); // Added missing Random field
+
+        private readonly string[] _requestNotes = new[]
+        {
+            "Need water refill",
+            "Need napkins",
+            "Need utensils",
+            "Need soy sauce",
+            "Need wasabi",
+            "Need ginger",
+            "Ready for bill",
+        };
 
         public ServiceRequestSeeder(ApplicationDbContext context, ILogger<ServiceRequestSeeder> logger)
         {
@@ -30,82 +42,149 @@ namespace back_end.domain.Seeders
 
         public void Seed()
         {
-            var diningSession = _context.DiningSessions.FirstOrDefault();
-            var table = _context.Tables.FirstOrDefault();
+            var activeSessions = _context.DiningSessions
+                .Include(s => s.Table)
+                .Include(s => s.TableGroup)
+                    .ThenInclude(tg => tg.Tables)
+                .Include(s => s.Participants)
+                .Where(s => s.Ended_At == null)
+                .ToList();
 
-            if (diningSession == null || table == null)
+            if (!activeSessions.Any())
             {
-                _logger.LogWarning("Cannot seed ServiceRequest - missing DiningSession or TableEntity");
+                _logger.LogWarning("Cannot seed ServiceRequest - Missing DiningSession or Tables.");
                 return;
             }
 
             var userOids = _userSeedData.Keys.ToList();
             var userUsageCount = new Dictionary<string, int>();
-
             var serviceRequests = new List<ServiceRequest>();
+            int totalCreated = 0;
 
-            for (int i = 0; i < 3; i++)
+            // Create 0-3 service requests per active session
+            foreach (var session in activeSessions)
             {
-                var requesterOid = userOids[_rng.Next(userOids.Count)];
-                var requesterInfo = _userSeedData[requesterOid];
-                var claimerOid = userOids.Where(oid => oid != requesterOid).OrderBy(_ => _rng.Next()).FirstOrDefault();
-                var claimerInfo = claimerOid != null && _userSeedData.ContainsKey(claimerOid) ? _userSeedData[claimerOid] : default;
-
-                serviceRequests.Add(new ServiceRequest
+                // Determine which table(s) this session uses
+                List<int> tableIds = new List<int>();
+                
+                if (session.Table_Id.HasValue)
                 {
-                    Session_Id = diningSession.Session_Id,
-                    Table_Id = table.Table_Id,
-                    Request_By_Oid = requesterOid,
-                    Request_By_Name = $"{requesterInfo.GivenName} {requesterInfo.Surname}".Trim(),
-                    Claimed_By_Oid = claimerOid,
-                    Claimed_By_Name = claimerOid != null ? $"{claimerInfo.GivenName} {claimerInfo.Surname}".Trim() : null,
-                    Notes = i == 0 ? "Need extra napkins" : i == 1 ? "Requesting water refill" : "Bill requested",
-                    Status = i == 0 ? ServiceRequestStatus.Pending : i == 1 ? ServiceRequestStatus.Claimed : ServiceRequestStatus.Completed,
-                    Created_At = DateTime.Now.AddMinutes(-i * 15),
-                    Claimed_At = i == 1 ? DateTime.Now.AddMinutes(-10) : (i == 2 ? DateTime.Now.AddHours(-1).AddMinutes(-30) : null),
-                    Completed_At = i == 2 ? DateTime.Now.AddHours(-1) : null
-                });
-
-                if (!userUsageCount.ContainsKey(requesterOid)) userUsageCount[requesterOid] = 0;
-                userUsageCount[requesterOid]++;
-                if (claimerOid != null)
-                {
-                    if (!userUsageCount.ContainsKey(claimerOid)) userUsageCount[claimerOid] = 0;
-                    userUsageCount[claimerOid]++;
+                    tableIds.Add(session.Table_Id.Value);
                 }
-            }
-
-            _context.ServiceRequests.AddRange(serviceRequests);
-
-            // Ensure every account is used at least twice
-            foreach (var kvp in _userSeedData)
-            {
-                var oid = kvp.Key;
-                var info = kvp.Value;
-                if (!userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2)
+                else if (session.TableGroup_Id.HasValue && session.TableGroup?.Tables != null)
                 {
-                    for (int i = userUsageCount.GetValueOrDefault(oid, 0); i < 2; i++)
+                    tableIds.AddRange(session.TableGroup.Tables.Select(t => t.Table_Id));
+                }
+
+                if (!tableIds.Any())
+                {
+                    _logger.LogWarning($"Session {session.Session_Id} has no tables, skipping");
+                    continue;
+                }
+
+                // Get participants in this session to use as requesters
+                var sessionParticipants = session.Participants
+                    .Where(p => p.Left_At == null)
+                    .Select(p => p.User_Oid)
+                    .ToList();
+
+                if (!sessionParticipants.Any())
+                {
+                    _logger.LogWarning($"Session {session.Session_Id} has no active participants, skipping");
+                    continue;
+                }
+
+                // Create 0-3 requests for this session
+                int numRequests = _rng.Next(0, 4);
+
+                for (int i = 0; i < numRequests; i++)
+                {
+                    // Pick a random participant from THIS session as requester
+                    var requesterOid = sessionParticipants[_rng.Next(sessionParticipants.Count)];
+                    var requesterInfo = _userSeedData.ContainsKey(requesterOid) 
+                        ? _userSeedData[requesterOid] 
+                        : (DisplayName: "Unknown", GivenName: "Unknown", Surname: "User");
+
+                    // Pick a different user (from any user) as potential claimer
+                    var claimerOid = userOids.Where(oid => oid != requesterOid).OrderBy(_ => _rng.Next()).FirstOrDefault();
+                    var claimerInfo = claimerOid != null && _userSeedData.ContainsKey(claimerOid) 
+                        ? _userSeedData[claimerOid] 
+                        : default;
+
+                    var note = _requestNotes[_rng.Next(_requestNotes.Length)];
+
+                    // Pick a random table from this session's tables
+                    var tableId = tableIds[_rng.Next(tableIds.Count)];
+
+                    var statusRoll = _rng.Next(100);
+                    ServiceRequestStatus status;
+                    DateTime? claimedAt;
+                    DateTime? completedAt;
+                    string actualClaimerOid;
+                    string actualClaimerName;
+
+                    if (statusRoll < 40) // 40% Pending
                     {
-                        var req = new ServiceRequest
-                        {
-                            Session_Id = diningSession?.Session_Id ?? 1,
-                            Table_Id = table?.Table_Id ?? 1,
-                            Request_By_Oid = oid,
-                            Request_By_Name = $"{info.GivenName} {info.Surname}".Trim(),
-                            Claimed_By_Oid = null,
-                            Claimed_By_Name = null,
-                            Notes = $"Seeded request for {info.DisplayName}",
-                            Status = ServiceRequestStatus.Pending,
-                            Created_At = DateTime.UtcNow.AddMinutes(_rng.Next(1, 60)),
-                            Claimed_At = null,
-                            Completed_At = null
-                        };
-                        _context.ServiceRequests.Add(req);
+                        status = ServiceRequestStatus.Pending;
+                        claimedAt = null;
+                        completedAt = null;
+                        actualClaimerOid = null;
+                        actualClaimerName = null;
                     }
+                    else if (statusRoll < 70) // 30% Claimed
+                    {
+                        status = ServiceRequestStatus.Claimed;
+                        claimedAt = DateTime.UtcNow.AddMinutes(_rng.Next(-60, -5));
+                        completedAt = null;
+                        actualClaimerOid = claimerOid;
+                        actualClaimerName = claimerOid != null ? $"{claimerInfo.GivenName} {claimerInfo.Surname}".Trim() : null;
+                    }
+                    else // 30% Completed
+                    {
+                        status = ServiceRequestStatus.Completed;
+                        claimedAt = DateTime.UtcNow.AddMinutes(_rng.Next(-120, -60));
+                        completedAt = claimedAt?.AddMinutes(_rng.Next(5, 30));
+                        actualClaimerOid = claimerOid;
+                        actualClaimerName = claimerOid != null ? $"{claimerInfo.GivenName} {claimerInfo.Surname}".Trim() : null;
+                    }
+
+                    serviceRequests.Add(new ServiceRequest
+                    {
+                        Session_Id = session.Session_Id,
+                        Table_Id = tableId,
+                        Request_By_Oid = requesterOid,
+                        Request_By_Name = $"{requesterInfo.GivenName} {requesterInfo.Surname}".Trim(),
+                        Claimed_By_Oid = actualClaimerOid,
+                        Claimed_By_Name = actualClaimerName,
+                        Notes = note,
+                        Status = status,
+                        Created_At = DateTime.UtcNow.AddMinutes(_rng.Next(-180, -1)),
+                        Claimed_At = claimedAt,
+                        Completed_At = completedAt
+                    });
+
+                    if (!userUsageCount.ContainsKey(requesterOid)) 
+                        userUsageCount[requesterOid] = 0;
+                    userUsageCount[requesterOid]++;
+                    
+                    if (actualClaimerOid != null)
+                    {
+                        if (!userUsageCount.ContainsKey(actualClaimerOid)) 
+                            userUsageCount[actualClaimerOid] = 0;
+                        userUsageCount[actualClaimerOid]++;
+                    }
+
+                    totalCreated++;
                 }
             }
 
-            _logger.LogInformation($"Added {serviceRequests.Count} service requests");
+             _context.ServiceRequests.AddRange(serviceRequests);
+            
+            var totalPending = serviceRequests.Count(sr => sr.Status == ServiceRequestStatus.Pending);
+            var totalClaimed = serviceRequests.Count(sr => sr.Status == ServiceRequestStatus.Claimed);
+            var totalCompleted = serviceRequests.Count(sr => sr.Status == ServiceRequestStatus.Completed);
+            
+            _logger.LogInformation($"Created {totalCreated} service requests across {activeSessions.Count} sessions ({totalPending} pending, {totalClaimed} claimed, {totalCompleted} completed)");
         }
     }
 }

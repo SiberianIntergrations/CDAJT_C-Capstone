@@ -289,10 +289,28 @@ namespace back_end.Controllers
     {
       try
       {
-        var request = await _context.ServiceRequests
+        var requests = await _context.ServiceRequests
             .Include(sr => sr.Table)
             .ToListAsync();
-        return Ok(request);
+        
+        var response = requests.Select(sr => new ServiceRequestResponseDTO
+        {
+          Request_Id = sr.request_id,
+          Session_Id = sr.Session_Id,
+          Table_Id = sr.Table_Id,
+          Status = sr.Status,
+          Request_By_Oid = sr.Request_By_Oid,
+          Request_By_Name = sr.Request_By_Name,
+          Claimed_By_Oid = sr.Claimed_By_Oid,
+          Claimed_By_Name = sr.Claimed_By_Name,
+          Notes = sr.Notes,
+          Created_At = sr.Created_At,
+          Claimed_At = sr.Claimed_At,
+          Completed_At = sr.Completed_At,
+          Table_Number = sr.Table?.table_number ?? 0
+        }).ToList();
+        
+        return Ok(response);
       }
       catch (Exception ex)
       {

@@ -61,7 +61,7 @@ namespace back_end.domain.Seeders
                     userUsageCount[userOid]++;
 
                     OrderStatus status;
-                    if (session.Session_Id <= 5)
+                    if (session.Ended_At == null)
                     {
                         status = (i == numWaves - 1)
                             ? new[] { OrderStatus.Pending, OrderStatus.Processing, OrderStatus.Delivered }[_rng.Next(3)]
@@ -86,19 +86,26 @@ namespace back_end.domain.Seeders
                 }
             }
 
-            // Ensure every account is used at least twice
-            foreach (var kvp in _userSeedData)
+            var unusedUsers = _userSeedData.Keys.Where(oid => !userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2).ToList();
+    
+            if (unusedUsers.Any() && bills.Any())
             {
-                var oid = kvp.Key;
-                var info = kvp.Value;
-                if (!userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2)
+                int billIndex = 0;
+                
+                foreach (var oid in unusedUsers)
                 {
-                    for (int i = userUsageCount.GetValueOrDefault(oid, 0); i < 2; i++)
+                    var usage = userUsageCount.GetValueOrDefault(oid, 0);
+                    for (int i = usage; i < 2; i++)
                     {
+                        var bill = bills[billIndex % bills.Count];
+                        billIndex++;
+                        
+                        var info = _userSeedData[oid];
+                        
                         var order = new SessionOrder
                         {
-                            session_id = bills.FirstOrDefault()?.Session_Id ?? 1,
-                            Bill_Id = bills.FirstOrDefault()?.Bill_Id ?? 1,
+                            session_id = bill.Session_Id,
+                            Bill_Id = bill.Bill_Id,
                             User_Oid = oid,
                             User_Name = $"{info.GivenName} {info.Surname}".Trim(),
                             Status = OrderStatus.Pending,

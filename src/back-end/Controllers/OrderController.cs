@@ -110,7 +110,7 @@ namespace back_end.Controllers
          /// <summary>
         /// Approves a pending order and transitions to Approved/Processing status.
         /// </summary>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/approve")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -212,7 +212,7 @@ namespace back_end.Controllers
         /// Users can only delete items from their own pending orders.
         /// Staff and Admin users can delete items from approved orders.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpDelete("{order_id}/items/{order_item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -328,7 +328,7 @@ namespace back_end.Controllers
         /// <summary>
         /// Marks the whole order as delivered/completed.
         /// </summary>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/complete")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -722,7 +722,7 @@ namespace back_end.Controllers
         /// </remarks>
         //GET api/order
         //Get all Orders
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<SessionOrder>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -878,6 +878,7 @@ namespace back_end.Controllers
 
                 var sessionOrder = await _context.SessionOrders
                                         .Where(o => o.session_id == sessionId)
+                                        .Include(o => o.Bill)
                                         // .Include(o => o.User) // Removed for Oauth
                                         .Include(o => o.OrderItems)
                                             .ThenInclude(or => or.MenuItem)
@@ -887,6 +888,8 @@ namespace back_end.Controllers
                 var orderAll = sessionOrder.Select(o => new
                 {
                     orderId = o.Order_Id,
+                    billId = o.Bill_Id,
+                    billStatus = o.Bill?.Status.ToString(),
                     sessionId = o.session_id,
                     userOid = o.User_Oid,
                     userName = o.User_Name,
@@ -974,6 +977,7 @@ namespace back_end.Controllers
                 {
                     orderId = o.Order_Id,
                     sessionId = o.session_id,
+                    billId = o.Bill_Id,
                     menuName = o.DiningSession.Menu.Name,
                     status = o.Status,
                     itemCount = o.OrderItems.Count,
@@ -1034,6 +1038,7 @@ namespace back_end.Controllers
                                 .Where(o => o.User_Oid == userOid && o.session_id == activeSessionId && (bill_id == null || o.Bill_Id == bill_id))
                                 .Include(o => o.DiningSession)
                                     .ThenInclude(or => or.Menu)
+                                .Include(o => o.Bill)
                                 .Include(o => o.OrderItems)
                                     .ThenInclude(od => od.MenuItem)
                                 .OrderByDescending(o => o.Created_At)
@@ -1045,6 +1050,7 @@ namespace back_end.Controllers
                     orderId = o.Order_Id,
                     SessionId = o.session_id,
                     bill_id = o.Bill_Id,
+                    billStatus = o.Bill?.Status.ToString(),
                     status = o.Status.ToString(),
                     createdAt = o.Created_At,
                     completedAt = o.Completed_At,
