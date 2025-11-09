@@ -1,7 +1,8 @@
 import React, { useState, useRef, useCallback } from "react";
-import { Box, Typography, Chip, Button } from "@mui/material";
+import { Box, Typography, Chip, Button, IconButton, } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { AlertCircle } from "lucide-react";
+import { X, Receipt } from "lucide-react";
+import { formatGuestBreakdown, getBillStatusColor, formatBillStatus } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const CardWrapper = styled("div")(() => ({
   position: "relative",
@@ -37,7 +38,7 @@ const BillContent = styled(Box)(({ theme }) => ({
   padding: theme.spacing(1.5),
 }));
 
-const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
+const SwipeableBillCard = ({ bill, onClose, onViewSummary, disabled }) => {
   const [dragX, setDragX] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -116,13 +117,12 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
     setShowConfirm(true);
   };
 
-  const formatGuestCount = () => {
-    const counts = [];
-    if (bill.adult_count > 0) counts.push(`${bill.adult_count} Adults`);
-    if (bill.child_count > 0) counts.push(`${bill.child_count} Children`);
-    if (bill.senior_count > 0) counts.push(`${bill.senior_count} Seniors`);
-    if (bill.tot_count > 0) counts.push(`${bill.tot_count} Tots`);
-    return counts.join(" • ");
+  const handleViewSummary = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isClosing && !showConfirm) {
+      onViewSummary(bill.bill_Id);
+    }
   };
 
   return (
@@ -202,17 +202,18 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
               display: "flex",
               flexDirection: "column",
               gap: 1,
+              flex: 1,
             }}
           >
             <Typography variant="body1" fontWeight="medium">
               {bill.bill_Name}
             </Typography>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
               <Chip
-                label={bill.status}
+                label={formatBillStatus(bill.status)}
                 size="small"
-                color={bill.status === "Open" ? "primary" : "default"}
+                color={getBillStatusColor(bill.status)}
                 sx={{
                   height: "20px",
                   "& .MuiChip-label": {
@@ -222,27 +223,47 @@ const SwipeableBillCard = ({ bill, onClose, disabled = false }) => {
                 }}
               />
               <Typography variant="caption" color="text.secondary">
-                {formatGuestCount()}
+                {formatGuestBreakdown(bill)}
               </Typography>
             </Box>
           </Box>
 
-          {bill.status === "Open" && (
-            <Button
-              variant="contained"
+          <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+            {/* View Summary Button */}
+            <IconButton
               size="small"
-              onClick={handleCloseClick}
+              onClick={handleViewSummary}
+              disabled={isClosing || showConfirm}
               sx={{
-                bgcolor: "#C01E2E",
-                color: "white",
+                color: "primary.main",
                 "&:hover": {
-                  bgcolor: "#A01725",
+                  bgcolor: "primary.light",
                 },
               }}
+              title="View bill summary"
             >
-              Close
-            </Button>
-          )}
+              <Receipt size={20} />
+            </IconButton>
+
+          {/* Close Button (only for open bills) */}
+            {bill.status === "Open" && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={handleCloseClick}
+                disabled={isClosing}
+                sx={{
+                  bgcolor: "#C01E2E",
+                  color: "white",
+                  "&:hover": {
+                    bgcolor: "#A01725",
+                  },
+                }}
+              >
+                Close
+              </Button>
+            )}
+          </Box>
         </Box>
       </BillContent>
     </CardWrapper>

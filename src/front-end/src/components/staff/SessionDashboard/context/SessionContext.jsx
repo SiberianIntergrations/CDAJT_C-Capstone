@@ -74,6 +74,7 @@ export const SessionProvider = ({ children }) => {
     // Bill operations
     createBill: baseCreateBill,
     getBills,
+    getBillSummary,
     closeBill: baseCloseBill,
 
     // Utilities
@@ -229,6 +230,7 @@ export const SessionProvider = ({ children }) => {
     // Bill operations
     createBill,
     getBills,
+    getBillSummary,
     closeBill,
 
     // Utilities
