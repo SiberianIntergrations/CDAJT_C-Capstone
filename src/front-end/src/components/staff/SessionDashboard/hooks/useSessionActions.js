@@ -319,9 +319,10 @@ export const useSessionActions = (onSuccess) => {
 
       const payload = {
         bill_name: billData.billName,
-        adult_count: parseInt(billData.adultCount),
-        child_count: parseInt(billData.childCount),
-        senior_count: parseInt(billData.seniorCount),
+        adult_count: parseInt(billData.adultCount) || 0,
+        child_count: parseInt(billData.childCount) || 0,
+        senior_count: parseInt(billData.seniorCount) || 0,
+        tot_count: parseInt(billData.totCount) || 0,
       };
 
         if (!payload.bill_name) throw new Error("Bill name is required");
@@ -350,6 +351,21 @@ export const useSessionActions = (onSuccess) => {
       },
       { defaultReturn: [] }
     );
+  
+  /**
+   * Get detailed bill summary with pricing breakdown
+  */
+  const getBillSummary = (sessionId, billId) =>
+    apiWrapper("getBillSummary", async () => {
+      const sid = toInt(sessionId);
+      const bid = toInt(billId);
+      validateIds({ "session ID": sid, "bill ID": bid });
+
+      const res = await api.get(`/Bill/summary/${bid}`, {
+        params: { _session_id: sid },
+      });
+      return res.data;
+    });
 
   /**
    * Closes a bill
@@ -403,6 +419,7 @@ export const useSessionActions = (onSuccess) => {
     // Bill operations
     createBill,
     getBills,
+    getBillSummary,
     closeBill,
 
     // Utilities

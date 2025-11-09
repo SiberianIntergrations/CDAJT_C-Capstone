@@ -14,12 +14,39 @@ export const formatTime = (dateString) => {
 };
 
 /**
- * Calculate total guests from a bill
+ * Format UTC date to local date and time
  */
-export const calculateTotalGuests = (bill) => {
-  return (
-    bill.adult_count + bill.child_count + bill.senior_count + bill.tot_count
-  );
+export const formatDateTime = (dateString) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch (error) {
+    console.error("Error formatting datetime:", error);
+    return "Invalid date";
+  }
+};
+
+/**
+ * Format just the date
+ */
+export const formatDate = (dateString) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Invalid date";
+  }
 };
 
 /**
@@ -36,8 +63,8 @@ export const canCloseSession = (session) => {
  * Format bill name with guest count
  */
 export const formatBillName = (bill) => {
-  const total = calculateTotalGuests(bill);
-  return `${bill.bill_name} (${total} guests)`;
+  const total = bill.total_count || 0;
+  return `${bill.bill_name} (${total} guest${total !== 1 ? 's' : ''})`;
 };
 
 /**
@@ -68,7 +95,7 @@ export const hasOpenBills = (session) => {
  */
 export const isAtCapacity = (session, maxCapacity = 20) => {
   const totalGuests = session.bills.reduce(
-    (sum, bill) => sum + calculateTotalGuests(bill),
+    (sum, bill) => sum + (bill.total_count || 0),
     0
   );
   return totalGuests >= maxCapacity;
@@ -151,6 +178,35 @@ export const formatCurrency = (amount) => {
     style: "currency",
     currency: "USD",
   }).format(amount);
+};
+
+/**
+ * Format pricing type for display
+ */
+export const formatPricingType = (pricingType) => {
+  switch (pricingType) {
+    case "Weekday":
+      return "Weekday Pricing";
+    case "Weekend":
+      return "Weekend Pricing";
+    case "Holiday":
+      return "Holiday Pricing";
+    default:
+      return pricingType;
+  }
+};
+
+/**
+ * Format guest breakdown for display
+ */
+export const formatGuestBreakdown = (bill) => {
+  const parts = [];
+  if (bill.adult_count > 0) parts.push(`${bill.adult_count} Adult${bill.adult_count > 1 ? 's' : ''}`);
+  if (bill.senior_count > 0) parts.push(`${bill.senior_count} Senior${bill.senior_count > 1 ? 's' : ''}`);
+  if (bill.child_count > 0) parts.push(`${bill.child_count > 1 ? 'ren' : ''}`);
+  if (bill.tot_count > 0) parts.push(`${bill.tot_count} Toddler${bill.tot_count > 1 ? 's' : ''}`);
+  
+  return parts.length > 0 ? parts.join(', ') : 'No guests';
 };
 
 /**
