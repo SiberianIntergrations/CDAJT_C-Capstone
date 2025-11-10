@@ -12,7 +12,7 @@ import {
   FormControlLabel,
   Select,
   InputLabel,
-  MenuItem
+  MenuItem,
 } from "@mui/material";
 import { useTable } from "../../context/TableContext";
 import api from "@/config/api";
@@ -24,7 +24,7 @@ const EditTableGroupDialog = ({ open, group }) => {
   });
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-    const [locationList, setLocationList] = useState([]);
+  const [locationList, setLocationList] = useState([]);
 
   useEffect(() => {
     if (group) {
@@ -51,7 +51,7 @@ const EditTableGroupDialog = ({ open, group }) => {
       await refreshData();
       handleClose();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to update table group");
+      setError(err.response.data || "Failed to update table group");
     } finally {
       setIsSubmitting(false);
     }
