@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { X } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
+import { validateBillData } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const NewBillDialog = ({ open, sessionId, onClose }) => {
   const { createBill } = useSession();
@@ -22,76 +23,92 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
     adultCount: 0,
     childCount: 0,
     seniorCount: 0,
+    totCount: 0,
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState({});
 
-  const totalGuests = formData.adultCount + formData.childCount + formData.seniorCount;
+  const totalGuests = useMemo(() => {
+    return (
+      Number(formData.adultCount || 0) +
+      Number(formData.childCount || 0) +
+      Number(formData.seniorCount || 0) +
+      Number(formData.totCount || 0)
+    );
+  }, [
+    formData.adultCount,
+    formData.childCount,
+    formData.seniorCount,
+    formData.totCount,
+  ]);
 
-  const handleFieldChange = (field, value) => {
+  const handleChange = useCallback((e) => {
+    const { name, value } = e.target;
+    
+    // Remove leading zeros from number fields
+    let sanitizedValue = value;
+    if (['adultCount', 'childCount', 'seniorCount', 'totCount'].includes(name)) {
+      sanitizedValue = value.replace(/^0+(?=\d)/, '');
+    }
+    
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [name]: sanitizedValue,
     }));
-  };
+    
+    setError((prev) => {
+      if (!prev || !prev[name]) return prev || {};
+      const { [name]: _, ...rest } = prev;
+      return rest;
+    });
+  }, []);
 
-  const handleSubmit = useCallback(async () => {
-    if (!formData.billName.trim()) {
-      setError("Bill name is required.");
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const validation = validateBillData(formData);
+
+    if (!validation.isValid) {
+      setError(validation.errors);
       return;
     }
-
-    if (totalGuests === 0) {
-      setError("Please add at least one guest");
-      return;
-    }
-    setIsLoading(true);
-    setError(null);
 
     try {
-     const billData = {
-        billName: formData.billName.trim(),
-        adultCount: formData.adultCount,
-        childCount: formData.childCount,
-        seniorCount: formData.seniorCount,
-      };
+      setSubmitting(true);
+      setError({});
 
-      console.log("Submitting bill data:", billData);
-      console.log("handleSubmit called with sessionId:", sessionId, "billData:", billData);
-      const success = await createBill(sessionId, billData);
-      console.log("Bill creation result:", success);
+      await createBill(sessionId, formData);
 
-      if (success) {
-        handleClose();
-      } else {
-        setError("Failed to create bill. Please try again.");
-      }
+      setFormData({
+        billName: "",
+        adultCount: "",
+        childCount: "",
+        seniorCount: "",
+        totCount: "",
+      });
+
+      onClose();
     } catch (error) {
       console.error("Error creating bill:", error);
-      setError(
-        error.response?.data?.message || 
-        "An unexpected error occurred while creating your Bill."
-      );
+      setError({
+        submit: error.message || "Failed to create bill. Please try again.",
+      });
     } finally {
-      setIsLoading(false);
+      setSubmitting(false);
     }
-  }, [formData, createBill, sessionId]);
+  };
 
-  const handleClose = useCallback(() => {
-    if (isLoading) return;
-
-    // Reset form to initial state
+  const handleClose = () => {
     setFormData({
       billName: "",
-      adultCount: 0,
-      childCount: 0,
-      seniorCount: 0,
+      adultCount: "",
+      childCount: "",
+      seniorCount: "",
+      totCount: "",
     });
-    setError(null);
+    setError({});
     onClose();
-  }, [isLoading, onClose]);
-
-  const isSubmitDisabled = !formData.billName.trim() || totalGuests === 0 || isLoading;
+  };
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
@@ -104,104 +121,143 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
           <X />
         </IconButton>
       </DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2}}>
-          Create a bill for your table.
-        </Typography>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
+      <form onSubmit={handleSubmit}>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Create a bill for your table.
+          </Typography>
+          {error?.submit && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error.submit}
+            </Alert>
+          )}
 
-        <Box component="form" sx={{ mt: 2, display: "flex", flexDirection: "column", gap: 2 }}>
-          <TextField
-            autoFocus
-            label="Bill Name"
-            value={formData.billName}
-            onChange={(e) => handleFieldChange("billName", e.target.value)}
-            fullWidth
-            placeholder="e.g., Table 1 - Party of 4"
-            error={!formData.billName.trim() && formData.billName !== ""}
-            disabled={isLoading}
-          />
+          {error?.guests && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error.guests}
+            </Alert>
+          )}
 
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+          <Box sx={{ mb: 2 }}>
+            <TextField
+              autoFocus
+              label="Bill Name"
+              name="billName"
+              value={formData.billName}
+              onChange={handleChange}
+              fullWidth
+              placeholder="e.g., Table 1 - Party of 4"
+              error={!!error.billName}
+              disabled={submitting}
+              helperText={error.billName}
+              required
+            />
+          </Box>
+
+          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 2 }}>
             <TextField
               label="Adults"
               type="number"
+              name="adultCount"
               value={formData.adultCount}
-              onChange={(e) => handleFieldChange("adultCount", Math.max(0, Math.min(50, parseInt(e.target.value) || 0)))}
+              onChange={handleChange}
               slotProps={{
                 input: {
                   inputProps: {
                     min: 0,
                     max: 50,
                     inputMode: "numeric", // Numeric keyboard shows on mobile
-                    pattern: "[0-9]*"
-                  }
-                }
+                    pattern: "[0-9]*",
+                  },
+                },
               }}
-              disabled={isLoading}
-            />
-            <TextField
-              label="Children"
-              type="number"
-              value={formData.childCount}
-              onChange={(e) => handleFieldChange("childCount", Math.max(0, Math.min(50, parseInt(e.target.value) || 0)))}
-              slotProps={{
-                input: {
-                  inputProps: {
-                    min: 0,
-                    max: 50,
-                    inputMode: "numeric", // Numeric keyboard shows on mobile
-                    pattern: "[0-9]*"
-                  }
-                }
-              }}
-              disabled={isLoading}
+              disabled={submitting}
             />
             <TextField
               label="Seniors"
               type="number"
+              name="seniorCount"
               value={formData.seniorCount}
-              onChange={(e) => handleFieldChange("seniorCount", Math.max(0, Math.min(50, parseInt(e.target.value) || 0)))}
+              onChange={handleChange}
               slotProps={{
                 input: {
                   inputProps: {
                     min: 0,
                     max: 50,
                     inputMode: "numeric", // Numeric keyboard shows on mobile
-                    pattern: "[0-9]*"
-                  }
-                }
+                    pattern: "[0-9]*",
+                  },
+                },
               }}
-              disabled={isLoading}
+              disabled={submitting}
+            />
+            <TextField
+              label="Children"
+              type="number"
+              name="childCount"
+              value={formData.childCount}
+              onChange={handleChange}
+              slotProps={{
+                input: {
+                  inputProps: {
+                    min: 0,
+                    max: 50,
+                    inputMode: "numeric", // Numeric keyboard shows on mobile
+                    pattern: "[0-9]*",
+                  },
+                },
+              }}
+              disabled={submitting}
+            />
+            <TextField
+              label="Toddlers (6 & Under)"
+              type="number"
+              name="totCount"
+              value={formData.totCount}
+              onChange={handleChange}
+              slotProps={{
+                input: {
+                  inputProps: {
+                    min: 0,
+                    max: 50,
+                    inputMode: "numeric",
+                    pattern: "[0-9]*",
+                  },
+                },
+              }}
+              disabled={submitting}
             />
           </Box>
 
           {/* Total Guests Summary */}
-          <Box sx={{ mt: 2, p:2, bgcolor: "background.paper", borderRadius: 1, border: 1, borderColor: "divider", textAlign: "center" }}
+          <Box
+            sx={{
+              p: 2,
+              bgcolor: "background.default",
+              borderRadius: 1,
+              textAlign: "center",
+            }}
           >
-            <Typography variant="subtitle1" sx={{ fontWeight: "600" }}>Total Guests: {totalGuests}</Typography>
+            <Typography variant="h6" fontWeight="600">
+              Total Guests: {totalGuests}
+            </Typography>
           </Box>
-        </Box>
-      </DialogContent>
-      
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={handleClose} disabled={isLoading}>Cancel</Button>
-        <Button
-        onClick={() => {
-            console.log("Create Bill button clicked");
-            handleSubmit();
-          }}
-          variant="contained"
-          disabled={isSubmitDisabled}
-          startIcon={isLoading && <CircularProgress size={16}/>}
-        >
-          {isLoading ? "Creating..." : "Create Bill"}
-        </Button>
-      </DialogActions>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={handleClose} disabled={submitting}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit"
+            variant="contained" 
+            disabled={submitting}
+            startIcon={submitting && <CircularProgress size={16} />}
+          >
+            {submitting ? "Creating..." : "Create Bill"}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   );
 };
