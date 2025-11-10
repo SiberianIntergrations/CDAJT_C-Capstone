@@ -27,7 +27,7 @@ const CategoryManagementDialog = ({
     adult_limit: 0,
     child_limit: 0,
     senior_limit: 0,
-    tot_limit: 0,
+    total_limit: 0,
   });
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -36,13 +36,15 @@ const CategoryManagementDialog = ({
   // TODO: Update API endpoints for categories
   useEffect(() => {
     if (selectedCategory) {
+      // Accept both API and dialog field names
       setFormData({
-        name: selectedCategory.name,
+        name: selectedCategory.name ?? selectedCategory.category_name ?? "",
         description: selectedCategory.description || "",
-        adult_limit: selectedCategory.adult_limit || 0,
-        child_limit: selectedCategory.child_limit || 0,
-        senior_limit: selectedCategory.senior_limit || 0,
-        tot_limit: selectedCategory.tot_limit || 0,
+        adult_limit: selectedCategory.adult_limit ?? 0,
+        child_limit: selectedCategory.child_limit ?? 0,
+        senior_limit: selectedCategory.senior_limit ?? 0,
+        total_limit:
+          selectedCategory.total_limit ?? selectedCategory.tot_limit ?? 0,
       });
     } else {
       setFormData({
@@ -51,7 +53,7 @@ const CategoryManagementDialog = ({
         adult_limit: 0,
         child_limit: 0,
         senior_limit: 0,
-        tot_limit: 0,
+        total_limit: 0,
       });
     }
   }, [selectedCategory]);
@@ -62,21 +64,42 @@ const CategoryManagementDialog = ({
     setError(null);
 
     try {
+      let response;
       if (selectedCategory) {
-        // TODO: Update endpoints
-        await api.put(
+        response = await api.put(
           `/Category/update_category/${selectedCategory.category_id}`,
           formData
         );
       } else {
-        await api.post("/Category", formData);
+        response = await api.post("/Category", formData);
+      }
+
+      // Check for error in response
+      if (response?.data?.error || response?.data?.detail) {
+        setError(
+          typeof response.data === "string"
+            ? response.data
+            : JSON.stringify(response.data, null, 2)
+        );
+        return;
       }
 
       onSuccess();
       onClose();
     } catch (err) {
-      console.error("Error saving category:", err);
-      setError(err.response?.data?.detail || "Failed to save category");
+      // Show full error response if available
+      if (err.response?.data) {
+        setError(
+          typeof err.response.data === "string"
+            ? err.response.data
+            : JSON.stringify(err.response.data, null, 2)
+        );
+      } else {
+        setError(
+          err.message ||
+          "Failed to save category"
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -197,13 +220,13 @@ const CategoryManagementDialog = ({
                 />
 
                 <TextField
-                  label="Tot Limit"
+                  label="Total Limit"
                   type="number"
-                  value={formData.tot_limit}
+                  value={formData.total_limit}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
-                      tot_limit: parseInt(e.target.value) || 0,
+                      total_limit: parseInt(e.target.value) || 0,
                     }))
                   }
                   required
