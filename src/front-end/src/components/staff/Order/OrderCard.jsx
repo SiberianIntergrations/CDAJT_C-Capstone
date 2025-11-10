@@ -6,7 +6,7 @@ import { DataCard } from "@/components/common/DataCard";
 export const OrderCard = ({ order, onViewDetails }) => {
   if (!order) return null;
 
-  console.log("Order Data:", order);
+  // console.log("Order Data:", order);
   const tableText = order.tableNumbers && order.tableNumbers.length > 0
     ? `Tables ${order.tableNumbers.join(", ")}`
     : `Order #${order.orderId}`;

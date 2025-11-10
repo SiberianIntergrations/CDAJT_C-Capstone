@@ -123,7 +123,7 @@ namespace back_end.Controllers
         }
 
 
-         /// <summary>
+        /// <summary>
         /// Approves a pending order and transitions to Approved/Processing status.
         /// </summary>
         [Authorize(Policy = "staffOnly")]
@@ -166,7 +166,15 @@ namespace back_end.Controllers
 
                 foreach (var item in order.OrderItems)
                 {
-                    item.Order_Item_Status = OrderStatus.Processing;
+                    if (item.Order_Item_Status == OrderStatus.Cancelled)
+                    {
+                        item.Quantity = 0; // Set quantity to 0 for cancelled items
+                        // Status remains Cancelled
+                    }
+                    else
+                    {
+                        item.Order_Item_Status = OrderStatus.Processing;
+                    }
                 }
 
                 _context.SessionOrders.Update(order);
@@ -262,7 +270,7 @@ namespace back_end.Controllers
                         return Conflict("Can not Modify a Approved Order");
                     }
                 }
-                 var item = order.OrderItems.FirstOrDefault(oi => oi.Order_Item_Id == order_item_id);
+                var item = order.OrderItems.FirstOrDefault(oi => oi.Order_Item_Id == order_item_id);
                 if (item is null)
                 {
                     return BadRequest("Order Item was not found");
@@ -278,7 +286,7 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while deleting the order item", error = ex.Message });
             }
         }
-        
+
 
         /// <summary>
         /// Marks an order item as completed/delivered.
@@ -605,7 +613,7 @@ namespace back_end.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateOrderItem(
-            int order_id, 
+            int order_id,
             int item_id,
             [FromBody] OrderItemUpdateDTO updateData
         )
@@ -623,15 +631,15 @@ namespace back_end.Controllers
                 // Use OAuth user info
                 var userOid = ClaimsHelpers.GetUserOid(User);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
-                
+
                 if (string.IsNullOrEmpty(userOid))
                 {
                     return Unauthorized("User Oid not found in claims.");
                 }
-                
+
                 // Check if user is the owner of the order
                 bool isOwner = order.User_Oid == userOid;
-                
+
                 // Check if user is staff/admin
                 bool isStaff = userRole.Contains("user.Staff") || userRole.Contains("user.Admin");
 
@@ -658,14 +666,29 @@ namespace back_end.Controllers
                 // Update quantity if provided
                 if (updateData.Quantity.HasValue)
                 {
-                    if (updateData.Quantity.Value <= 0)
+                    // Allow quantity 0 only for cancelled items
+                    if (updateData.Quantity.Value < 0)
                     {
-                        return BadRequest("Quantity must be positive");
+                        return BadRequest("Quantity cannot be negative");
                     }
-                    if (updateData.Quantity.Value > 99)
+
+                    if (updateData.Quantity.Value == 0)
                     {
-                        return BadRequest("Quantity cannot exceed 99");
+                        // Only allow 0 quantity for cancelled items
+                        if (orderItem.Order_Item_Status != OrderStatus.Cancelled)
+                        {
+                            return BadRequest("Quantity can only be 0 for cancelled items");
+                        }
                     }
+                    else
+                    {
+                        // For non-zero quantities, enforce positive and max limits
+                        if (updateData.Quantity.Value > 99)
+                        {
+                            return BadRequest("Quantity cannot exceed 99");
+                        }
+                    }
+
                     orderItem.Quantity = updateData.Quantity.Value;
                 }
 
@@ -681,6 +704,31 @@ namespace back_end.Controllers
                         return BadRequest("Price cannot be negative");
                     }
                     orderItem.Price_At_Time = updateData.Price_At_Time.Value;
+                }
+
+                // Update status if provided
+                if (!string.IsNullOrEmpty(updateData.Status))
+                {
+                    if (!isStaff)
+                    {
+                        return Forbid("Only staff can modify order item status");
+                    }
+                    if (Enum.TryParse<OrderStatus>(updateData.Status, true, out var newStatus))
+                    {
+                        orderItem.Order_Item_Status = newStatus;
+                        if (newStatus == OrderStatus.Cancelled || newStatus == OrderStatus.Delivered)
+                        {
+                            orderItem.Completed_At = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            orderItem.Completed_At = null;
+                        }
+                    }
+                    else
+                    {
+                        return BadRequest("Invalid status value");
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -705,7 +753,6 @@ namespace back_end.Controllers
             }
         }
 
-        // TODO: Add filters by session or date range instead of returning all orders from the database.
         /// <summary>
         /// Retrieves all orders from the database.
         /// </summary>
@@ -740,6 +787,80 @@ namespace back_end.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting Orders");
+                return StatusCode(500, "Internal Server Error");
+            }
+        }
+
+        // GET: api/Order/all-orders
+        // Get all orders, filtered by location
+        // Helpful for dashbaord
+        [Authorize(Policy = "staffOnly")]
+        [HttpGet("all_orders")]
+        public async Task<ActionResult<IEnumerable<object>>> GetAllOrdersByLocation([FromQuery] int? locationId = null)
+        {
+            try
+            {
+                var query = _context.SessionOrders
+                    .Include(o => o.DiningSession)
+                        .ThenInclude(ds => ds.Menu)
+                    .Include(o => o.DiningSession)
+                        .ThenInclude(ds => ds.Table)
+                    .Include(o => o.DiningSession)
+                        .ThenInclude(ds => ds.TableGroup)
+                            .ThenInclude(tg => tg.Tables)
+                    .Include(o => o.Bill)
+                    .Include(o => o.OrderItems)
+                        .ThenInclude(oi => oi.MenuItem)
+                            .ThenInclude(mi => mi.MenuAssignments)
+                    .AsQueryable();
+
+                // Filter by location if provided
+                if (locationId.HasValue)
+                {
+                    query = query.Where(o => o.DiningSession.Location_Id == locationId.Value);
+                }
+
+                var orders = await query
+                    .OrderByDescending(o => o.Created_At)
+                    .ToListAsync();
+
+                var result = orders.Select(o => new
+                {
+                    orderId = o.Order_Id,
+                    sessionId = o.session_id,
+                    billId = o.Bill_Id,
+                    locationId = o.DiningSession.Location_Id,
+                    tableNumbers = o.DiningSession.Table_Id.HasValue
+                        ? new[] { o.DiningSession.Table.table_number }
+                        : o.DiningSession.TableGroup?.Tables?.Select(t => t.table_number).ToArray() ?? Array.Empty<int>(),
+                    userName = o.User_Name,
+                    status = o.Status.ToString(),
+                    createdAt = o.Created_At,
+                    completedAt = o.Completed_At,
+                    items = o.OrderItems.Select(oi =>
+                    {
+                        var assignment = oi.MenuItem?.MenuAssignments
+                            .FirstOrDefault(ma => ma.Menu_Id == oi.Menu_Id && ma.Item_Id == oi.Item_Id);
+                        bool isAddOn = assignment?.Is_Add_On ?? false;
+
+                        return new
+                        {
+                            orderItemId = oi.Order_Item_Id,
+                            itemId = oi.Item_Id,
+                            name = oi.MenuItem.Name,
+                            quantity = oi.Quantity,
+                            priceAtTime = isAddOn ? oi.Price_At_Time : 0,
+                            isAddOn = isAddOn,
+                            status = oi.Order_Item_Status.ToString()
+                        };
+                    }).ToList()
+                }).ToList();
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving staff orders");
                 return StatusCode(500, "Internal Server Error");
             }
         }
@@ -911,17 +1032,37 @@ namespace back_end.Controllers
                     userName = o.User_Name,
                     status = o.Status,
                     itemTotal = o.OrderItems.Count,
-                    orderTotal = o.OrderItems.Sum(or => or.Quantity * or.Price_At_Time),
+                    orderTotal = o.OrderItems.Sum(or =>
+                    {
+                        // Get menu assignment for this item
+                        var assignment = or.MenuItem?.MenuAssignments
+                            .FirstOrDefault(ma => ma.Menu_Id == or.Menu_Id && ma.Item_Id == or.Item_Id);
+
+                        // Only count price if it's an add-on item
+                        bool isAddOn = assignment?.Is_Add_On ?? false;
+                        return isAddOn ? (or.Quantity * or.Price_At_Time) : 0;
+                    }),
                     createdAt = o.Created_At,
                     completedAt = o.Completed_At,
-                    items = o.OrderItems.Select(oi => new
+                    // List of items in the order
+                    items = o.OrderItems.Select(oi =>
                     {
-                        orderItemId = oi.Order_Item_Id,
-                        itemId = oi.Item_Id,
-                        name = oi.MenuItem.Name,
-                        quantity = oi.Quantity,
-                        priceAtTime = oi.Price_At_Time,
-                        status = oi.Order_Item_Status
+                        // Get menu assignment for this specific item
+                        var assignment = oi.MenuItem?.MenuAssignments
+                            .FirstOrDefault(ma => ma.Menu_Id == oi.Menu_Id && ma.Item_Id == oi.Item_Id);
+
+                        bool isAddOn = assignment?.Is_Add_On ?? false;
+
+                        return new
+                        {
+                            orderItemId = oi.Order_Item_Id,
+                            itemId = oi.Item_Id,
+                            name = oi.MenuItem?.Name,
+                            quantity = oi.Quantity,
+                            priceAtTime = isAddOn ? oi.Price_At_Time : 0, // Only show price for add-ons
+                            isAddOn = isAddOn,
+                            status = oi.Order_Item_Status
+                        };
                     }).ToList()
                 }).ToList();
 
@@ -1056,6 +1197,7 @@ namespace back_end.Controllers
                                 .Include(o => o.Bill)
                                 .Include(o => o.OrderItems)
                                     .ThenInclude(od => od.MenuItem)
+                                        .ThenInclude(mi => mi.MenuAssignments)
                                 .OrderByDescending(o => o.Created_At)
                                 .ToListAsync();
 
@@ -1069,14 +1211,24 @@ namespace back_end.Controllers
                     status = o.Status.ToString(),
                     createdAt = o.Created_At,
                     completedAt = o.Completed_At,
-                    items = o.OrderItems.Select(i => new
+                    items = o.OrderItems.Select(i =>
                     {
-                        orderItemId = i.Order_Item_Id,
-                        itemId = i.Item_Id,
-                        name = i.MenuItem.Name,
-                        quantity = i.Quantity,
-                        price = i.Price_At_Time,
-                        status = i.Order_Item_Status.ToString()
+                        // Get menu assignment for this item
+                        var assignment = i.MenuItem?.MenuAssignments
+                            .FirstOrDefault(ma => ma.Menu_Id == i.Menu_Id && ma.Item_Id == i.Item_Id);
+
+                        bool isAddOn = assignment?.Is_Add_On ?? false;
+
+                        return new
+                        {
+                            orderItemId = i.Order_Item_Id,
+                            itemId = i.Item_Id,
+                            name = i.MenuItem?.Name,
+                            quantity = i.Quantity,
+                            price = isAddOn ? i.Price_At_Time : 0, // Only show price for add-ons
+                            isAddOn = isAddOn,
+                            status = i.Order_Item_Status.ToString()
+                        };
                     }).ToList()
                 });
 
@@ -1089,6 +1241,6 @@ namespace back_end.Controllers
                 return StatusCode(500, "Internal Server Error");
             }
         }
-
     }
+    
 }
