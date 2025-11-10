@@ -7,6 +7,7 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import { createTheme } from "@mui/material/styles";
 import { MenuProvider } from "@/contexts/MenuContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { OrderProvider } from "@/contexts/OrderContext";
 import NotificationSystem from "@/components/common/NotificationSystem";
 import Layout from "@/components/Layout.jsx";
 import "@/styles/global.css";
@@ -180,9 +181,11 @@ export default function RootLayout({ children }) {
               <CssBaseline />
               <NotificationProvider>
                 <MenuProvider>
+                  <OrderProvider>
                   <Layout>
                     {children}
                   </Layout>
+                  </OrderProvider>
                 </MenuProvider>
                 <NotificationSystem />
               </NotificationProvider>
