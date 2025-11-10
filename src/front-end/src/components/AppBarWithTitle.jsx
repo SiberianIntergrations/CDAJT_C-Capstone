@@ -154,8 +154,8 @@ const AppBarWithTitle = ({ title }) => {
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
       { icon: Table, label: "Tables", path: "/dashboard/tables" },
-      { icon: QrCode, label: "QR Codes", path: "/admin/qr-codes" },
       { icon: Users, label: "Orders", path: "/staff/dashboard/orders" },
+      { icon: QrCode, label: "QR Codes", path: "/admin/qr-codes" },
     ],
     admin: [
       { icon: Home, label: "Home", path: "/" },

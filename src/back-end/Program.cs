@@ -84,8 +84,76 @@ builder.Services.AddDatabaseSeeders();
 // QR Code Generation Service - Single cross-platform registration
 builder.Services.AddScoped<QrGeneratorService>();
 
-// JWT Auth
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd");
+// JWT Auth - Microsoft Identity Web API for Azure AD
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(options =>
+    {
+        builder.Configuration.Bind("AzureAd", options);
+
+        // Configure token validation parameters
+        options.TokenValidationParameters.ValidateIssuer = true;
+        options.TokenValidationParameters.ValidateAudience = true;
+        options.TokenValidationParameters.ValidateLifetime = true;
+        options.TokenValidationParameters.ValidateIssuerSigningKey = true;
+
+        // Accept both the ClientId and the api:// format for audience
+        options.TokenValidationParameters.ValidAudiences = new[]
+        {
+            builder.Configuration["AzureAd:ClientId"],
+            builder.Configuration["AzureAd:Audience"],
+            $"api://{builder.Configuration["AzureAd:ClientId"]}"
+        };
+
+        // Log token validation failures
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine($"=== Authentication Failed ===");
+                Console.WriteLine($"Exception: {context.Exception.Message}");
+                Console.WriteLine($"Exception Type: {context.Exception.GetType().Name}");
+                if (context.Exception.InnerException != null)
+                {
+                    Console.WriteLine($"Inner Exception: {context.Exception.InnerException.Message}");
+                }
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("=== Token Validated Successfully ===");
+                var claims = context.Principal?.Claims;
+                if (claims != null)
+                {
+                    Console.WriteLine("Claims:");
+                    foreach (var claim in claims)
+                    {
+                        Console.WriteLine($"  {claim.Type}: {claim.Value}");
+                    }
+                }
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                Console.WriteLine($"=== OnChallenge ===");
+                Console.WriteLine($"Error: {context.Error ?? "null"}");
+                Console.WriteLine($"ErrorDescription: {context.ErrorDescription ?? "null"}");
+                Console.WriteLine($"ErrorUri: {context.ErrorUri ?? "null"}");
+                return Task.CompletedTask;
+            },
+            OnMessageReceived = context =>
+            {
+                var token = context.Request.Headers["Authorization"].ToString();
+                if (!string.IsNullOrEmpty(token))
+                {
+                    Console.WriteLine($"=== Token Received ===");
+                    Console.WriteLine($"Auth Header (first 50 chars): {token.Substring(0, Math.Min(50, token.Length))}...");
+                }
+                return Task.CompletedTask;
+            }
+        };
+    },
+    options => { builder.Configuration.Bind("AzureAd", options); });
+
 builder.Services.AddAuthorization(options =>
 {
 
@@ -101,8 +169,6 @@ builder.Services.AddAuthorization(options =>
     });
 
 });
-
-builder.Services.AddAuthorization();
 
 // Add rate limiting for API protection
 builder.Services.AddRateLimiter(options =>

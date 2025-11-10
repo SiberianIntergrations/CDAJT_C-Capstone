@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { Box, CircularProgress } from '@mui/material';
-import { getAccessToken } from '@/utils/token';
 import { useAuth } from '@/hooks/useAuth';
 
 // Dynamically import the QR code management component
@@ -34,14 +33,14 @@ export default function QRCodesPage() {
   useEffect(() => {
     const checkAuth = () => {
       try {
-        const token = getAccessToken();
-
-        if (!token) {
-          router.push('/auth/login');
+        // Wait for auth hook to finish loading
+        if (loading) {
           return;
         }
 
-        if (loading) {
+        // Check if user is authenticated via MSAL
+        if (!isAuthenticated) {
+          router.push('/auth/login');
           return;
         }
 
@@ -52,7 +51,7 @@ export default function QRCodesPage() {
           router.push('/unauthorized');
         }
       } catch (error) {
-        console.error('Error verifying token:', error);
+        console.error('Error verifying authorization:', error);
         router.push('/auth/login');
       } finally {
         setIsLoading(false);

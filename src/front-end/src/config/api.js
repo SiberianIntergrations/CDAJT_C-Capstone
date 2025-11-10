@@ -22,10 +22,22 @@ api.interceptors.request.use(async (config) => {
   }
 
   try {
+    // Ensure MSAL is initialized
+    await msalInstance.initialize();
+
     // Get the currently signed-in account
-    const activeAccount = msalInstance.getActiveAccount();
+    let activeAccount = msalInstance.getActiveAccount();
+
+    // If no active account is set, try to get all accounts and set the first one
     if (!activeAccount) {
-      throw new Error("No active account! Please sign in before making API calls.");
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts && accounts.length > 0) {
+        activeAccount = accounts[0];
+        msalInstance.setActiveAccount(activeAccount);
+        console.log("Set active account:", activeAccount.username);
+      } else {
+        throw new Error("No active account! Please sign in before making API calls.");
+      }
     }
 
     // Acquire token silently for the active account
@@ -34,6 +46,11 @@ api.interceptors.request.use(async (config) => {
       account: activeAccount,
     });
 
+    console.log("Token acquired successfully. Scopes:", tokenResponse.scopes);
+    console.log("Token claims:", tokenResponse.idTokenClaims);
+    console.log("Access Token (first 50 chars):", tokenResponse.accessToken.substring(0, 50) + "...");
+    console.log("Token audience (aud):", tokenResponse.idTokenClaims?.aud);
+    console.log("Token issuer (iss):", tokenResponse.idTokenClaims?.iss);
     config.headers.Authorization = `Bearer ${tokenResponse.accessToken}`;
     return config;
 
@@ -43,6 +60,7 @@ api.interceptors.request.use(async (config) => {
     // Optional fallback to popup if the token is expired or missing
     try {
       const popupResponse = await msalInstance.acquireTokenPopup(loginRequest);
+      console.log("Token acquired via popup. Scopes:", popupResponse.scopes);
       config.headers.Authorization = `Bearer ${popupResponse.accessToken}`;
       return config;
     } catch (popupError) {
