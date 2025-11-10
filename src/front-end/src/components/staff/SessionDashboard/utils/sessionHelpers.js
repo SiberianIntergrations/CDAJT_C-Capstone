@@ -2,24 +2,46 @@
  * Format a date to a readable time string
  */
 export const formatTime = (dateString) => {
-  try {
-    return new Date(dateString).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  } catch (error) {
-    console.error("Error formatting time:", error);
-    return "Invalid time";
-  }
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 };
 
 /**
- * Calculate total guests from a bill
+ * Format UTC date to local date and time
  */
-export const calculateTotalGuests = (bill) => {
-  return (
-    bill.adult_count + bill.child_count + bill.senior_count + bill.tot_count
-  );
+export const formatDateTime = (dateString) => {
+  if (!dateString) return "";
+  const date = new Date(dateString);
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
+/**
+ * Format just the date
+ */
+export const formatDate = (dateString) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString([], {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error("Error formatting date:", error);
+    return "Invalid date";
+  }
 };
 
 /**
@@ -36,23 +58,101 @@ export const canCloseSession = (session) => {
  * Format bill name with guest count
  */
 export const formatBillName = (bill) => {
-  const total = calculateTotalGuests(bill);
-  return `${bill.bill_name} (${total} guests)`;
+  const total = bill.total_count || 0;
+  return `${bill.bill_name} (${total} guest${total !== 1 ? 's' : ''})`;
 };
 
 /**
- * Get status color for a bill
+ * Get color for bill status chip
  */
 export const getBillStatusColor = (status) => {
-  switch (status) {
+  if (!status) return "default";
+  
+  const normalizedStatus = status.toUpperCase();
+  
+  switch (normalizedStatus) {
     case "OPEN":
-      return "primary";
+      return "success";
     case "CLOSED":
       return "default";
     case "CANCELLED":
       return "error";
     default:
       return "default";
+  }
+};
+
+/**
+ * 
+ * get hex color value for bill status
+ */
+export const getStatusColorValue = (status) => {
+  if (!status) return "#9e9e9e";
+  
+  const normalizedStatus = status.toUpperCase();
+  
+  switch (normalizedStatus) {
+    case "OPEN":
+      return "#4caf50";  // Green
+    case "CLOSED":
+      return "#9e9e9e";  // Gray
+    case "CANCELLED":
+      return "#f44336";  // Red
+    default:
+      return "#9e9e9e";
+  }
+};
+
+/**
+ * Format bill status for display
+ */
+export const formatBillStatus = (status) => {
+  if (!status) return "Unknown";
+  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+};
+
+/**
+ * Sort bills by status priority: OPEN > CLOSED > CANCELLED
+ */
+export const sortBillsByStatus = (bills) => {
+  if (!Array.isArray(bills)) return [];
+  
+  const statusPriority = {
+    OPEN: 1,
+    CLOSED: 2,
+    CANCELLED: 3,
+  };
+
+  return [...bills].sort((a, b) => {
+    const aPriority = statusPriority[a.status?.toUpperCase()] ?? 999;
+    const bPriority = statusPriority[b.status?.toUpperCase()] ?? 999;
+    return aPriority - bPriority;
+  });
+};
+
+/**
+ * Format currency amount
+ */
+export const formatCurrency = (amount) => {
+  return new Intl.NumberFormat("en-CA", {
+    style: "currency",
+    currency: "CAD",
+  }).format(amount);
+};
+
+/**
+ * Format pricing type for display
+ */
+export const formatPricingType = (pricingType) => {
+  switch (pricingType) {
+    case "Weekday":
+      return "Weekday Pricing";
+    case "Weekend":
+      return "Weekend Pricing";
+    case "Holiday":
+      return "Holiday Pricing";
+    default:
+      return pricingType;
   }
 };
 
@@ -68,7 +168,7 @@ export const hasOpenBills = (session) => {
  */
 export const isAtCapacity = (session, maxCapacity = 20) => {
   const totalGuests = session.bills.reduce(
-    (sum, bill) => sum + calculateTotalGuests(bill),
+    (sum, bill) => sum + (bill.total_count || 0),
     0
   );
   return totalGuests >= maxCapacity;
@@ -81,37 +181,6 @@ export const getTableDescription = (tableNumbers) => {
   if (!tableNumbers || tableNumbers.length === 0) return "No tables assigned";
   if (tableNumbers.length === 1) return `Table ${tableNumbers[0]}`;
   return `Tables ${tableNumbers.join(", ")}`;
-};
-
-/**
- * Sort bills by status (OPEN first, then CLOSED, then CANCELLED)
- */
-export const sortBillsByStatus = (bills) => {
-  const statusOrder = {
-    OPEN: 0,
-    CLOSED: 1,
-    CANCELLED: 2,
-  };
-
-  return [...bills].sort(
-    (a, b) => statusOrder[a.status] - statusOrder[b.status]
-  );
-};
-
-/**
- * Format bill status for display
- */
-export const formatBillStatus = (status) => {
-  switch (status) {
-    case "OPEN":
-      return "Active";
-    case "CLOSED":
-      return "Completed";
-    case "CANCELLED":
-      return "Cancelled";
-    default:
-      return status;
-  }
 };
 
 /**
@@ -144,13 +213,60 @@ export const getSessionDuration = (startTime, endTime = null) => {
 };
 
 /**
- * Format currency amount
+ * Format guest breakdown for display
  */
-export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
+export const formatGuestBreakdown = (bill) => {
+  if (!bill) return "No guests";
+  const parts = [];
+  const adultCount = 
+    bill.adult_count ??
+    bill.Adult_Count ?? 
+    bill.adult_Count ??
+    0;
+    
+  const seniorCount = 
+    bill.senior_count ??
+    bill.Senior_Count ?? 
+    bill.senior_Count ?? 
+    0;
+    
+  const childCount = 
+    bill.child_count ??
+    bill.Child_Count ?? 
+    bill.child_Count ?? 
+    0;
+    
+  const totCount = 
+    bill.tot_count ??
+    bill.Tot_Count ?? 
+    bill.tot_Count ?? 
+    0;
+    
+  const totalCount = 
+    bill.total_count ??
+    bill.Total_Guests ??
+    bill.total_Guests ?? 
+    0;
+  
+  if (adultCount > 0) {
+    parts.push(`${adultCount} Adult${adultCount !== 1 ? 's' : ''}`);
+  }
+  if (seniorCount > 0) {
+    parts.push(`${seniorCount} Senior${seniorCount !== 1 ? 's' : ''}`);
+  }
+  if (childCount > 0) {
+    parts.push(`${childCount} Child${childCount !== 1 ? 'ren' : ''}`);
+  }
+  if (totCount > 0) {
+    parts.push(`${totCount} Toddler${totCount !== 1 ? 's' : ''}`);
+  }
+
+  // If no breakdown available, show total count
+  if (parts.length === 0) {
+    return `${totalCount} guest${totalCount !== 1 ? 's' : ''}`;
+  }
+  
+  return parts.join(", ");
 };
 
 /**
@@ -177,17 +293,4 @@ export const validateBillData = (billData) => {
     isValid: Object.keys(errors).length === 0,
     errors,
   };
-};
-
-/**
- * Group bills by status
- */
-export const groupBillsByStatus = (bills) => {
-  return bills.reduce((acc, bill) => {
-    if (!acc[bill.status]) {
-      acc[bill.status] = [];
-    }
-    acc[bill.status].push(bill);
-    return acc;
-  }, {});
 };

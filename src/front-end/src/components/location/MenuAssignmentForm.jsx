@@ -33,8 +33,31 @@ const MenuAssignmentForm = ({ location, onClose, api }) => {
         setMenus(allMenusRes.data);
         setAssignedMenus(assignedMenusRes.data);
       } catch (err) {
-        setError("Failed to fetch menus");
-        console.error(err);
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
       } finally {
         setLoading(false);
       }
@@ -51,8 +74,31 @@ const MenuAssignmentForm = ({ location, onClose, api }) => {
       });
       setAssignedMenus([...assignedMenus, menuId]);
     } catch (err) {
-      setError("Failed to assign menu");
-      console.error(err);
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
     }
   };
 
@@ -64,8 +110,31 @@ const MenuAssignmentForm = ({ location, onClose, api }) => {
       );
       setAssignedMenus(assignedMenus.filter((id) => id !== menuId));
     } catch (err) {
-      setError("Failed to unassign menu");
-      console.error(err);
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
     }
   };
 

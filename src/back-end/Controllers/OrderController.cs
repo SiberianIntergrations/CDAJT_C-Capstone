@@ -8,10 +8,13 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using back_end.Helpers;
 
+
+
 namespace back_end.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [AllowAnonymous]
 
     public class OrderController : ControllerBase
     {
@@ -51,13 +54,12 @@ namespace back_end.Controllers
         /// The authenticated user is automatically assigned as the order owner.
         /// The bill must be in 'Open' status to create an order.
         /// </remarks>
-        [Authorize]
         [HttpPost]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<IEnumerable<SessionOrder>>> CreateOrder(OrderCreateDTO order_data)
         {
+
             try
             {
                 var session = await _context.DiningSessions.FirstOrDefaultAsync(ds => ds.Session_Id == order_data.Session_Id);
@@ -65,18 +67,32 @@ namespace back_end.Controllers
                 {
                     return NotFound("Dinning Session was not found in the current context");
                 }
+
                 var bill = await _context.Bills.FirstOrDefaultAsync(b => b.Bill_Id == order_data.Bill_Id && b.Status == BillStatus.Open);
                 if (bill is null)
                 {
                     return NotFound("Bill Was not found for the current session order Create Bill");
                 }
-                // Use Oauth user info
-                var userOid = ClaimsHelpers.GetUserOid(User);
-                var userName = ClaimsHelpers.GetUserDisplayName(User);
-                if (string.IsNullOrEmpty(userOid))
+
+                string userOid;
+                string userName;
+
+                if (!string.IsNullOrEmpty(order_data.Request_By_Oid))
                 {
-                    return Unauthorized(new { message = "User Oid not found in claims." });
+                    userOid = order_data.Request_By_Oid;
+                    userName = order_data.Request_By_Name ?? "Guest";
                 }
+                else
+                {
+                    userOid = ClaimsHelpers.GetUserOid(User);
+                    userName = ClaimsHelpers.GetUserDisplayName(User);
+
+                    if (string.IsNullOrEmpty(userOid))
+                    {
+                        return Unauthorized(new { message = "User Oid not found in claims." });
+                    }
+                }
+
                 var newOrder = new SessionOrder
                 {
                     session_id = order_data.Session_Id,
@@ -102,15 +118,15 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating order for session {SessionId}", order_data.Session_Id);
                 return StatusCode(500, new { message = "An error occurred while creating the order", error = ex.Message });
             }
         }
 
+
          /// <summary>
         /// Approves a pending order and transitions to Approved/Processing status.
         /// </summary>
- [Authorize(Policy = "staffOnly")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/approve")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -212,7 +228,7 @@ namespace back_end.Controllers
         /// Users can only delete items from their own pending orders.
         /// Staff and Admin users can delete items from approved orders.
         /// </remarks>
- [Authorize(Policy = "staffOnly")]
+        [Authorize(Policy = "staffOnly")]
         [HttpDelete("{order_id}/items/{order_item_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -328,7 +344,7 @@ namespace back_end.Controllers
         /// <summary>
         /// Marks the whole order as delivered/completed.
         /// </summary>
- [Authorize(Policy = "staffOnly")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/complete")]
         [ProducesResponseType(typeof(OrderResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -492,106 +508,93 @@ namespace back_end.Controllers
         /// Adds items to the created order from POST: api/Order
         /// POST: api/Order/{order_id}/items
         /// </summary>
-        [Authorize]
-        [HttpPost("{order_id}/items")]
-        [ProducesResponseType(typeof(List<OrderItemResponseDTO>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<IEnumerable<OrderItemInsertResponse>>> AddOrderItems(int order_id, [FromBody] List<OrderItemCreateDTO> items)
+        [HttpPost("{orderId}/items")]
+        [AllowAnonymous]
+        public async Task<IActionResult> AddOrderItems(int orderId, [FromBody] List<OrderItemCreateDTO> items)
         {
             try
             {
-                //Make sure there are items inside the order
-                if (items is null || items.Count == 0)
+                //Validate payload
+                if (items == null || !items.Any())
                 {
-                    return BadRequest("No items added to order.");
+                    return BadRequest(new { message = "No items provided." });
                 }
 
-                //Make sure the order exists so items can be added to it
+                //Retrieve the order
                 var order = await _context.SessionOrders
                     .Include(o => o.OrderItems)
-                    .FirstOrDefaultAsync(o => o.Order_Id == order_id);
+                    .FirstOrDefaultAsync(o => o.Order_Id == orderId);
 
-                if (order is null)
+                //Check if order exists
+                if (order == null)
                 {
-                    return NotFound($"Order {order_id} was not found");
+                    return NotFound(new { message = $"Order {orderId} not found" });
                 }
 
-                if (order.Status != OrderStatus.Pending)
+                //Determine guest or logged in
+                string? userOid = null;
+                string? userName = null;
+
+                if (User.Identity?.IsAuthenticated == true)
                 {
-                    return Conflict("Cannot modify a non-pending order.");
+                    userOid = ClaimsHelpers.GetUserOid(User);
+                    userName = ClaimsHelpers.GetUserDisplayName(User);
+                    _logger.LogInformation("🔐 Authenticated user {Oid} ({Name})", userOid, userName);
+                }
+                else
+                {
+                    userOid = Request.Headers["X-Guest-Oid"].FirstOrDefault()
+                            ?? Request.Query["guest_oid"].FirstOrDefault()
+                            ?? order.User_Oid;
+                    userName = "Guest";
                 }
 
-                // Use Oauth user info
-                var userOid = ClaimsHelpers.GetUserOid(User);
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
                 if (string.IsNullOrEmpty(userOid))
                 {
-                    return Unauthorized("User Oid not found in claims.");
+                    return Unauthorized(new { message = "User or guest Oid not found." });
                 }
-                if (order.User_Oid != userOid)
+
+                //Add items to order
+                foreach (var item in items)
                 {
-                    return BadRequest("You can only add items to your own orders");
+                    _logger.LogInformation("Adding item {ItemId} qty {Qty} price {Price}",
+                        item.Item_Id, item.Quantity, item.Price_At_Time);
+
+                    order.OrderItems.Add(new OrderItems
+                    {
+                        Menu_Id = order.DiningSession?.Menu_Id ?? 1,
+                        Item_Id = item.Item_Id,
+                        Quantity = item.Quantity,
+                        Price_At_Time = item.Price_At_Time,
+                        Order_Item_Status = OrderStatus.Pending
+                    });
                 }
 
-                var addedItems = new List<OrderItems>();
 
-                foreach (var itemDto in items)
-                {
-                    var menuItem = await _context.MenuItems.FirstOrDefaultAsync(mi => mi.item_id == itemDto.Item_Id);
-                    if (menuItem == null)
-                    {
-                        return NotFound($"Menu item {itemDto.Item_Id} not found");
-                    }
-
-                    if (itemDto.Quantity <= 0)
-                    {
-                        return BadRequest($"Quantity must be positive for item '{menuItem.Name}' (ID: {itemDto.Item_Id})");
-                    }
-
-                    if (menuItem.Status != MenuItemStatus.Available)
-                    {
-                        return BadRequest($"Item '{menuItem.Name}' is currently unavailable");
-                    }
-
-                    var orderItem = new OrderItems
-                    {
-                        Order_Key = order_id,
-                        Menu_Id = itemDto.Menu_Id,
-                        Item_Id = itemDto.Item_Id,
-                        Quantity = itemDto.Quantity,
-                        Price_At_Time = itemDto.Price_At_Time,
-                        Order_Item_Status = OrderStatus.Pending,
-                        Completed_At = null
-                    };
-
-                    _context.OrderItems.Add(orderItem);
-                    addedItems.Add(orderItem);
-                }
-
+                _logger.LogInformation("💾 Saving changes...");
                 await _context.SaveChangesAsync();
 
-                //Package up the order in a neat fashion
-                var response = addedItems.Select(item => new OrderItemResponseDTO
+                return Ok(new
                 {
-                    Order_Item_Id = item.Order_Item_Id,
-                    Order_Id = item.Order_Key,
-                    Menu_Id = item.Menu_Id,
-                    Item_Id = item.Item_Id,
-                    Quantity = item.Quantity,
-                    Price_At_Time = item.Price_At_Time,
-                    Status = item.Order_Item_Status,
-                    Name = item.MenuItem?.Name
-                }).ToList();
-
-                return Ok(response);
+                    message = "Items added successfully",
+                    count = items.Count,
+                    orderId,
+                    userOid,
+                    userName
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error adding items to order {OrderId}", order_id);
-                return StatusCode(500, new { message = "An error occurred while adding order items", error = ex.Message });
+                return StatusCode(500, new
+                {
+                    message = "Error adding order items",
+                    error = ex.ToString()
+                });
             }
         }
+
+
+
 
         /// <summary>
         /// Updates order items before approval (pending orders only).
@@ -722,7 +725,7 @@ namespace back_end.Controllers
         /// </remarks>
         //GET api/order
         //Get all Orders
- [Authorize(Policy = "staffOnly")]
+        [Authorize(Policy = "staffOnly")]
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<SessionOrder>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -865,28 +868,44 @@ namespace back_end.Controllers
         //GET: api/order/session/{id}
         //Get all orders tied to a Dining Session
         [HttpGet("session/{sessionId}")]
-        public async Task<ActionResult<IEnumerable<object>>> GetOrderBySession(int sessionId)
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<object>>> GetOrderBySession(int sessionId, [FromQuery] int? bill_id = null)
         {
             try
             {
                 var session = await _context.DiningSessions.FindAsync(sessionId);
-
                 if (session == null)
                 {
                     return NotFound(new { message = $"Can't find session with the ID: {sessionId}" });
                 }
 
+                // Determine user identity
+                var userOid = ClaimsHelpers.GetUserOid(User);
+                var userRole = ClaimsHelpers.GetUserRole(User) ?? "";
+                bool isStaff = userRole.Contains("user.Staff") || userRole.Contains("user.Admin");
+
+                // Fallback for guests (no MSAL claims)
+                if (string.IsNullOrEmpty(userOid))
+                {
+                    userOid = Request.Headers["X-Guest-Oid"].FirstOrDefault()
+                            ?? Request.Query["guest_oid"].FirstOrDefault();
+                }
+
+                // Fetch orders
                 var sessionOrder = await _context.SessionOrders
-                                        .Where(o => o.session_id == sessionId)
-                                        // .Include(o => o.User) // Removed for Oauth
-                                        .Include(o => o.OrderItems)
-                                            .ThenInclude(or => or.MenuItem)
-                                        .OrderBy(o => o.Created_At)
-                                        .ToListAsync();
+                    .Where(o => o.session_id == sessionId &&
+                                (!bill_id.HasValue || o.Bill_Id == bill_id.Value) &&
+                                (isStaff || string.IsNullOrEmpty(userOid) || o.User_Oid == userOid))
+                    .Include(o => o.OrderItems)
+                        .ThenInclude(or => or.MenuItem)
+                    .OrderBy(o => o.Created_At)
+                    .ToListAsync();
 
                 var orderAll = sessionOrder.Select(o => new
                 {
                     orderId = o.Order_Id,
+                    billId = o.Bill_Id,
+                    billStatus = o.Bill?.Status.ToString(),
                     sessionId = o.session_id,
                     userOid = o.User_Oid,
                     userName = o.User_Name,
@@ -895,7 +914,6 @@ namespace back_end.Controllers
                     orderTotal = o.OrderItems.Sum(or => or.Quantity * or.Price_At_Time),
                     createdAt = o.Created_At,
                     completedAt = o.Completed_At,
-                    // List of items in the order
                     items = o.OrderItems.Select(oi => new
                     {
                         orderItemId = oi.Order_Item_Id,
@@ -915,6 +933,7 @@ namespace back_end.Controllers
                 return StatusCode(500, new { message = "An error occurred while retrieving session orders", error = ex.Message });
             }
         }
+
 
         /// <summary>
         /// Retrieves all orders placed by a specific user.
@@ -974,6 +993,7 @@ namespace back_end.Controllers
                 {
                     orderId = o.Order_Id,
                     sessionId = o.session_id,
+                    billId = o.Bill_Id,
                     menuName = o.DiningSession.Menu.Name,
                     status = o.Status,
                     itemCount = o.OrderItems.Count,
@@ -1000,7 +1020,6 @@ namespace back_end.Controllers
         //GET: api/Order/active-session/orders
         //Get all of the orders for the user's ACTIVE session
         //Add an optional Bill ID parameter in-case of bill splitting
-
         [HttpGet("active-session/orders")]
         public async Task<ActionResult<IEnumerable<object>>> GetOrdersForActiveSession([FromQuery] int? bill_id = null)
         {
@@ -1034,6 +1053,7 @@ namespace back_end.Controllers
                                 .Where(o => o.User_Oid == userOid && o.session_id == activeSessionId && (bill_id == null || o.Bill_Id == bill_id))
                                 .Include(o => o.DiningSession)
                                     .ThenInclude(or => or.Menu)
+                                .Include(o => o.Bill)
                                 .Include(o => o.OrderItems)
                                     .ThenInclude(od => od.MenuItem)
                                 .OrderByDescending(o => o.Created_At)
@@ -1045,6 +1065,7 @@ namespace back_end.Controllers
                     orderId = o.Order_Id,
                     SessionId = o.session_id,
                     bill_id = o.Bill_Id,
+                    billStatus = o.Bill?.Status.ToString(),
                     status = o.Status.ToString(),
                     createdAt = o.Created_At,
                     completedAt = o.Completed_At,

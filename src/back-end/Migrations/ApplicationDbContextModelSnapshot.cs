@@ -56,6 +56,9 @@ namespace back_end.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<int>("Tot_Count")
+                        .HasColumnType("int");
+
                     b.Property<int>("Total_Count")
                         .HasColumnType("int");
 

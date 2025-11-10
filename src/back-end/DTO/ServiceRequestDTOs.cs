@@ -8,6 +8,13 @@ namespace back_end.DTO.ServiceRequestDTOs
     {
         [JsonPropertyName("notes")]
         public string? Notes { get; set; }
+
+        [JsonPropertyName("request_by_oid")]
+        public string? Request_By_Oid { get; set; }
+
+        [JsonPropertyName("request_by_name")]
+        public string? Request_By_Name { get; set; }
+
     }
 
     public class ServiceRequestResponseDTO
@@ -35,7 +42,7 @@ namespace back_end.DTO.ServiceRequestDTOs
         [JsonPropertyName("claimed_at")]
         public DateTime? Claimed_At { get; set; }
         [JsonPropertyName("completed_at")]
-        public DateTime? Completed_at    { get; set; }
+        public DateTime? Completed_At    { get; set; }
         [JsonPropertyName("table_number")]
         public int Table_Number{ get; set; }
     }

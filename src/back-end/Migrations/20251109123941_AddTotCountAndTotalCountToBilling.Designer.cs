@@ -12,8 +12,8 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251108045245_InitialMigrationTimT")]
-    partial class InitialMigrationTimT
+    [Migration("20251109123941_AddTotCountAndTotalCountToBilling")]
+    partial class AddTotCountAndTotalCountToBilling
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -57,6 +57,9 @@ namespace back_end.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tot_Count")
                         .HasColumnType("int");
 
                     b.Property<int>("Total_Count")

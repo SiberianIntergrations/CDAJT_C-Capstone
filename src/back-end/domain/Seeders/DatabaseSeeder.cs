@@ -91,7 +91,42 @@ namespace back_end.domain.Seeders
             var surname = cols[2].Trim();
             var given = cols[4].Trim();
             var idStr = cols[5].Trim();
+
+            // If given and surname are both blank, parse from displayName
+            if (string.IsNullOrWhiteSpace(given) && string.IsNullOrWhiteSpace(surname))
+            {
+              var nameParts = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+              if (nameParts.Length >= 2)
+              {
+                given = nameParts[0];
+                surname = string.Join(" ", nameParts.Skip(1));
+              }
+              else
+              {
+                // Single name - use as both
+                given = displayName;
+                surname = displayName;
+              }
+              _logger.LogInformation($"Line {given}: Parsed '{displayName}' into GivenName='{given}', Surname='{surname}'");
+            }
+            // If only givenName is blank, use displayName or surname
+            else if (string.IsNullOrWhiteSpace(given))
+            {
+              given = !string.IsNullOrWhiteSpace(surname) ? surname : displayName;
+              _logger.LogInformation($"Line {line}: GivenName was blank, using '{given}'");
+            }
+            // If only surname is blank, use displayName or givenName
+            else if (string.IsNullOrWhiteSpace(surname))
+            {
+              surname = !string.IsNullOrWhiteSpace(line) ? given : displayName;
+              _logger.LogInformation($"Line {line}: Surname was blank, using '{surname}'");
+            }
+
             userSeedMap[idStr] = (displayName, given, surname);
+          }
+          else
+          {
+            _logger.LogWarning($"Line {line}: Invalid format (only {cols.Length} columns)");
           }
         }
       }

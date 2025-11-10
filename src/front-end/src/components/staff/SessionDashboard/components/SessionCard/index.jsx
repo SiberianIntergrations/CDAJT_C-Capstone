@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -11,9 +11,8 @@ import {
   Snackbar,
   Alert,
   Collapse,
-  Chip,
 } from "@mui/material";
-import { ChevronDown, ChevronUp, Bell, Check, AlertCircle } from "lucide-react";
+import { ChevronDown, ChevronUp, Check, AlertCircle } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";
@@ -187,10 +186,9 @@ const SessionCard = ({ session, onRequestUpdate }) => {
     try {
       setIsEnding(true);
       clearActionError();
-      const success = await endSession(session.session_Id);
-      if (!success) {
-        // Error handling already done by context
-      }
+      
+      await endSession(session.session_Id);
+      setRequests([]); // Clear requests after ending session
     } catch (error) {
       console.error("Error ending session:", error);
     } finally {

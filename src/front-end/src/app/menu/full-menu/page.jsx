@@ -19,10 +19,14 @@ import OrderSummary from "@/components/customer/OrderDashboard/components/OrderS
 import useMenuSearch from "@/components/menu/searchUtils";
 import Tags from "@/components/Tags";
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
 import { useOrderActions } from "@/hooks/useOrderActions";
 
 const SWIPE_THRESHOLD = 50;
 const ANIMATION_DURATION = 300;
+
+//Check if the logged in user is a guest.
+const isGuest = () => typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
 const SwipeableItem = ({
   children,
@@ -213,9 +217,22 @@ const FullMenu = () => {
 
   useEffect(() => {
     const getActiveSession = async () => {
+
+      if (isGuest()) {
+        const sid = localStorage.getItem("session_id");
+        if (sid) {
+          setSessionId(parseInt(sid));
+          return;
+        } else {
+          setError("Guest session not found. Please scan your table QR again.");
+          return;
+        }
+      }
+
+      const apiClient = isGuest() ? publicApi : api;
       try {
         setError(null);
-        const response = await api.get(
+        const response = await apiClient.get(
           "/DiningSession/participants/active-session-id"
         );
         if (response?.status >= 200 && response.status < 300 && response.data) {
@@ -235,19 +252,20 @@ const FullMenu = () => {
   useEffect(() => {
     //Session ID can only be 1 or above
     if (!sessionId || sessionId < 1) {
-      console.log("Invalid sessionId. Skipping menu fetch.");
+
       return;
     }
 
     const fetchMenu = async () => {
+
+      const apiClient = isGuest() ? publicApi : api;
       try {
         setError(null);
 
-        const response = await api.get(`/DiningSession/session-menu/${sessionId}`);
+        const response = await apiClient.get(`/DiningSession/session-menu/${sessionId}`);
 
         if (response?.status >= 200 && response.status < 300 && response.data) {
           const raw = response.data;
-          console.log("session-menu raw =", raw);
 
           const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
           const getMenuID =
@@ -261,7 +279,6 @@ const FullMenu = () => {
 
           setMenuId(getMenuID);
 
-          console.log("parsed menuId =", getMenuID);
         } else {
           console.warn("No menu found", response?.data);
           setError("No menu found for this session");
@@ -288,9 +305,12 @@ const FullMenu = () => {
 
   useEffect(() => {
     const fetchCategories = async () => {
+
+      const apiClient = isGuest() ? publicApi : api;
+
       try {
         setError(null);
-        const response = await api.get("/Category");
+        const response = await apiClient.get("/Category");
         const data = Array.isArray(response.data) ? response.data : [];
         setCategories(
           data.map((c) => ({
@@ -315,9 +335,11 @@ const FullMenu = () => {
     //Make sure the menu ID is valid or if we already loaded the menu items
     if (!menu_id || menuItems[categoryId]) return;
 
+    const apiClient = isGuest() ? publicApi : api;
+
     try {
       //Call GetItemsByMenu and check if it's in an array
-      const response = await api.get(`/Menu/${menu_id}/item`);
+      const response = await apiClient.get(`/Menu/${menu_id}/item`);
       const items = Array.isArray(response.data) ? response.data : [];
 
       //Clean up the field names so it's the same everywhere on the page
@@ -390,56 +412,30 @@ const FullMenu = () => {
     const hasItems = Object.values(quantities).some((category) =>
       Object.values(category).some((quantity) => quantity > 0)
     );
-
     if (!hasItems) {
       setError("Please select at least one item");
       return;
     }
 
-    // Clear any previous errors
     setError(null);
     clearActionError();
 
     try {
-      console.log("Creating order for session:", sessionId, "bill:", selectedBillId);
-
       const orderResponse = await createOrder(sessionId, selectedBillId);
 
-      if (!orderResponse) {
-        throw new Error("Failed to create order");
-      }
+      if (!orderResponse) throw new Error("Failed to create order");
 
-      const newOrderId = Number(
-        orderResponse.order_id ??
-          orderResponse.orderId ??
-          orderResponse.Order_Id ??
-          orderResponse.order_Id ??
-          orderResponse.OrderID
-      );
+      const newOrderId = Number(orderResponse.order_Id);
 
-      if (!newOrderId) {
-        setError("Couldn't read new order id from server response.");
-        return;
-      }
-
-      console.log("Order created with ID:", newOrderId);
-
-      // Create order items
       const orderItems = createOrderItems();
 
-      if (orderItems.length === 0) {
-        throw new Error("No items to add to order");
-      }
-
-      console.log("Adding items to order:", orderItems);
-
-      // Add items to the order using the hook
       await addOrderItems(newOrderId, orderItems);
     } catch (error) {
-      console.error("Error processing order:", error);
+      console.error("❌ Error processing order:", error);
       setError(error.message || "Error processing order");
     }
   };
+
 
   // Combine local and hook errors
   const displayError = error || actionError;

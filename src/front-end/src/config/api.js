@@ -1,9 +1,10 @@
 import axios from "axios";
-import msalInstance, { initializeMsal } from "@/config/msalInstance";
-import { silentRequest } from "@/config/auth";
+import msalInstance from "@/config/msalInstance";
+import { loginRequest } from "@/config/auth"; // use loginRequest, not silentRequest
 
 export const API_BASE_URL =
-  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) || "http://localhost:5264";
+  (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) ||
+  "http://localhost:5264";
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -13,36 +14,39 @@ export const api = axios.create({
   },
 });
 
-// Add auth header interceptor
 api.interceptors.request.use(async (config) => {
+
+    //Skip MSAL for guest users
+  if (typeof window !== "undefined" && localStorage.getItem("guest") === "true") {
+    return config;
+  }
+
   try {
-    // Ensure MSAL is initialized before any other calls
-    await initializeMsal();
-    
-    // Get active account (the currently signed in user)
+    // Get the currently signed-in account
     const activeAccount = msalInstance.getActiveAccount();
-    
     if (!activeAccount) {
-      throw new Error('No active account! Please sign in before making API calls.');
+      throw new Error("No active account! Please sign in before making API calls.");
     }
 
-    // Attempt to acquire token silently
-    const response = await msalInstance.acquireTokenSilent(silentRequest);
-    
-    // Add the token to the Authorization header
-    config.headers.Authorization = `Bearer ${response.accessToken}`;
-    
-    return config;
-  } catch (error) {
-    console.error("Error acquiring token silently:", error);
+    // Acquire token silently for the active account
+    const tokenResponse = await msalInstance.acquireTokenSilent({
+      ...loginRequest,
+      account: activeAccount,
+    });
 
-    // If silent token acquisition fails, attempt to acquire token via popup
+    config.headers.Authorization = `Bearer ${tokenResponse.accessToken}`;
+    return config;
+
+  } catch (error) {
+    console.warn("Silent token acquisition failed:", error);
+
+    // Optional fallback to popup if the token is expired or missing
     try {
-      const popupResponse = await msalInstance.acquireTokenPopup(silentRequest);
+      const popupResponse = await msalInstance.acquireTokenPopup(loginRequest);
       config.headers.Authorization = `Bearer ${popupResponse.accessToken}`;
       return config;
     } catch (popupError) {
-      console.error("Error acquiring token via popup:", popupError);
+      console.error("Token acquisition failed completely:", popupError);
       return Promise.reject(popupError);
     }
   }

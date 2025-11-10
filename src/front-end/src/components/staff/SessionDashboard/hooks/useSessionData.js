@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
 import storage from "@/utils/storage";
 
 export const useSessionData = (updateTrigger = 0) => {
@@ -17,12 +18,15 @@ export const useSessionData = (updateTrigger = 0) => {
     try {
       const storedLocationId = storage.get("branch-location");
       if (!storedLocationId) {
-        setError(
-          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
-        );
-        console.error(
-          "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
-        );
+        const isGuest = localStorage.getItem("guest") === "true";
+        if(! isGuest){
+          setError(
+            "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+          );
+          console.error(
+            "Invalid location. Make sure you have selected a location in the navigation bar dropdown at the top of the page."
+          );
+      }
 
         return [];
       }

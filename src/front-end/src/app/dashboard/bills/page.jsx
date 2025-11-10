@@ -9,12 +9,16 @@ import {
   Container,
   IconButton,
   Dialog,
+  Button,
 } from "@mui/material";
-import { Plus } from "lucide-react";
+import { Plus, Receipt } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
 import NewBillDialog from "@/components/staff/SessionDashboard/components/dialogs/NewBillDialog";
+import BillSummaryDialog from "@/components/staff/SessionDashboard/components/dialogs/BillSummaryDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
+import { getStatusColorValue, formatDateTime, formatBillStatus, getTableDescription, sortBillsByStatus } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const AddButton = styled(IconButton)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
@@ -68,7 +72,11 @@ const BillsDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
+  const [selectedBillId, setSelectedBillId] = useState(null)
   const [sessionId, setSessionId] = useState(null);
+
+  const isGuest = () => localStorage.getItem("guest") === "true";
 
 //May only need sessions for staff or admin
 //Leaving code here now in case
@@ -94,11 +102,26 @@ const BillsDashboard = () => {
 // Fetch active session ID first
   useEffect(() => {
     const fetchActiveSession = async () => {
+
+      
       try {
         setLoading(true);
         setError(null);
 
-        const response = await api.get("/DiningSession/participants/active-session-id");
+        if (isGuest()) {
+          const sid = localStorage.getItem("session_id");
+          if (sid) {
+            setSessionId(parseInt(sid));
+            return;
+          } else {
+            setError("Guest session not found. Please scan your table QR again.");
+            return;
+          }
+        }
+        const apiClient = isGuest() ? publicApi : api;
+        const response = await apiClient.get("/DiningSession/participants/active-session-id/latest");
+
+        console.log("active-session response:", response.data);
 
         if (response.status !== 200) {
           throw new Error("Failed to fetch active session");
@@ -132,19 +155,21 @@ const BillsDashboard = () => {
   }, [sessionId]);
 
   const fetchBills = async (sid) => {
+
+    const apiClient = isGuest() ? publicApi : api;
+
     try {
       setLoading(true);
       setError(null);
 
-      console.log("Fetching bills for session:", sid);
-      const res = await api.get(`/Bill/get_bills/${sid}`);
+      const res = await apiClient.get(`/Bill/get_bills/${sid}`);
 
       if (res.status !== 200) {
         throw new Error("Failed to fetch bills");
       }
 
       const billsData = Array.isArray(res.data) ? res.data : [];
-      console.log("Bills fetched:", billsData);
+
       setBills(billsData);
     } catch (err) {
       console.error("Error fetching bills:", err);
@@ -172,28 +197,9 @@ const BillsDashboard = () => {
     setDialogOpen(false);
   };
 
-  const getBillStatusColor = (status) => {
-    if (!status) return "#757575";
-    switch (status.toString().toUpperCase()) {
-      case "OPEN":
-        return "#4caf50";
-      case "CLOSED":
-        return "#757575";
-      case "CANCELLED":
-        return "#f44336";
-      default:
-        return "#757575";
-    }
-  };
-
-  const formatGuestCount = (bill) => {
-    if (!bill) return "";
-    const counts = [];
-    if (bill.adult_count) counts.push(`${bill.adult_count} Adults`);
-    if (bill.child_count) counts.push(`${bill.child_count} Children`);
-    if (bill.senior_count) counts.push(`${bill.senior_count} Seniors`);
-    if (bill.tot_count) counts.push(`${bill.tot_count} Tots`);
-    return counts.join(", ") || "No guests";
+  const handleViewSummary = (billId) => {
+    setSelectedBillId(billId);
+    setSummaryDialogOpen(true);
   };
 
   if (loading) {
@@ -203,6 +209,8 @@ const BillsDashboard = () => {
       </Box>
     );
   }
+
+  const sortedBills = sortBillsByStatus(bills || []);
 
   return (
     <SessionProvider sessionId={sessionId}>
@@ -241,42 +249,53 @@ const BillsDashboard = () => {
               width: "100%",
             }}
           >
-            {bills.map((bill) => {
-              if (!bill?.bill_id) return null;
-              const statusColor = getBillStatusColor(bill.status);
+            {sortedBills.map((bill) => {
+                if (!bill?.bill_id) return null;
+                const statusColor = getStatusColorValue(bill.status);
 
-              return (
-                <BillCard key={bill.bill_id} $statusColor={statusColor}>
-                  <Typography variant="h6" component="div">
-                    {bill.bill_name || `Bill #${bill.bill_id}`}
-                  </Typography>
-
-                  <StatusChip $statusColor={statusColor}>
-                    {bill.status ? String(bill.status) : "Unknown Status"}
-                  </StatusChip>
-
-                  <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
-                    {formatGuestCount(bill)}
-                  </Typography>
-
-                  {bill.created_at && (
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                      Created: {new Date(bill.created_at).toLocaleTimeString()}
+                return (
+                  <BillCard key={bill.bill_id} $statusColor={statusColor}>
+                    <Typography variant="h6" component="div" noWrap>
+                      {bill.bill_name || `Bill #${bill.bill_id}`}
                     </Typography>
-                  )}
 
-                  {bill.table_numbers?.length > 0 && (
-                    <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                      Tables: {bill.table_numbers.join(", ")}
+                    <StatusChip $statusColor={statusColor}>
+                      {formatBillStatus(bill.status)}
+                    </StatusChip>
+
+                    <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: "medium" }}>
+                      Total: {bill.total_count || 0} guest{bill.total_count !== 1 ? 's' : ''}
                     </Typography>
-                  )}
-                </BillCard>
+
+                    {bill.created_at && (
+                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        Created: {formatDateTime(bill.created_at)}
+                      </Typography>
+                    )}
+
+                    {bill.table_numbers?.length > 0 && (
+                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                        {getTableDescription(bill.table_numbers)}
+                      </Typography>
+                    )}
+
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Receipt size={16} />}
+                      onClick={() => handleViewSummary(bill.bill_id)}
+                      sx={{ mt: 1 }}
+                    >
+                      View Summary
+                    </Button>
+                  </BillCard>
               );
             })}
           </Box>
         )}
 
-        {sessionId && (
+        {/* New Bill Dialog */}
+          {sessionId && (
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
               <NewBillDialog 
                 open={dialogOpen} 
@@ -285,7 +304,18 @@ const BillsDashboard = () => {
               />
             </Dialog>
           )}
-      </Box>
+
+          {/* Bill Summary Dialog */}
+          <BillSummaryDialog
+            open={summaryDialogOpen}
+            sessionId={sessionId}
+            billId={selectedBillId}
+            onClose={() => {
+              setSummaryDialogOpen(false);
+              setSelectedBillId(null);
+            }}
+          />
+        </Box>
     </Container>
     </SessionProvider>
   );

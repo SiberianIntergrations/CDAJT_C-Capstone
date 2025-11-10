@@ -51,17 +51,17 @@ namespace back_end.domain.Seeders
 
         var sessions = new List<DiningSession>();
 
-        // Create 5 active sessions (mix of individual tables and groups) per location
-        for (int i = 1; i <= 5; i++)
+        // Create 10 active sessions (mix of individual tables and groups) per location
+        for (int i = 1; i <= 10; i++)
         {
           var startTime = now.AddHours(-_rng.Next(1, 4));
           var menu = menus[_rng.Next(menus.Count)];
 
           DiningSession session;
 
-          if (i <= 3 && tables.Any())
+          // 70% individual tables, 30% table groups
+          if (_rng.NextDouble() < 0.7 && tables.Any())
           {
-            // First 3 sessions: individual tables
             var table = tables[_rng.Next(tables.Count)];
             session = new DiningSession
             {
@@ -75,7 +75,6 @@ namespace back_end.domain.Seeders
           }
           else if (tableGroups.Any())
           {
-            // Last 2 sessions: table groups
             var group = tableGroups[_rng.Next(tableGroups.Count)];
             session = new DiningSession
             {
@@ -95,8 +94,8 @@ namespace back_end.domain.Seeders
           sessions.Add(session);
         }
 
-        // Create 45 historical sessions (mix of individual tables and groups) per location
-        for (int i = 6; i <= 50; i++)
+        // Create 40 historical sessions (mix of individual tables and groups) per location
+        for (int i = 11; i <= 50; i++)
         {
           var daysAgo = _rng.Next(1, 90);
           var startTime = now.AddDays(-daysAgo).AddHours(_rng.Next(9, 20));
