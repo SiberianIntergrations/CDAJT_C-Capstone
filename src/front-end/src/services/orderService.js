@@ -1,4 +1,7 @@
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
+
+const isGuest = () => typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
 /**
  * Service for managing orders and order items
@@ -11,11 +14,31 @@ export const orderService = {
    * @param {number} orderData.bill_Id - Bill ID
    * @returns {Promise<Object>} Created order details
    */
-  createOrder: async (orderData) => {
-    const response = await api.post("/Order", orderData);
-    return response.data;
-  },
 
+
+  //Clean this up if time
+  createOrder: async (orderData) => {
+
+    if (isGuest()) {
+    orderData.Request_By_Oid = localStorage.getItem("guest_oid");
+    orderData.Request_By_Name = "Guest";
+  }
+
+    const apiClient = isGuest() ? publicApi : api;
+
+    try {
+      const response = await apiClient.post("/Order", orderData);
+      return response.data;
+    } catch (error) {
+
+      if (error.response) {
+
+      } else {
+        console.error("⚠️ No response received from API");
+      }
+      throw error;
+    }
+  },
   // ORDER MANAGEMENT
   /**
    * Approves a pending order (Staff/Admin only)
@@ -61,7 +84,9 @@ export const orderService = {
    * @returns {Promise<Array>} Array of added order items
    */
   addOrderItems: async (orderId, items) => {
-    const response = await api.post(`/Order/${orderId}/items`, items);
+    const apiClient = isGuest() ? publicApi : api;
+    const response = await apiClient.post(`/Order/${orderId}/items`, items);
+
     return response.data;
   },
 
