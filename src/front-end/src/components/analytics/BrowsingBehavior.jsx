@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import Alert from "@mui/material"
+import {Alert} from "@mui/material"
 import api from "@/config/api";
 
 const BrowsingBehavior = () => {

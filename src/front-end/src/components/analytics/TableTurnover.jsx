@@ -44,17 +44,17 @@ useEffect(() => {
             router.push("/auth/login");
             break;
           case 409:
-            setError(err.response.data || "Conflict error occurred");
+            setError(err.response.data.message || "Conflict error occurred");
             console.log("Conflict message:", err.response.data);
             break;
           case 404:
-            setError(err.response.data || "Resource not found");
+            setError(err.response.data.message || "Resource not found");
             break;
           case 500:
-            setError(err.response.data || "Server error occurred");
+            setError(err.response.data.message || "Server error occurred");
             break;
           default:
-            setError(err.response.data || "An error occurred");
+            setError(err.response.data.message || "An error occurred");
         }
       }
     } finally {
@@ -77,7 +77,7 @@ if (error) return (
       alignItems: "center",
     }}
   >
-    {error}
+      {error}
   </Alert>
 );
 

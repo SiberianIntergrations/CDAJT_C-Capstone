@@ -12,7 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import Alert from "@mui/material";
+import {Alert} from "@mui/material";
 import styles from "@/components/analytics/OrderTiming.module.css"; // Import CSS module
 
 ChartJS.register(

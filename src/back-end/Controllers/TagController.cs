@@ -37,7 +37,7 @@ namespace back_end.controllers
     /// <response code="403">The user does not have permission to create tags.</response>
     /// <response code="409">A tag with the same name already exists.</response>
     /// <response code="500">An unexpected error occurred while creating the tag.</response>
-    [Authorize(Policy = "adminOnly,")]
+    [Authorize(Policy = "adminOnly")]
     [HttpPost]
     [Consumes("application/json")]
     [Produces("application/json")]

@@ -377,7 +377,7 @@ namespace back_end.Controllers
         /// </remarks>
         [Authorize(Policy = "staffOnly")]
         [HttpPost("{item_id:int}/image")]
-        [RequestSizeLimit(5 * 1024 * 1024)]
+        // [RequestSizeLimit(5 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -520,17 +520,20 @@ namespace back_end.Controllers
                 var frontEndFolder = Path.GetFullPath(
                     Path.Combine(backendRoot, "..", "front-end", "public", "menu-items")
                 );
-                
-                string fileName = Path.GetFileName(item.image_url);
-                var ImagePath = Path.Combine(frontEndFolder, fileName);
-                if (!System.IO.File.Exists(ImagePath))
+                if (item.image_url != null)
                 {
-                    return BadRequest(ImagePath);
+                    string fileName = Path.GetFileName(item.image_url);
+                    var ImagePath = Path.Combine(frontEndFolder, fileName);
+                    if (!System.IO.File.Exists(ImagePath))
+                    {
+                        return BadRequest(ImagePath);
+                    }
+                    else
+                    {
+                        System.IO.File.Delete(ImagePath);
+                    }  
                 }
-                else
-                {
-                    System.IO.File.Delete(ImagePath);
-                }
+
                 _context.Remove(item);
                 await _context.SaveChangesAsync();
                 return Ok("Image Was Deleted");
