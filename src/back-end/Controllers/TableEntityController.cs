@@ -297,6 +297,15 @@ namespace back_end.Controllers
           return BadRequest("Cannot delete a table that is currently in use in an active session");
         }
 
+        // Check if table is in an ended session (directly assigned)
+        var inactiveSessionDirect = await _context.DiningSessions
+            .AnyAsync(ds => ds.Table_Id == table_id && ds.Ended_At != null);
+
+        if (inactiveSessionDirect)
+        {
+          return BadRequest("Cannot delete a table that has previously been used in a session");
+        }
+
         // Check if table is part of a table group that's in an active session
         if (table.TableGroup_Id.HasValue)
         {

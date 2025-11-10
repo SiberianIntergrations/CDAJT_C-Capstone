@@ -302,6 +302,14 @@ namespace back_end.Controllers
           return BadRequest("Cannot delete table group that is in an active session");
         }
 
+        // Check if group is in an active session
+        var isInEndedSession = tableGroup.DiningSessions.Any(ds => ds.Ended_At != null);
+
+        if (isInEndedSession)
+        {
+          return BadRequest("Cannot delete table group that is in an ended session");
+        }
+
         // Check if group has tables assigned
         if (tableGroup.Tables.Any())
         {

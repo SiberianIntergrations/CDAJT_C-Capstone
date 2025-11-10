@@ -141,6 +141,10 @@ const TableCard = ({ table }) => {
       await refreshData();
       setConfirmAction(null);
     } catch (error) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
       setActionError(error.response.data || "Failed to delete table");
       setConfirmAction(null);
     } finally {
@@ -158,6 +162,10 @@ const TableCard = ({ table }) => {
       await refreshData();
       setConfirmAction(null);
     } catch (error) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
       setActionError(
         error.response.data || "Failed to remove table from group"
       );

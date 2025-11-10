@@ -92,6 +92,10 @@ const TableGroupCard = ({ group }) => {
       await api.post(`/TableGroup/${group.tableGroup_Id}/toggle-status`);
       await refreshData();
     } catch (error) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
       setActionError(error.response.data || "Failed to toggle group status");
     }
   };
@@ -149,6 +153,10 @@ const TableGroupCard = ({ group }) => {
       setConfirmAction(null);
       setTargetTableId(null);
     } catch (error) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
       setActionError(
         error.response.data || "Failed to remove table from group"
       );
