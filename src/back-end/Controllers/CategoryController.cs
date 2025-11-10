@@ -97,10 +97,24 @@ namespace back_end.Controllers
         {
             try
             {
+                // Validation logic for limits
+                if (category.Adult_Limit < 0)
+                    return BadRequest("Adult_Limit cannot be negative.");
+                if (category.Child_Limit < 0)
+                    return BadRequest("Child_Limit cannot be negative.");
+                if (category.Senior_Limit < 0)
+                    return BadRequest("Senior_Limit cannot be negative.");
+                if (category.Total_Limit < 0)
+                    return BadRequest("Total_Limit cannot be negative.");
+                if (category.Child_Limit > category.Adult_Limit || category.Child_Limit > category.Total_Limit)
+                    return BadRequest("Child_Limit cannot be greater than Adult_Limit or Total_Limit.");
+                if (category.Senior_Limit > category.Adult_Limit || category.Senior_Limit > category.Total_Limit)
+                    return BadRequest("Senior_Limit cannot be greater than Adult_Limit or Total_Limit.");
+
                 var newCategory = await _context.Categories.FirstOrDefaultAsync(c => c.Category_name == category.Name);
                 if (newCategory != null)
                 {
-                    return Conflict("Category with the same name already exists.");
+                    return BadRequest("Category with the same name already exists.");
                 }
 
                 var categoryEntity = new Category
@@ -220,6 +234,21 @@ namespace back_end.Controllers
                 {
                     return NotFound("Category not found.");
                 }
+
+                // Validation logic moved here
+                if (updatedCategory.Adult_Limit < 0)
+                    return BadRequest("Adult_Limit cannot be negative.");
+                if (updatedCategory.Child_Limit < 0)
+                    return BadRequest("Child_Limit cannot be negative.");
+                if (updatedCategory.Senior_Limit < 0)
+                    return BadRequest("Senior_Limit cannot be negative.");
+                if (updatedCategory.Total_Limit < 0)
+                    return BadRequest("Total_Limit cannot be negative.");
+                if (updatedCategory.Child_Limit > updatedCategory.Adult_Limit || updatedCategory.Child_Limit > updatedCategory.Total_Limit)
+                    return BadRequest("Child_Limit cannot be greater than Adult_Limit or Total_Limit.");
+                if (updatedCategory.Senior_Limit > updatedCategory.Adult_Limit || updatedCategory.Senior_Limit > updatedCategory.Total_Limit)
+                    return BadRequest("Senior_Limit cannot be greater than Adult_Limit or Total_Limit.");
+
                 existingCategory.Category_name = updatedCategory.Name ?? existingCategory.Category_name;
                 existingCategory.Description = updatedCategory.Description ?? existingCategory.Description;
                 existingCategory.adult_limit = updatedCategory.Adult_Limit;
