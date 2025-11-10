@@ -11,6 +11,8 @@ import {
   TableHead,
   TableRow,
   Typography,
+  Alert
+  
 } from "@mui/material";
 import InsightTextBox from "@/components/analytics/insight";
 import api from "@/config/api";
@@ -24,13 +26,13 @@ const ItemPerformance = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const accessToken = localStorage.getItem("access_token");
+      // const accessToken = localStorage.getItem("access_token");
 
-      if (!accessToken) {
-        setError("No token found");
-        router.push("/auth/login");
-        return;
-      }
+      // if (!accessToken) {
+      //   setError("No token found");
+      //   router.push("/auth/login");
+      //   return;
+      // }
 
       try {
         const response = await api.get("analytics/item-performance");
@@ -38,8 +40,26 @@ const ItemPerformance = () => {
         setData(response.data);
       } catch (err) {
         console.error("Error fetching data:", err);
-        if (err.response && err.response.status === 401) {
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
         }
+      }
       } finally {
         setLoading(false);
       }
@@ -49,7 +69,20 @@ const ItemPerformance = () => {
   }, [router]);
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
+if (error) return (
+  <Alert
+    severity="error"
+    sx={{
+      mb: 2,
+      borderRadius: 2,
+      textAlign: "center", 
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    {error}
+  </Alert>
+);
 
   const top5Items = data.item_performance
 

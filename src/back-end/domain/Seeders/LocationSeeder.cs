@@ -49,7 +49,7 @@ namespace back_end.domain.Seeders
             _context.Locations.AddRange(locations);
             //_context.SaveChanges();
 
-            _logger.LogInformation($"Added {locations.Count} locations");
+            // _logger.LogInformation($"Added {locations.Count} locations");
         }
     }
 }

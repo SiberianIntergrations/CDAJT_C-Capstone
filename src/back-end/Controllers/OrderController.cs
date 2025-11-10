@@ -599,7 +599,7 @@ namespace back_end.Controllers
         /// <summary>
         /// Updates order items before approval (pending orders only).
         /// </summary>
-        [Authorize]
+ [Authorize(Policy = "staffOnly")]
         [HttpPatch("{order_id}/items/{item_id}")]
         [ProducesResponseType(typeof(OrderItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

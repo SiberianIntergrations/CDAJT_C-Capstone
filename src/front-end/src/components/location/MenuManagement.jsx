@@ -51,8 +51,31 @@ const MenuManagement = () => {
       setMenus(response.data);
       console.log(response.data)
     } catch (err) {
-      setError("Failed to fetch menus");
-      console.error(err);
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
     } finally {
       setLoading(false);
       
@@ -67,8 +90,29 @@ const MenuManagement = () => {
       setLocationsList(response.data);
     }
     catch (error){
-      setError("Failed To get Locations")
-      console.error("Feting Error Locations:", error)
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
     }
   };
 
@@ -107,7 +151,31 @@ const MenuManagement = () => {
       setDeleteDialogOpen(false);
       setMenuToDelete(null);
     } catch (err) {
-      setError("Failed to delete menu");
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
       console.error(err);
     }
   };
@@ -124,7 +192,30 @@ const MenuManagement = () => {
       await fetchMenus();
       setIsFormOpen(false);
     } catch (err) {
-      setError("Failed to save menu");
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
       console.error(err);
     }
   };

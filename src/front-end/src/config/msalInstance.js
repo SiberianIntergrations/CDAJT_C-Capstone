@@ -7,4 +7,12 @@ msalInstance.initialize().catch((error) => {
   console.error("MSAL initialization failed:", error);
 });
 
+// Function to ensure MSAL is initialized
+export const initializeMsal = () => {
+  if (!initPromise) {
+    initPromise = msalInstance.initialize();
+  }
+  return initPromise;
+};
+
 export default msalInstance;
