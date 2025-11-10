@@ -11,6 +11,7 @@ using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
 using back_end.DTO.bill;
+using back_end.Services;
 using System.Security.Claims;
 
 namespace back_end.Tests.Controllers;
@@ -21,6 +22,7 @@ public class BillControllerTests : IDisposable
     private readonly BillController _controller;
     private readonly Mock<IConfiguration> _mockConfig;
     private readonly Mock<ILogger<BillController>> _mockLogger;
+    private readonly Mock<IPricingService> _mockPricingService;
 
     public BillControllerTests()
     {
@@ -31,7 +33,19 @@ public class BillControllerTests : IDisposable
         _context = new ApplicationDbContext(options);
         _mockConfig = new Mock<IConfiguration>();
         _mockLogger = new Mock<ILogger<BillController>>();
-        _controller = new BillController(_context, _mockConfig.Object, _mockLogger.Object);
+        _mockPricingService = new Mock<IPricingService>();
+
+        // Setup default pricing service behavior
+        _mockPricingService.Setup(p => p.GetCurrentPricing())
+            .Returns(new PricingInfo
+            {
+                PricingType = "Standard",
+                AdultBasePrice = 25.00m,
+                SeniorBasePrice = 20.00m,
+                ChildBasePrice = 15.00m
+            });
+
+        _controller = new BillController(_context, _mockConfig.Object, _mockLogger.Object, _mockPricingService.Object);
 
         SeedTestData();
     }

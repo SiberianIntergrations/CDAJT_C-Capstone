@@ -375,12 +375,4 @@ Build warnings about `System.Drawing.Common` being Windows-only are expected. Th
 4. **Secure Storage:** Ensure `storage/qrcodes/` has appropriate file permissions
 5. **Don't Commit QR Codes:** The `.gitignore` already handles this, but verify generated files aren't committed
 
-## Future Enhancements
-
-Potential improvements:
-
-- [ ] QR code analytics (scan tracking)
-- [ ] Expiring QR codes for temporary tables
-- [ ] Multi-language labels
-- [ ] QR code size customization
-- [ ] Batch download as ZIP file
+---

@@ -48,17 +48,6 @@ public class OrderControllerTests : IDisposable
             Phone_Number = "123-456-7890"
         };
 
-        var user = new User
-        {
-            User_id = 1,
-            Email = "test@example.com",
-            Password_hash = "hashed",
-            First_name = "Test",
-            Last_name = "User",
-            Role = UserRoles.Customer,
-            Status = UserStatus.Active
-        };
-
         var session = new DiningSession
         {
             Session_Id = 1,
@@ -82,17 +71,17 @@ public class OrderControllerTests : IDisposable
         };
 
         _context.Locations.Add(location);
-        _context.Users.Add(user);
         _context.DiningSessions.Add(session);
         _context.Bills.Add(bill);
         _context.SaveChanges();
     }
 
-    private void SetupUserClaims(int userId)
+    private void SetupUserClaims(string userOid, string userName = "Test User")
     {
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.NameIdentifier, userOid),
+            new Claim("name", userName),  // Use lowercase "name" claim as expected by ClaimsHelpers
             new Claim(ClaimTypes.Email, "test@example.com"),
             new Claim(ClaimTypes.Role, "Customer")
         };
@@ -110,7 +99,7 @@ public class OrderControllerTests : IDisposable
     public async Task CreateOrder_ValidData_CreatesOrder()
     {
         // Arrange
-        SetupUserClaims(1);
+        SetupUserClaims("test-oid-123", "Test User");
 
         var orderCreateDto = new OrderCreateDTO
         {
@@ -129,7 +118,8 @@ public class OrderControllerTests : IDisposable
         orderResponse.Should().NotBeNull();
         orderResponse!.Session_Id.Should().Be(1);
         orderResponse.Bill_Id.Should().Be(1);
-        orderResponse.User_Id.Should().Be(1);
+        orderResponse.User_Oid.Should().Be("test-oid-123");
+        orderResponse.User_Name.Should().Be("Test User");
         orderResponse.Status.Should().Be(OrderStatus.Pending);
 
         // Verify order was saved to database
@@ -141,7 +131,7 @@ public class OrderControllerTests : IDisposable
     public async Task CreateOrder_InvalidSession_ReturnsNotFound()
     {
         // Arrange
-        SetupUserClaims(1);
+        SetupUserClaims("test-oid-123");
 
         var orderCreateDto = new OrderCreateDTO
         {
@@ -160,7 +150,7 @@ public class OrderControllerTests : IDisposable
     public async Task CreateOrder_InvalidBill_ReturnsNotFound()
     {
         // Arrange
-        SetupUserClaims(1);
+        SetupUserClaims("test-oid-123");
 
         var orderCreateDto = new OrderCreateDTO
         {
@@ -179,7 +169,7 @@ public class OrderControllerTests : IDisposable
     public async Task CreateOrder_ClosedBill_ReturnsNotFound()
     {
         // Arrange
-        SetupUserClaims(1);
+        SetupUserClaims("test-oid-123");
 
         var closedBill = new Billing
         {
@@ -214,7 +204,7 @@ public class OrderControllerTests : IDisposable
     public async Task CreateOrder_SetsCorrectTimestamp()
     {
         // Arrange
-        SetupUserClaims(1);
+        SetupUserClaims("test-oid-123");
         var beforeCreation = DateTime.UtcNow;
 
         var orderCreateDto = new OrderCreateDTO
@@ -234,28 +224,12 @@ public class OrderControllerTests : IDisposable
     }
 
     [Theory]
-    [InlineData(1, 1)]
-    [InlineData(1, 2)]
-    public async Task CreateOrder_DifferentUsers_CreatesOrdersWithCorrectUserId(int userId1, int userId2)
+    [InlineData("test-oid-123", "User One")]
+    [InlineData("test-oid-456", "User Two")]
+    public async Task CreateOrder_DifferentUsers_CreatesOrdersWithCorrectUserOid(string userOid, string userName)
     {
-        // Arrange - Add second user if needed
-        if (userId2 != 1)
-        {
-            var user2 = new User
-            {
-                User_id = userId2,
-                Email = $"user{userId2}@example.com",
-                Password_hash = "hashed",
-                First_name = "User",
-                Last_name = $"{userId2}",
-                Role = UserRoles.Customer,
-                Status = UserStatus.Active
-            };
-            _context.Users.Add(user2);
-            await _context.SaveChangesAsync();
-        }
-
-        SetupUserClaims(userId1);
+        // Arrange
+        SetupUserClaims(userOid, userName);
 
         var orderCreateDto = new OrderCreateDTO
         {
@@ -272,14 +246,15 @@ public class OrderControllerTests : IDisposable
         var orderResponse = okResult!.Value as OrderResponseDTO;
 
         orderResponse.Should().NotBeNull();
-        orderResponse!.User_Id.Should().Be(userId1);
+        orderResponse!.User_Oid.Should().Be(userOid);
+        orderResponse.User_Name.Should().Be(userName);
     }
 
     [Fact]
     public async Task CreateOrder_MultipleOrders_AllCreatedSuccessfully()
     {
         // Arrange
-        SetupUserClaims(1);
+        SetupUserClaims("test-oid-123");
 
         // Act - Create 3 orders
         for (int i = 0; i < 3; i++)

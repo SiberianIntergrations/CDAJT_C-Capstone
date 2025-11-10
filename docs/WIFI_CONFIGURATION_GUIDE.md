@@ -243,9 +243,3 @@ Reference secrets instead of hardcoding:
 - Update config → Restart → Clear cache → Regenerate QR codes
 
 ---
-
-## Related Documentation
-
-- **API Reference:** [`src/back-end/Services/QrCode/README.md`](src/back-end/Services/QrCode/README.md)
-- **Front-End Guide:** [`src/front-end/src/components/admin/QR_CODE_INTEGRATION.md`](src/front-end/src/components/admin/QR_CODE_INTEGRATION.md)
-- **Testing Strategy:** [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md)
