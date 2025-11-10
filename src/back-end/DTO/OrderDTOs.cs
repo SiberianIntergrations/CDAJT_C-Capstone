@@ -82,7 +82,9 @@ namespace back_end.DTO.OrdersDTOs
         [JsonPropertyName("quantity")]
         public int? Quantity { get; set; }
         [JsonPropertyName("price_at_time")]
-        public decimal? Price_At_Time { get; set; } 
+        public decimal? Price_At_Time { get; set; }
+        [JsonPropertyName("status")]
+        public string? Status { get; set; }
     }
     public class OrderCreateDTO
     {

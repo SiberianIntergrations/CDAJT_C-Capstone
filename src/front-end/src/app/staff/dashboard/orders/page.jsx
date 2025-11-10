@@ -1,8 +1,9 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Alert, CircularProgress } from "@mui/material";
 import api from "@/config/api";
-import { useOrderActions } from "@/hooks/useOrderActions";
+import storage from "@/utils/storage";
+import { useOrder } from "@/contexts/OrderContext";
 import { Header } from "@/components/staff/Order/OrderHeader";
 import { TabBar } from "@/components/staff/Order/OrderTabBar";
 import { OrderGrid } from "@/components/staff/Order/OrderGrid";
@@ -15,78 +16,8 @@ const OrderDashboard = () => {
   const [editMode, setEditMode] = useState({});
   const [editedQuantities, setEditedQuantities] = useState({});
   const [currentTab, setCurrentTab] = useState("PENDING");
-
-  const fetchAllOrders = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      const sessionsResponse = await api.get(
-        "/DiningSession/get_list_dining_sessions",
-        {
-          params: { activeOnly: true },
-        }
-      );
-
-      if (
-        !Array.isArray(sessionsResponse.data) ||
-        sessionsResponse.data.length === 0
-      ) {
-        setOrders([]);
-        return;
-      }
-
-      const allOrders = [];
-      for (const session of sessionsResponse.data) {
-        try {
-          const sessionId = session.session_Id;
-          if (!sessionId) {
-            console.error("Invalid session object:", session);
-            continue;
-          }
-
-          const ordersResponse = await api.get(`/Order/session/${sessionId}`);
-          console.log("Orders for session", sessionId, ordersResponse.data);
-          // Map out the response data of the orders
-          if (Array.isArray(ordersResponse.data)) {
-            allOrders.push(
-              ...ordersResponse.data.map((order) => ({
-                orderId: order.orderId,
-                sessionId: order.sessionId,
-                userOid: order.userOid,
-                userName: order.userName,
-                status: order.status,
-                itemTotal: order.itemTotal,
-                orderTotal: order.orderTotal,
-                createdAt: order.createdAt,
-                completedAt: order.completedAt,
-                tableNumbers:
-                  session.table_Numbers ||
-                  session.tableNumbers ||
-                  [],
-                items: Array.isArray(order.items)
-                  ? order.items.map((item) => ({
-                      orderItemId: item.orderItemId,
-                      itemId: item.itemId,
-                      name: item.name,
-                      quantity: item.quantity,
-                      price: item.priceAtTime,
-                      status: item.status,
-                    }))
-                  : [],
-              }))
-            );
-          }
-        } catch (err) {
-          console.error(`Error fetching orders for session:`, err);
-        }
-      }
-      setOrders(allOrders);
-    } catch (err) {
-      console.error("Error fetching sessions/orders:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [pollingActive, setPollingActive] = useState(true);
+  const pollingRef = useRef();
 
   const {
     approveOrder,
@@ -97,13 +28,87 @@ const OrderDashboard = () => {
     actionError,
     isLoading,
     clearActionError,
-  } = useOrderActions(fetchAllOrders);
+  } = useOrder();
 
+  const fetchAllOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      // Get the selected location from storage
+      const locationId = storage.get("branch-location");
+
+      // Build params object with locationId if it exists
+      const params = locationId ? { locationId } : {};
+
+      const response = await api.get("/Order/all_orders", { params });
+
+      if (!Array.isArray(response.data) || response.data.length === 0) {
+        setOrders([]);
+        return;
+      }
+      const mappedOrders = response.data.map((order) => ({
+        orderId: order.orderId,
+        sessionId: order.sessionId,
+        billId: order.billId,
+        userOid: order.userOid,
+        userName: order.userName,
+        status: order.status,
+        itemTotal: order.items?.length || 0,
+        orderTotal:
+          order.items?.reduce(
+            (sum, item) => sum + item.priceAtTime * item.quantity,
+            0
+          ) || 0,
+        createdAt: order.createdAt,
+        completedAt: order.completedAt,
+        tableNumbers: order.tableNumbers || [],
+        items: Array.isArray(order.items)
+          ? order.items.map((item) => ({
+              orderItemId: item.orderItemId,
+              itemId: item.itemId,
+              name: item.name,
+              quantity: item.quantity,
+              price: item.priceAtTime,
+              isAddOn: item.isAddOn,
+              status: item.status,
+            }))
+          : [],
+      }));
+
+      setOrders(mappedOrders);
+    } catch (err) {
+      console.error("Error fetching orders:", err);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Start polling only when not editing or dialog open
   useEffect(() => {
+    if (!pollingActive) return;
+    
+    // Initial fetch
     fetchAllOrders();
-    const interval = setInterval(fetchAllOrders, 30000);
-    return () => clearInterval(interval);
-  }, [fetchAllOrders]);
+    
+    // Set up polling interval
+    pollingRef.current = setInterval(() => {
+      fetchAllOrders();
+    }, 30000);
+    
+    return () => clearInterval(pollingRef.current);
+  }, [pollingActive, fetchAllOrders]);
+
+  // When dialog opens or edit mode starts, pause polling
+  // This is to prevent refreshes while user is doing something
+  useEffect(() => {
+    if (selectedOrderId || Object.values(editMode).some(Boolean)) {
+      setPollingActive(false);
+      clearInterval(pollingRef.current);
+    } else {
+      setPollingActive(true);
+    }
+  }, [selectedOrderId, editMode]);
 
   const selectedOrder = orders.find((o) => o.orderId === selectedOrderId);
 
@@ -134,20 +139,59 @@ const OrderDashboard = () => {
 
   const handleMarkItemDelivered = async (orderId, orderItemId) => {
     await completeOrderItem(orderId, orderItemId);
+    await fetchAllOrders();
   };
 
-  const handleRemoveItem = async (orderId, itemId) => {
+  const handelCancelItem = async (orderId, itemId) => {
     const order = orders.find((o) => o.orderId === orderId);
     const item = order?.items.find((i) => i.itemId === itemId);
 
     if (!item?.orderItemId) return;
 
-    await removeOrderItem(orderId, item.orderItemId);
+    await updateOrderItem(orderId, item.orderItemId, { status: "Cancelled" });
+    await fetchAllOrders();
+  };
+
+  const handleUndoCancelItem = async (orderId, itemId) => {
+    const order = orders.find((o) => o.orderId === orderId);
+    const item = order?.items.find((i) => i.itemId === itemId);
+    if (!item?.orderItemId) return;
+
+    await updateOrderItem(orderId, item.orderItemId, { status: "Pending" });
+    await fetchAllOrders();
   };
 
   const handleApproveOrder = async (orderId) => {
     await approveOrder(orderId);
     setSelectedOrderId(null);
+    await fetchAllOrders();
+  };
+
+  const handleSaveChanges = async (orderId) => {
+    const order = orders.find((o) => o.orderId === orderId);
+    
+    for (const item of order.items) {
+      const key = `${orderId}-${item.itemId}`;
+      const newQuantity = editedQuantities[key];
+
+      // If item is cancelled, set quantity to 0
+      if (item.status?.toUpperCase() === "CANCELLED") {
+        if (item.quantity !== 0) {
+          await updateOrderItem(orderId, item.orderItemId, { quantity: 0 });
+        }
+        continue;
+      }
+
+      // For non-cancelled items, update quantity if changed
+      if (newQuantity !== undefined && newQuantity !== item.quantity) {
+        await updateOrderItem(orderId, item.orderItemId, {
+          quantity: newQuantity,
+        });
+      }
+    }
+
+    setEditMode((prev) => ({ ...prev, [orderId]: false }));
+    await fetchAllOrders();
   };
 
   const handleSaveAndApprove = async (orderId) => {
@@ -157,8 +201,17 @@ const OrderDashboard = () => {
     for (const item of order.items) {
       const key = `${orderId}-${item.itemId}`;
       const newQuantity = editedQuantities[key];
-      
-      if (newQuantity !== item.quantity) {
+
+      // If item is cancelled, set quantity to 0 and skip status update
+      if (item.status === "Cancelled") {
+        if (item.quantity !== 0) {
+          await updateOrderItem(orderId, item.orderItemId, { quantity: 0 });
+        }
+        continue;
+      }
+
+      // For non-cancelled items, update quantity if changed
+      if (newQuantity !== undefined && newQuantity !== item.quantity) {
         await updateOrderItem(orderId, item.orderItemId, {
           quantity: newQuantity,
         });
@@ -167,15 +220,17 @@ const OrderDashboard = () => {
 
     // Then approve the order
     await approveOrder(orderId);
-    
+
     // Close dialog and reset edit mode
     setEditMode((prev) => ({ ...prev, [orderId]: false }));
     setSelectedOrderId(null);
+    await fetchAllOrders();
   };
 
   const handleMarkAllDelivered = async (orderId) => {
     await completeOrder(orderId);
     setSelectedOrderId(null);
+    await fetchAllOrders();
   };
 
   const getStatusColor = (status) => {
@@ -205,11 +260,17 @@ const OrderDashboard = () => {
   });
 
   const tabCounts = {
-    PENDING: orders.filter((o) => o.status === "PENDING").length,
-    PROCESSING: orders.filter(
-      (o) => o.status === "PROCESSING" || o.status === "APPROVED"
+    PENDING: orders.filter(
+      (o) => o.status?.toString().toUpperCase() === "PENDING"
     ).length,
-    DELIVERED: orders.filter((o) => o.status === "DELIVERED").length,
+    PROCESSING: orders.filter(
+      (o) =>
+        o.status?.toString().toUpperCase() === "PROCESSING" ||
+        o.status?.toString().toUpperCase() === "APPROVED"
+    ).length,
+    DELIVERED: orders.filter(
+      (o) => o.status?.toString().toUpperCase() === "DELIVERED"
+    ).length,
   };
 
   if (loading) {
@@ -243,10 +304,7 @@ const OrderDashboard = () => {
         counts={tabCounts}
       />
 
-      <OrderGrid
-        orders={filteredOrders}
-        onOrderClick={setSelectedOrderId}
-      />
+      <OrderGrid orders={filteredOrders} onOrderClick={setSelectedOrderId} />
 
       <OrderDetailDialog
         open={!!selectedOrderId}
@@ -261,8 +319,10 @@ const OrderDashboard = () => {
         isLoading={isLoading}
         onToggleEdit={toggleEditMode}
         onQuantityChange={updateQuantity}
-        onRemoveItem={handleRemoveItem}
+        onCancelItem={handelCancelItem}
+        onUndoCancelItem={handleUndoCancelItem}
         onMarkItemDelivered={handleMarkItemDelivered}
+        onSaveChanges={handleSaveChanges}
         onSaveAndApprove={handleSaveAndApprove}
         onApprove={handleApproveOrder}
         onMarkAll={handleMarkAllDelivered}

@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { createApiWrapper } from "@/utils/apiWrapper";
+import { useNotification } from "@/contexts/NotificationContext";
 import orderService from "@/services/orderService";
 
 /**
@@ -11,123 +12,211 @@ export const useOrderActions = (onSuccess) => {
   const [actionError, setActionError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleError = (err, context) => {
-    const errorMessage =
-      err?.response?.data?.message ||
-      err?.response?.data?.detail ||
-      err?.message ||
-      `Failed to ${context}`;
-    
-    console.error(`Error in ${context}:`, err);
-    setActionError(errorMessage);
-  };
+  const { notifySuccess, notifyError } = useNotification();
 
-  const apiWrapper = createApiWrapper({
-    setIsLoading,
-    setActionError,
-    handleError,
-    onSuccess,
-  });
+  const clearActionError = useCallback(() => {
+    setActionError(null);
+  }, []);
+
+  // Centralized error handler
+  const handleError = useCallback(
+    (error, context) => {
+      const errorMessage = error.userMessage || `Failed to ${context}`;
+
+      setActionError(errorMessage);
+      notifyError(errorMessage);
+    },
+    [notifyError]
+  );
+
+  // Wrapper that handles all the repetitive loading/error logic
+  const apiWrapper = useCallback(
+    createApiWrapper({
+      setIsLoading,
+      setActionError,
+      handleError,
+      onSuccess,
+    }),
+    [handleError, onSuccess]
+  );
 
   // ORDER CREATION
 
-  const createOrder = (sessionId, billId) =>
-    apiWrapper(
-      "createOrder",
-      async () => orderService.createOrder({ session_Id: sessionId, bill_Id: billId }),
-      { triggerSuccess: true }
-    );
+  const createOrder = useCallback(
+    (sessionId, billId) =>
+      apiWrapper(
+        "createOrder",
+        async () => {
+          const result = await orderService.createOrder({
+            session_Id: sessionId,
+            bill_Id: billId,
+          });
+          notifySuccess("Order created successfully");
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
   // ORDER MANAGEMENT
 
-  const approveOrder = (orderId) =>
-    apiWrapper(
-      "approveOrder",
-      async () => orderService.approveOrder(orderId),
-      { triggerSuccess: true }
-    );
+  const approveOrder = useCallback(
+    (orderId) =>
+      apiWrapper(
+        "approveOrder",
+        async () => {
+          const result = await orderService.approveOrder(orderId);
+          notifySuccess("Order approved successfully");
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
-  const cancelOrder = (orderId) =>
-    apiWrapper(
-      "cancelOrder",
-      async () => orderService.cancelOrder(orderId),
-      { triggerSuccess: true }
-    );
+  const cancelOrder = useCallback(
+    (orderId) =>
+      apiWrapper(
+        "cancelOrder",
+        async () => {
+          const result = await orderService.cancelOrder(orderId);
+          notifySuccess("Order cancelled successfully");
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
-  const completeOrder = (orderId) =>
-    apiWrapper(
-      "completeOrder",
-      async () => orderService.completeOrder(orderId),
-      { triggerSuccess: true }
-    );
+  const completeOrder = useCallback(
+    (orderId) =>
+      apiWrapper(
+        "completeOrder",
+        async () => {
+          const result = await orderService.completeOrder(orderId);
+          notifySuccess("Order completed successfully");
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
   // ORDER ITEMS MANAGEMENT
 
-  const addOrderItems = (orderId, items) =>
-    apiWrapper(
-      "addOrderItems",
-      async () => orderService.addOrderItems(orderId, items),
-      { triggerSuccess: true }
-    );
+  const addOrderItems = useCallback(
+    (orderId, items) =>
+      apiWrapper(
+        "addOrderItems",
+        async () => {
+          const result = await orderService.addOrderItems(orderId, items);
+          notifySuccess(
+            `${items.length} item${items.length > 1 ? "s" : ""} added to order`
+          );
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
-  const updateOrderItem = (orderId, itemId, updateData) =>
-    apiWrapper(
-      "updateOrderItem",
-      async () => orderService.updateOrderItem(orderId, itemId, updateData),
-      { triggerSuccess: true }
-    );
+  const updateOrderItem = useCallback(
+    (orderId, itemId, updateData) =>
+      apiWrapper(
+        "updateOrderItem",
+        async () => {
+          const result = await orderService.updateOrderItem(
+            orderId,
+            itemId,
+            updateData
+          );
+          notifySuccess("Order item updated successfully");
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
-  const completeOrderItem = (orderId, itemId) =>
-    apiWrapper(
-      "completeOrderItem",
-      async () => orderService.completeOrderItem(orderId, itemId),
-      { triggerSuccess: true }
-    );
+  const completeOrderItem = useCallback(
+    (orderId, itemId) =>
+      apiWrapper(
+        "completeOrderItem",
+        async () => {
+          const result = await orderService.completeOrderItem(orderId, itemId);
+          notifySuccess("Order item marked as complete");
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
-  const removeOrderItem = (orderId, orderItemId) =>
-    apiWrapper(
-      "removeOrderItem",
-      async () => orderService.removeOrderItem(orderId, orderItemId),
-      { triggerSuccess: true }
-    );
+  const removeOrderItem = useCallback(
+    (orderId, orderItemId) =>
+      apiWrapper(
+        "removeOrderItem",
+        async () => {
+          const result = await orderService.removeOrderItem(
+            orderId,
+            orderItemId
+          );
+          notifySuccess("Order item removed successfully");
+          return result;
+        },
+        { triggerSuccess: true }
+      ),
+    [apiWrapper, notifySuccess]
+  );
 
   // ORDER RETRIEVAL
 
-  const getAllOrders = () =>
-    apiWrapper(
-      "getAllOrders",
-      async () => orderService.getAllOrders(),
-      { defaultReturn: [] }
-    );
+  const getAllOrders = useCallback(
+    () =>
+      apiWrapper(
+        "getAllOrders",
+        async () => orderService.getAllOrders(),
+        { defaultReturn: [] }
+      ),
+    [apiWrapper]
+  );
 
-  const getOrderById = (orderId) =>
-    apiWrapper(
-      "getOrderById",
-      async () => orderService.getOrderById(orderId)
-    );
+  const getOrderById = useCallback(
+    (orderId) =>
+      apiWrapper("getOrderById", async () => orderService.getOrderById(orderId)),
+    [apiWrapper]
+  );
 
-  const getOrdersBySession = (sessionId) =>
-    apiWrapper(
-      "getOrdersBySession",
-      async () => orderService.getOrdersBySession(sessionId),
-      { defaultReturn: [] }
-    );
+  const getOrdersBySession = useCallback(
+    (sessionId) =>
+      apiWrapper(
+        "getOrdersBySession",
+        async () => orderService.getOrdersBySession(sessionId),
+        { defaultReturn: [] }
+      ),
+    [apiWrapper]
+  );
 
-  const getOrdersByUser = (userId) =>
-    apiWrapper(
-      "getOrdersByUser",
-      async () => orderService.getOrdersByUser(userId),
-      { defaultReturn: [] }
-    );
+  const getOrdersByUser = useCallback(
+    (userId) =>
+      apiWrapper(
+        "getOrdersByUser",
+        async () => orderService.getOrdersByUser(userId),
+        { defaultReturn: [] }
+      ),
+    [apiWrapper]
+  );
 
-  const getActiveSessionOrders = (billId = null) =>
-    apiWrapper(
-      "getActiveSessionOrders",
-      async () => orderService.getActiveSessionOrders(billId),
-      { defaultReturn: [] }
-    );
-
-  const clearActionError = () => setActionError(null);
+  const getActiveSessionOrders = useCallback(
+    (billId = null) =>
+      apiWrapper(
+        "getActiveSessionOrders",
+        async () => orderService.getActiveSessionOrders(billId),
+        { defaultReturn: [] }
+      ),
+    [apiWrapper]
+  );
 
   return {
     // State
