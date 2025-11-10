@@ -63,6 +63,8 @@ const HomePage = () => {
     window.location.reload();
   };
 
+  // Removed tour related state and logic
+
   if (!ready) return null;
 
   const showGuestButton = !userName && !isGuest;
@@ -79,11 +81,21 @@ const HomePage = () => {
           textAlign: "center",
         }}
       >
-        <h1 style={{ fontSize: "2.2rem", marginBottom: "0.5rem", fontWeight: "600" }}>
+        <h1
+          style={{
+            fontSize: "2.2rem",
+            marginBottom: "0.5rem",
+            fontWeight: "600",
+          }}
+          data-tour="welcome-title"
+        >
           Welcome to Sushi Toshi{userName ? `, ${userName}` : ""}!
         </h1>
 
-        <p style={{ color: "#555", fontSize: "1.1rem", marginBottom: "2rem" }}>
+        <p
+          style={{ color: "#555", fontSize: "1.1rem", marginBottom: "2rem" }}
+          data-tour="welcome-desc"
+        >
           All You Can Eat Authentic Japanese Food.
         </p>
 
@@ -99,52 +111,70 @@ const HomePage = () => {
               fontSize: "1rem",
               cursor: "pointer",
             }}
+            data-tour="guest-btn"
           >
             Continue as Guest
           </button>
         )}
 
-  {isGuest && (
-    <div style={{ marginTop: "2rem" }}>
-      {localStorage.getItem("tableNumber") ? (
-        <h3>
-          You’re seated at table {localStorage.getItem("tableNumber")}
-        </h3>
-      ) : (
-        <>
-          <h3>Enter Your Table Number</h3>
-          <input
-            type="number"
-            placeholder="Table #"
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            style={{
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              marginRight: "10px",
-            }}
-          />
-          <button
-            onClick={() => {
-              if (!tableNumber.trim()) return alert("Please enter a table number.");
-              localStorage.setItem("tableNumber", tableNumber.trim());
-              router.push(`/join?table=${tableNumber.trim()}`);
-            }}
-            style={{
-              backgroundColor: "#388e3c",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "10px 22px",
-              cursor: "pointer",
-            }}
-          >
-            Join Table
-          </button>
-        </>
-      )}
+        {/* Updated Get Started button to navigate to Bills page with tour param */}
+        <button
+          style={{
+            marginTop: "2rem",
+            backgroundColor: "#C01E2E",
+            color: "white",
+            border: "none",
+            borderRadius: "8px",
+            padding: "10px 22px",
+            fontSize: "1rem",
+            cursor: "pointer",
+          }}
+          onClick={() => router.push("/dashboard/bills?tour=1")}
+          data-tour="get-started-btn"
+        >
+          Get Started
+        </button>
 
+        {isGuest && (
+          <div style={{ marginTop: "2rem" }}>
+            {localStorage.getItem("tableNumber") ? (
+              <h3>
+                You’re seated at table {localStorage.getItem("tableNumber")}
+              </h3>
+            ) : (
+              <>
+                <h3>Enter Your Table Number</h3>
+                <input
+                  type="number"
+                  placeholder="Table #"
+                  value={tableNumber}
+                  onChange={(e) => setTableNumber(e.target.value)}
+                  style={{
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #ccc",
+                    marginRight: "10px",
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (!tableNumber.trim()) return alert("Please enter a table number.");
+                    localStorage.setItem("tableNumber", tableNumber.trim());
+                    router.push(`/join?table=${tableNumber.trim()}`);
+                  }}
+                  style={{
+                    backgroundColor: "#388e3c",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 22px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Join Table
+                </button>
+              </>
+            )}
 
             <div style={{ marginTop: "1.5rem" }}>
               <button

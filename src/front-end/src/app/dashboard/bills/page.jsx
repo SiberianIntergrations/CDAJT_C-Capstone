@@ -19,6 +19,10 @@ import NewBillDialog from "@/components/staff/SessionDashboard/components/dialog
 import BillSummaryDialog from "@/components/staff/SessionDashboard/components/dialogs/BillSummaryDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
 import { getStatusColorValue, formatDateTime, formatBillStatus, getTableDescription, sortBillsByStatus } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
+import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
+
+const Tour = dynamic(() => import("@/components/Tour"), { ssr: false });
 
 const AddButton = styled(IconButton)(({ theme }) => ({
   backgroundColor: theme.palette.primary.main,
@@ -67,6 +71,51 @@ const BillCard = styled(Card, {
   },
 }));
 
+const steps = [
+  {
+    target: '[data-tour="bills-title"]',
+    content: "Start by creating a bill for your table. Specify who you're paying for.",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="add-bill-btn"]',
+    content: "Click here to add a new bill.",
+    placement: "left",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="bill-dialog-name"]',
+    content: "Enter a name for your bill (e.g., 'Family Dinner').",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="bill-dialog-guests"]',
+    content: "Select the guests covered by this bill.",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="bill-dialog-submit"]',
+    content: "Submit your bill when ready.",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="bills-list"]',
+    content: "Here's your new bill! You can view details or edit it.",
+    placement: "bottom",
+    disableBeacon: true,
+  },
+  {
+    target: '[data-tour="bill-select"]',
+    content: "Next we'll move to the menu to order food",
+    placement: "bottom",
+    route: "/menu/full-menu",
+  },
+];
+
 const BillsDashboard = () => {
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -75,6 +124,12 @@ const BillsDashboard = () => {
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
   const [selectedBillId, setSelectedBillId] = useState(null)
   const [sessionId, setSessionId] = useState(null);
+  const [showTour, setShowTour] = useState(false);
+  const [tourStepIndex, setTourStepIndex] = useState(0);
+  const [newBillId, setNewBillId] = useState(null);
+
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const isGuest = () => localStorage.getItem("guest") === "true";
 
@@ -121,7 +176,6 @@ const BillsDashboard = () => {
         const apiClient = isGuest() ? publicApi : api;
         const response = await apiClient.get("/DiningSession/participants/active-session-id/latest");
 
-        console.log("active-session response:", response.data);
 
         if (response.status !== 200) {
           throw new Error("Failed to fetch active session");
@@ -190,16 +244,70 @@ const BillsDashboard = () => {
     }
   };
 
-  const handleBillCreated = async () => {
+  const handleBillCreated = async (createdBillId) => {
     if (sessionId) {
       await fetchBills(sessionId);
+      setNewBillId(createdBillId); // Track the new bill for highlighting
     }
     setDialogOpen(false);
+    // If tour is running, advance to highlight step
+    if (showTour && tourStepIndex === 4) {
+      setTourStepIndex(5);
+    }
   };
 
   const handleViewSummary = (billId) => {
     setSelectedBillId(billId);
     setSummaryDialogOpen(true);
+  };
+
+  useEffect(() => {
+    // Start tour if query param is present (works on navigation too)
+    const tourParam = searchParams.get("tour");
+    if (tourParam === "1") {
+      setShowTour(true);
+      setTourStepIndex(0);
+    }
+  }, [searchParams]);
+
+  const handleTourCallback = (data) => {
+    const { status, index, action, type } = data;
+
+    if (
+      ["finished", "skipped"].includes(status?.toLowerCase()) ||
+      (type === "step:after" && index === steps.length - 1)
+    ) {
+      setShowTour(false);
+      setTourStepIndex(0);
+      return;
+    }
+
+    if (steps[index]?.route) {
+      router.push(`${steps[index].route}?tour=1`);
+      setShowTour(false);
+      setTourStepIndex(0);
+      return;
+    }
+
+    if (type === "step:before" && index === 1) {
+      setDialogOpen(true);
+    }
+
+    // Wait for bill submission before moving from step 4 to 5
+    if (type === "step:after" && index === 4 && action === "next") {
+      if (newBillId) {
+        setTourStepIndex(5);
+      } else {
+        setTourStepIndex(4);
+      }
+      return;
+    }
+
+    if (type === "step:after" && action === "next") {
+      setTourStepIndex((prev) => Math.min(prev + 1, steps.length - 1));
+    } else if (type === "step:after" && action === "prev") {
+      setTourStepIndex((prev) => Math.max(prev - 1, 0));
+    }
   };
 
   if (loading) {
@@ -213,111 +321,129 @@ const BillsDashboard = () => {
   const sortedBills = sortBillsByStatus(bills || []);
 
   return (
-    <SessionProvider sessionId={sessionId}>
-    <Container maxWidth="lg">
-      <Box sx={{ py: 3 }}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            mb: 4,
-          }}
-        >
-          <Typography variant="h4">Your Table's Bills</Typography>
-            {sessionId && (
-              <AddButton onClick={() => setDialogOpen(true)}>
-                <Plus />
-              </AddButton>
+    <>
+      <Tour
+        run={showTour}
+        setRun={setShowTour}
+        stepIndex={tourStepIndex}
+        setStepIndex={setTourStepIndex}
+        callback={handleTourCallback}
+        steps={steps}
+      />
+      <SessionProvider sessionId={sessionId}>
+        <Container maxWidth="lg">
+          <Box sx={{ py: 3 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 4,
+              }}
+            >
+              <Typography variant="h4" data-tour="bills-title">Your Table's Bills</Typography>
+                {sessionId && (
+                  <AddButton onClick={() => setDialogOpen(true)} data-tour="add-bill-btn">
+                    <Plus />
+                  </AddButton>
+                )}
+            </Box>
+
+            {error && (
+              <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+                {typeof error === "string" ? error : "Error loading bills"}
+              </Alert>
             )}
-        </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-            {typeof error === "string" ? error : "Error loading bills"}
-          </Alert>
-        )}
+            {!bills || bills.length === 0 ? (
+              <Alert severity="info">No bills yet. Create your first bill to get started.</Alert>
+            ) : (
+              <Box
+                data-tour="bills-list"
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                  gap: 2,
+                  width: "100%",
+                }}
+              >
+                {sortedBills.map((bill) => {
+                    if (!bill?.bill_id) return null;
+                    const statusColor = getStatusColorValue(bill.status);
+                    // Highlight the new bill if tour is at step 5
+                    const highlight = showTour && tourStepIndex === 5 && bill.bill_id === newBillId;
+                    return (
+                      <BillCard
+                        key={bill.bill_id}
+                        $statusColor={statusColor}
+                        data-tour={highlight ? "bill-card-highlight" : "bill-card"}
+                        sx={highlight ? { boxShadow: 8, border: "2px solid #1976d2" } : {}}
+                      >
+                        <Typography variant="h6" component="div" noWrap>
+                          {bill.bill_name || `Bill #${bill.bill_id}`}
+                        </Typography>
 
-        {!bills || bills.length === 0 ? (
-          <Alert severity="info">No bills yet. Create your first bill to get started.</Alert>
-        ) : (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-              gap: 2,
-              width: "100%",
-            }}
-          >
-            {sortedBills.map((bill) => {
-                if (!bill?.bill_id) return null;
-                const statusColor = getStatusColorValue(bill.status);
+                        <StatusChip $statusColor={statusColor}>
+                          {formatBillStatus(bill.status)}
+                        </StatusChip>
 
-                return (
-                  <BillCard key={bill.bill_id} $statusColor={statusColor}>
-                    <Typography variant="h6" component="div" noWrap>
-                      {bill.bill_name || `Bill #${bill.bill_id}`}
-                    </Typography>
+                        <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: "medium" }}>
+                          Total: {bill.total_count || 0} guest{bill.total_count !== 1 ? 's' : ''}
+                        </Typography>
 
-                    <StatusChip $statusColor={statusColor}>
-                      {formatBillStatus(bill.status)}
-                    </StatusChip>
+                        {bill.created_at && (
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            Created: {formatDateTime(bill.created_at)}
+                          </Typography>
+                        )}
 
-                    <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: "medium" }}>
-                      Total: {bill.total_count || 0} guest{bill.total_count !== 1 ? 's' : ''}
-                    </Typography>
+                        {bill.table_numbers?.length > 0 && (
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                            {getTableDescription(bill.table_numbers)}
+                          </Typography>
+                        )}
 
-                    {bill.created_at && (
-                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        Created: {formatDateTime(bill.created_at)}
-                      </Typography>
-                    )}
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<Receipt size={16} />}
+                          onClick={() => handleViewSummary(bill.bill_id)}
+                          sx={{ mt: 1 }}
+                        >
+                          View Summary
+                        </Button>
+                      </BillCard>
+                  );
+                })}
+              </Box>
+            )}
 
-                    {bill.table_numbers?.length > 0 && (
-                      <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                        {getTableDescription(bill.table_numbers)}
-                      </Typography>
-                    )}
+            {/* New Bill Dialog */}
+              {sessionId && (
+                <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+                  <NewBillDialog 
+                    open={dialogOpen} 
+                    sessionId={sessionId} 
+                    onClose={(createdBillId) => handleBillCreated(createdBillId)} 
+                    tourStepIndex={tourStepIndex}
+                  />
+                </Dialog>
+              )}
 
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      startIcon={<Receipt size={16} />}
-                      onClick={() => handleViewSummary(bill.bill_id)}
-                      sx={{ mt: 1 }}
-                    >
-                      View Summary
-                    </Button>
-                  </BillCard>
-              );
-            })}
-          </Box>
-        )}
-
-        {/* New Bill Dialog */}
-          {sessionId && (
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
-              <NewBillDialog 
-                open={dialogOpen} 
-                sessionId={sessionId} 
-                onClose={handleBillCreated} 
+              {/* Bill Summary Dialog */}
+              <BillSummaryDialog
+                open={summaryDialogOpen}
+                sessionId={sessionId}
+                billId={selectedBillId}
+                onClose={() => {
+                  setSummaryDialogOpen(false);
+                  setSelectedBillId(null);
+                }}
               />
-            </Dialog>
-          )}
-
-          {/* Bill Summary Dialog */}
-          <BillSummaryDialog
-            open={summaryDialogOpen}
-            sessionId={sessionId}
-            billId={selectedBillId}
-            onClose={() => {
-              setSummaryDialogOpen(false);
-              setSelectedBillId(null);
-            }}
-          />
-        </Box>
-    </Container>
-    </SessionProvider>
+            </Box>
+        </Container>
+      </SessionProvider>
+    </>
   );
 };
 

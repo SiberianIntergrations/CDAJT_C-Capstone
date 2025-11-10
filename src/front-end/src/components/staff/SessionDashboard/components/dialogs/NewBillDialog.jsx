@@ -151,10 +151,14 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
               disabled={submitting}
               helperText={error.billName}
               required
+              data-tour="bill-dialog-name"
             />
           </Box>
 
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 2 }}>
+          <Box
+            sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 2 }}
+            data-tour="bill-dialog-guests"
+          >
             <TextField
               label="Adults"
               type="number"
@@ -253,6 +257,7 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
             variant="contained" 
             disabled={submitting}
             startIcon={submitting && <CircularProgress size={16} />}
+            data-tour="bill-dialog-submit"
           >
             {submitting ? "Creating..." : "Create Bill"}
           </Button>
