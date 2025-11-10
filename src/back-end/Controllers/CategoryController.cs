@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts; // Ensure this is the correct namespace for ApplicationDbContext
 using back_end.domain.Entities;
 using back_end.DTO.Category;
+using Microsoft.AspNetCore.Authorization;
 
 namespace back_end.Controllers
 {
@@ -20,7 +21,7 @@ namespace back_end.Controllers
             _logger = logger;
         }
 
-        
+
         /// <summary>
         /// Retrieves all categories from the database.
         /// </summary>
@@ -87,6 +88,7 @@ namespace back_end.Controllers
         /// Category names must be unique.
         /// Last viewed timestamp is automatically set to current UTC time.
         /// </remarks>
+         [Authorize(Policy = "adminOnly")]
         [HttpPost]
         [ProducesResponseType(typeof(Category), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -202,6 +204,7 @@ namespace back_end.Controllers
         /// Name and description are optional - if not provided, existing values are retained.
         /// Last viewed timestamp is automatically updated to current UTC time.
         /// </remarks>
+         [Authorize(Policy = "adminOnly")]
         [HttpPut("update_category/{_categoryId}")]
         [ProducesResponseType(typeof(Category), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -258,6 +261,7 @@ namespace back_end.Controllers
         /// Permanently removes the category from the database.
         /// This may affect menu items associated with this category depending on cascade settings.
         /// </remarks>
+         [Authorize(Policy = "adminOnly")]
         [HttpDelete("delete_category/{_categoryId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -286,7 +290,7 @@ namespace back_end.Controllers
             }
         }
 
-       /// <summary>
+        /// <summary>
         /// Retrieves menu items for a specific category with pagination support.
         /// </summary>
         /// <param name="_categoryId">The unique identifier of the category</param>
@@ -367,6 +371,7 @@ namespace back_end.Controllers
         /// - Adds view_seconds to total view duration
         /// - Updates last viewed timestamp to current UTC time
         /// </remarks>
+         [Authorize(Policy = "staffOnly")]
         [HttpPost("track_viewed/{_categoryId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -143,14 +143,14 @@ namespace back_end.domain.Seeders
 
         var activeCount = sessions.Count(s => s.Ended_At == null);
         var historicalCount = sessions.Count(s => s.Ended_At != null);
-        _logger.LogInformation($"Added {sessions.Count} dining sessions for {location.Name} ({activeCount} active, {historicalCount} historical)");
+        // _logger.LogInformation($"Added {sessions.Count} dining sessions for {location.Name} ({activeCount} active, {historicalCount} historical)");
       }
 
       _context.DiningSessions.AddRange(allSessions);
 
       var totalActive = allSessions.Count(s => s.Ended_At == null);
       var totalHistorical = allSessions.Count(s => s.Ended_At != null);
-      _logger.LogInformation($"Total: {allSessions.Count} dining sessions across {locations.Count} locations ({totalActive} active, {totalHistorical} historical)");
+      // _logger.LogInformation($"Total: {allSessions.Count} dining sessions across {locations.Count} locations ({totalActive} active, {totalHistorical} historical)");
     }
   }
 }

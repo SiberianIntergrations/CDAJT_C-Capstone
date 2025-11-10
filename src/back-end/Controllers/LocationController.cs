@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
@@ -87,6 +88,7 @@ namespace back_end.Controllers
     ///
     /// Creates a new location with the provided information.
     /// </remarks>
+    [Authorize(Policy = "adminOnly")]
     [HttpPost]
     [ProducesResponseType(typeof(Locations), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -195,6 +197,7 @@ namespace back_end.Controllers
     ///
     /// All fields in the request body are optional - only provided fields will be updated.
     /// </remarks>
+    [Authorize(Policy = "adminOnly")]
     [HttpPut("{location_id}")]
     [ProducesResponseType(typeof(Locations), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -271,6 +274,7 @@ namespace back_end.Controllers
     /// Permanently removes the location from the database.
     /// This may also remove associated menu-location relationships depending on cascade settings.
     /// </remarks>
+    [Authorize(Policy = "adminOnly")]
     [HttpDelete("{location_id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -354,15 +358,16 @@ namespace back_end.Controllers
     /// Creates an association between the specified menu and location.
     /// The menu and location must both exist before creating the association.
     /// </remarks>
+    [Authorize(Policy = "adminOnly")]
     [HttpPost("{location_id}/menus")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Add_Menu_To_Location(
-        int location_id,
-        MenuLocationCreateDTO menuLocationCreate
-    )
+       int location_id,
+       MenuLocationCreateDTO menuLocationCreate
+   )
     {
       try
       {
@@ -413,6 +418,7 @@ namespace back_end.Controllers
     /// Removes the association between the specified menu and location.
     /// The menu itself is not deleted, only its assignment to this location.
     /// </remarks>
+     [Authorize(Policy = "adminOnly")]
     [HttpDelete("{location_id}/menus/{menu_id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
