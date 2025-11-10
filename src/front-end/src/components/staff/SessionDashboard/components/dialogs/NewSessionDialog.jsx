@@ -125,9 +125,7 @@ const NewSessionDialog = ({ open, onClose }) => {
     } catch (error) {
       console.error("Error creating session:", error);
       const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data ||
-        "Failed to create session. Please try again.";
+        error.response.data || "Failed to create session. Please try again.";
       alert(errorMessage);
     } finally {
       setLoading(false);

@@ -58,6 +58,7 @@ namespace back_end.Controllers
 
     [Authorize]
     [HttpPost("{session_id}")]
+    [AllowAnonymous]
     public async Task<IActionResult> CreateServiceRequest(
         int session_id,
         ServiceRequestCreateDTO request_data
@@ -76,13 +77,39 @@ namespace back_end.Controllers
           return NotFound("The Session Id was not found");
         }
 
-        // Get Oauth user info
         var userOid = ClaimsHelpers.GetUserOid(User);
         var userName = ClaimsHelpers.GetUserDisplayName(User);
 
+        //Check for guest users first
         if (string.IsNullOrEmpty(userOid))
         {
-          return BadRequest("Issue in processing your request: user oid not found");
+          // If it's a guest use their values
+          if (!string.IsNullOrEmpty(request_data.Request_By_Oid))
+          {
+            userOid = request_data.Request_By_Oid;
+            userName = string.IsNullOrEmpty(request_data.Request_By_Name) ? "Guest" : request_data.Request_By_Name;
+
+            //Make sure the guest is a part of participants
+            var existingGuest = await _context.SessionParticipants
+                .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Oid == userOid);
+
+            if (existingGuest == null)
+            {
+              var guestParticipant = new SessionParticipant
+              {
+                Session_Id = session_id,
+                User_Oid = userOid,
+                User_Name = userName,
+                Joined_At = DateTime.UtcNow
+              };
+              _context.SessionParticipants.Add(guestParticipant);
+              await _context.SaveChangesAsync();
+            }
+          }
+          else
+          {
+            return BadRequest("Issue in processing your request: user oid not found");
+          }
         }
 
         var participant = await _context.SessionParticipants
@@ -91,7 +118,7 @@ namespace back_end.Controllers
                                       sp.Left_At == null);
         if (participant is null)
         {
-          return BadRequest("Issue in processing your request for session");
+          return BadRequest("Session participant not found");
         }
 
         // Determine the table ID for the service request
@@ -292,7 +319,7 @@ namespace back_end.Controllers
         var requests = await _context.ServiceRequests
             .Include(sr => sr.Table)
             .ToListAsync();
-        
+
         var response = requests.Select(sr => new ServiceRequestResponseDTO
         {
           Request_Id = sr.request_id,
@@ -309,7 +336,7 @@ namespace back_end.Controllers
           Completed_At = sr.Completed_At,
           Table_Number = sr.Table?.table_number ?? 0
         }).ToList();
-        
+
         return Ok(response);
       }
       catch (Exception ex)

@@ -14,6 +14,7 @@ import {
 import { Plus, Receipt } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
 import NewBillDialog from "@/components/staff/SessionDashboard/components/dialogs/NewBillDialog";
 import BillSummaryDialog from "@/components/staff/SessionDashboard/components/dialogs/BillSummaryDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
@@ -77,6 +78,8 @@ const BillsDashboard = () => {
   const [selectedBillId, setSelectedBillId] = useState(null)
   const [sessionId, setSessionId] = useState(null);
 
+  const isGuest = () => localStorage.getItem("guest") === "true";
+
 //May only need sessions for staff or admin
 //Leaving code here now in case
 /*const fetchActiveSession = async () => {
@@ -101,11 +104,24 @@ const BillsDashboard = () => {
 // Fetch active session ID first
   useEffect(() => {
     const fetchActiveSession = async () => {
+
+      
       try {
         setLoading(true);
         setError(null);
 
-        const response = await api.get("/DiningSession/participants/active-session-id");
+        if (isGuest()) {
+          const sid = localStorage.getItem("session_id");
+          if (sid) {
+            setSessionId(parseInt(sid));
+            return;
+          } else {
+            setError("Guest session not found. Please scan your table QR again.");
+            return;
+          }
+        }
+        const apiClient = isGuest() ? publicApi : api;
+        const response = await apiClient.get("/DiningSession/participants/active-session-id/latest");
 
         console.log("active-session response:", response.data);
 
@@ -141,19 +157,21 @@ const BillsDashboard = () => {
   }, [sessionId]);
 
   const fetchBills = async (sid) => {
+
+    const apiClient = isGuest() ? publicApi : api;
+
     try {
       setLoading(true);
       setError(null);
 
-      console.log("Fetching bills for session:", sid);
-      const res = await api.get(`/Bill/get_bills/${sid}`);
+      const res = await apiClient.get(`/Bill/get_bills/${sid}`);
 
       if (res.status !== 200) {
         throw new Error("Failed to fetch bills");
       }
 
       const billsData = Array.isArray(res.data) ? res.data : [];
-      console.log("Bills fetched:", billsData);
+
       setBills(billsData);
     } catch (err) {
       console.error("Error fetching bills:", err);

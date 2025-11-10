@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { Alert } from "@mui/material";
 import api from "@/config/api";
 
 const TableTurnover = () => {
@@ -25,34 +26,61 @@ const TableTurnover = () => {
     fetchMaxPartySize();
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const accessToken = localStorage.getItem("access_token");
-
-      if (!accessToken) {
-        setError("No token found");
-        router.push("/auth/login");
-        return;
-      }
-
-      try {
-        const response = await api.get("analytics/table-turnover");
-
-        setData(response.data); // FIXED: Remove the duplicate line
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        if (err.response && err.response.status === 401) {
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const response = await api.get("analytics/table-turnover");
+      setData(response.data);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data.message || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data.message || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data.message || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data.message || "An error occurred");
         }
-      } finally {
-        setLoading(false);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchData();
-  }, [router]);
+  fetchData();
+}, [router]);
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
+if (error) return (
+  <Alert
+    severity="error"
+    sx={{
+      mb: 2,
+      borderRadius: 2,
+      textAlign: "center",
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+      {error}
+  </Alert>
+);
+
   if (!data) return <p>No data available</p>; // ADDED: Check if data exists
 
   return (

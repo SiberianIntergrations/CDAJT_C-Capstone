@@ -12,8 +12,8 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251109123941_AddTotCountAndTotalCountToBilling")]
-    partial class AddTotCountAndTotalCountToBilling
+    [Migration("20251110045411_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

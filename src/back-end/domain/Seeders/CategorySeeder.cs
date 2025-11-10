@@ -81,7 +81,7 @@ namespace back_end.domain.Seeders
             _context.Categories.AddRange(categories);
             //_context.SaveChanges();
 
-            _logger.LogInformation($"Added {categories.Count} categories");
+            // _logger.LogInformation($"Added {categories.Count} categories");
         }
     }
 }

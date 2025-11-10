@@ -12,6 +12,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import api from "@/config/api";
+import publicApi from "@/config/publicApi";
 
 const ServiceRequestForm = () => {
   const [message, setMessage] = useState("");
@@ -20,6 +21,9 @@ const ServiceRequestForm = () => {
   const [success, setSuccess] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [userId, setUserId] = useState(null);
+
+  const isGuest = () =>
+    typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
   const commonRequests = [
     "Need water refill",
@@ -35,40 +39,58 @@ const ServiceRequestForm = () => {
   useEffect(() => {
     const getActiveSession = async () => {
       try {
-        const response = await api.get("/DiningSession/participants/active-session-id");
-
-          if (response?.data?.session_id) {
-            setSessionId(response.data.session_id);
+        if (isGuest()) {
+          const sid = localStorage.getItem("session_id");
+          if (sid) {
+            setSessionId(parseInt(sid));
+            return;
           } else {
-            setError("No active session found");
-          }
-        } catch (err) {
-          console.error("Error fetching session:", err);
-          if (err.response?.data?.message) {
-            setError(err.response.data.message);
-          } else {
-            setError("Unexpected error occurred");
+            setError(
+              "Guest session not found. Please scan your table QR again."
+            );
+            return;
           }
         }
-      };
 
-      getActiveSession();
-    }, []);
+        const apiClient = isGuest() ? publicApi : api;
+        const response = await apiClient.get(
+          "/DiningSession/participants/active-session-id"
+        );
 
-    //Send the service request to the staff
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      if (!message.trim() || !sessionId) return;
+        if (response?.data?.session_id) setSessionId(response.data.session_id);
+        else setError("No active session found");
+      } catch (err) {
+        console.error("Error fetching session:", err);
+        setError(err.response.data || "Unexpected error occurred");
+      }
+    };
 
-      setIsSubmitting(true);
-      setError("");
-      setSuccess(false);
+    getActiveSession();
+  }, []);
+
+  //Send the service request to the staff
+  const handleSubmit = async (e) => {
+    const apiClient = isGuest() ? publicApi : api;
+    e.preventDefault();
+    if (!message.trim() || !sessionId) return;
+
+    setIsSubmitting(true);
+    setError("");
+    setSuccess(false);
+
+    const payload = {
+      Session_Id: sessionId,
+      Table_Id: localStorage.getItem("table_id"),
+      Request_By_Name: localStorage.getItem("guest") ? "Guest" : getUserName(),
+      Request_By_Oid: localStorage.getItem("guest_oid") || "",
+      Notes: message,
+    };
 
     try {
-      const response = await api.post(`/ServiceRequest/${sessionId}`,
-        { notes: message }
+      const response = await apiClient.post(
+        `/ServiceRequest/${sessionId}`,
+        payload
       );
-      console.log("Response:", response);
 
       if (response.status !== 200) {
         const data = response.data;
@@ -79,17 +101,16 @@ const ServiceRequestForm = () => {
         throw new Error(errorMessage);
       }
 
-        setSuccess(true);
-        setMessage("");
-        setTimeout(() => setSuccess(false), 3000);
-
-      } catch (err) {
-        console.error("Service request error:", err);
-        setError(err.response?.data?.message || err.message);
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
+      setSuccess(true);
+      setMessage("");
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error("Service request error:", err);
+      setError(err.response.data || err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Box maxWidth="sm" mx="auto" sx={{ pt: 3 }}>

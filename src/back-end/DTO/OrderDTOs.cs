@@ -93,6 +93,9 @@ namespace back_end.DTO.OrdersDTOs
 
         [JsonPropertyName("bill_id")]
         public int Bill_Id { get; set; }
+
+        public string? Request_By_Oid { get; set; }
+        public string? Request_By_Name { get; set; }
     }
 
     // public class OrderUpdateDTO
@@ -111,6 +114,7 @@ namespace back_end.DTO.OrdersDTOs
         public OrderStatus Status { get; set; }
         public DateTime Created_At { get; set; }
         public DateTime? Completed_At { get; set; }
+
         public List<OrderItemResponseDTO> OrderItems { get; set; } = new();
 
         // Automatically calculated from OrderItems
