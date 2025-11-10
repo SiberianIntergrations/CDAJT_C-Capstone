@@ -93,8 +93,8 @@ const DashboardSummary = () => {
   const handleRefresh = async () => {
     setIsRefreshing(true);
     await Promise.all([
-      refreshSessions?.(),
-      checkServiceRequests()
+      // refreshSessions?.(),
+      checkServiceRequests(),
     ]);
     setIsRefreshing(false);
   };
