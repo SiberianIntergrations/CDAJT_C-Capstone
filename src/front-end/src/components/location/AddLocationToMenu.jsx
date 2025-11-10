@@ -70,7 +70,6 @@ const AddLocationsToMenu = ({ menu, onSubmit, onClose, availableLocations = [] }
     try {
       const url = `MenuLocation/menu/${menu.menu_id}/location/${locId}`;
       const res = await api.put(url);
-      console.log("PUT status:", res.status);
     } catch (err) {
       console.error("PUT failed:", err);
       if (revertNeeded) {
