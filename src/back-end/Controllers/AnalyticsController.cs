@@ -1,10 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
-using back_end.DTO.Auth;
 using Microsoft.AspNetCore.Mvc;
 using back_end.DTO.Analytics;
-using Microsoft.AspNetCore.Http.Features;
-using System.Security.Claims;
+using back_end.Helpers;
+
 
 namespace back_end.controllers
 {
@@ -273,15 +272,22 @@ namespace back_end.controllers
         {
             try
             {
+                // Use ClaimsHelpers for user identification
+                string userOid = ClaimsHelpers.GetUserOid(User);
 
-                string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                var user = await _context.Users.Include(u => u.Locations).FirstOrDefaultAsync(u => u.User_id == int.Parse(userId));
-                if(user is null)
+                // Get user's location from claims (if available)
+                string? locationIdStr = User.FindFirst("location_id")?.Value;
+                int? locationId = null;
+                if (int.TryParse(locationIdStr, out var locId))
+                    locationId = locId;
+
+                if (locationId == null)
                 {
-                    return BadRequest("can not get a user location");
+                    return BadRequest("Cannot determine user location from claims.");
                 }
+
                 var orderTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At.ToString() !=  null && ds.Started_At.ToString() != null && ds.Location_Id == user.Location_id)
+                    .Where(ds => ds.Location_Id == locationId)
                     .Select(ds => new
                     {
                         sessionId = ds.Session_Id,
@@ -290,7 +296,6 @@ namespace back_end.controllers
                     .ToListAsync();
 
                 var dailyAverageTiming = await _context.DiningSessions
-                    .Where(ds => ds.First_Order_At.ToString() != null && ds.Started_At.ToString() != null)
                     .GroupBy(ds => ds.Started_At.Date)
                     .Select(g => new
                     {

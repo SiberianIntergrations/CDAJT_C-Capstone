@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
 using back_end.domain.DbContexts;
+using System.IO;
+using System.Collections.Generic;
 
 namespace back_end.domain.Seeders
 {
@@ -17,7 +19,6 @@ namespace back_end.domain.Seeders
     private readonly CategorySeeder _categorySeeder;
     private readonly TagSeeder _tagSeeder;
     private readonly MenuSeeder _menuSeeder;
-    private readonly UserSeeder _userSeeder;
     private readonly MenuItemSeeder _menuItemSeeder;
     private readonly TableSeeder _tableSeeder;
     private readonly TableGroupSeeder _tableGroupSeeder;
@@ -29,13 +30,14 @@ namespace back_end.domain.Seeders
     private readonly OrderItemSeeder _orderItemSeeder;
     private readonly ServiceRequestSeeder _serviceRequestSeeder;
 
+    private readonly Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
+
     public DatabaseSeeder(
         ApplicationDbContext context,
         ILogger<DatabaseSeeder> logger,
         CategorySeeder categorySeeder,
         TagSeeder tagSeeder,
         MenuSeeder menuSeeder,
-        UserSeeder userSeeder,
         MenuItemSeeder menuItemSeeder,
         TableSeeder tableSeeder,
         TableGroupSeeder tableGroupSeeder,
@@ -53,7 +55,6 @@ namespace back_end.domain.Seeders
       _categorySeeder = categorySeeder;
       _tagSeeder = tagSeeder;
       _menuSeeder = menuSeeder;
-      _userSeeder = userSeeder;
       _menuItemSeeder = menuItemSeeder;
       _tableSeeder = tableSeeder;
       _tableGroupSeeder = tableGroupSeeder;
@@ -64,6 +65,71 @@ namespace back_end.domain.Seeders
       _sessionOrderSeeder = sessionOrderSeeder;
       _orderItemSeeder = orderItemSeeder;
       _serviceRequestSeeder = serviceRequestSeeder;
+
+      _userSeedData = LoadUserSeedData();
+      // Pass userSeedData to seeders that need it
+      billSeeder.SetUserSeedData(_userSeedData);
+      sessionParticipantSeeder.SetUserSeedData(_userSeedData);
+      sessionOrderSeeder.SetUserSeedData(_userSeedData);
+      serviceRequestSeeder.SetUserSeedData(_userSeedData);
+    }
+
+    private Dictionary<string, (string DisplayName, string GivenName, string Surname)> LoadUserSeedData()
+    {
+      var csvPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "domain", "Seeders", "userSeedData.csv");
+      var userSeedMap = new Dictionary<string, (string, string, string)>();
+      if (File.Exists(csvPath))
+      {
+        var lines = File.ReadAllLines(csvPath);
+        foreach (var line in lines.Skip(1))
+        {
+          var cols = line.Split(',');
+          if (cols.Length >= 6)
+          {
+            var displayName = cols[1].Trim();
+            var surname = cols[2].Trim();
+            var given = cols[4].Trim();
+            var idStr = cols[5].Trim();
+
+            // If given and surname are both blank, parse from displayName
+            if (string.IsNullOrWhiteSpace(given) && string.IsNullOrWhiteSpace(surname))
+            {
+              var nameParts = displayName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+              if (nameParts.Length >= 2)
+              {
+                given = nameParts[0];
+                surname = string.Join(" ", nameParts.Skip(1));
+              }
+              else
+              {
+                // Single name - use as both
+                given = displayName;
+                surname = displayName;
+              }
+              _logger.LogInformation($"Line {given}: Parsed '{displayName}' into GivenName='{given}', Surname='{surname}'");
+            }
+            // If only givenName is blank, use displayName or surname
+            else if (string.IsNullOrWhiteSpace(given))
+            {
+              given = !string.IsNullOrWhiteSpace(surname) ? surname : displayName;
+              _logger.LogInformation($"Line {line}: GivenName was blank, using '{given}'");
+            }
+            // If only surname is blank, use displayName or givenName
+            else if (string.IsNullOrWhiteSpace(surname))
+            {
+              surname = !string.IsNullOrWhiteSpace(line) ? given : displayName;
+              _logger.LogInformation($"Line {line}: Surname was blank, using '{surname}'");
+            }
+
+            userSeedMap[idStr] = (displayName, given, surname);
+          }
+          else
+          {
+            _logger.LogWarning($"Line {line}: Invalid format (only {cols.Length} columns)");
+          }
+        }
+      }
+      return userSeedMap;
     }
 
     /// <summary>Seeds all tables with initial data.</summary>
@@ -78,8 +144,6 @@ namespace back_end.domain.Seeders
 
         // Base data in dependency order
         _locationSeeder.Seed(); _logger.LogInformation("Locations seeded successfully");
-        await _context.SaveChangesAsync();
-        _userSeeder.Seed(); _logger.LogInformation("Users seeded successfully");
         await _context.SaveChangesAsync();
         _categorySeeder.Seed(); _logger.LogInformation("Categories seeded successfully");
         await _context.SaveChangesAsync();
@@ -132,7 +196,6 @@ namespace back_end.domain.Seeders
         var assignments = _context.MenuItemAssignments.Count();
         var tables = _context.Tables.Count();
         var tableGroups = _context.TableGroups.Count();
-        var users = _context.Users.Count();
         var diningSessions = _context.DiningSessions.Count();
         var activeSessions = _context.DiningSessions.Count(ds => ds.Ended_At == null);
         var participants = _context.SessionParticipants.Count();
@@ -150,7 +213,6 @@ namespace back_end.domain.Seeders
         _logger.LogInformation($"Menu Item Assignments: {assignments}");
         _logger.LogInformation($"Tables: {tables}");
         _logger.LogInformation($"Table Groups: {tableGroups}");
-        _logger.LogInformation($"Users: {users}");
         _logger.LogInformation($"Dining Sessions: {diningSessions} (Active: {activeSessions})");
         _logger.LogInformation($"SessionParticipants: {participants}");
         _logger.LogInformation($"Bills: {bills}");
@@ -168,7 +230,6 @@ namespace back_end.domain.Seeders
                     assignments >= menuItems * 2,      // Each item should be in both menus
                     tables == 68,                      // Exactly 68 tables (34 per location × 2 locations)
                     tableGroups == 8,                  // Exactly 8 table groups (4 per location × 2 locations)
-                    users >= 13,                       // Admin + 3 staff + 10 customers (13 total)
                     diningSessions >= 100,             // At least 100 sessions (50 per location × 2 locations)
                     activeSessions == 10               // Exactly 10 active sessions (5 per location × 2 locations)
                 };
@@ -205,7 +266,6 @@ namespace back_end.domain.Seeders
       _context.Menus.RemoveRange(_context.Menus);
       _context.Categories.RemoveRange(_context.Categories);
       _context.Tags.RemoveRange(_context.Tags);
-      _context.Users.RemoveRange(_context.Users);
       _context.Locations.RemoveRange(_context.Locations);
 
       _context.SaveChanges();

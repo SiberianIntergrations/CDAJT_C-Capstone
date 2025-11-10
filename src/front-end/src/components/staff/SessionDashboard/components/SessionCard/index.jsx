@@ -5,18 +5,19 @@ import {
   Stack,
   Divider,
   Box,
-  Chip,
   Typography,
   IconButton,
   Button,
   Snackbar,
   Alert,
   Collapse,
+  Chip,
 } from "@mui/material";
 import { ChevronDown, ChevronUp, Bell, Check, AlertCircle } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import TableSection from "./TableSection";
 import BillSection from "./BillSection";
+import SessionHeader from "./SessionHeader";
 import { useSession } from "../../context/SessionContext";
 import api from "@/config/api";
 
@@ -84,6 +85,7 @@ const ServiceRequest = ({ request, onComplete }) => (
   >
     <Typography variant="body2">{request.notes}</Typography>
     <IconButton
+      component="span"
       size="small"
       onClick={(e) => {
         e.stopPropagation();
@@ -140,6 +142,7 @@ const SessionCard = ({ session, onRequestUpdate }) => {
       onRequestUpdate(session.session_Id, data);
     } catch (error) {
       console.error("Error fetching requests:", error);
+      setRequests([]); // Clear requests on error
     }
   }, [session.session_Id, onRequestUpdate]);
 
@@ -192,6 +195,8 @@ const SessionCard = ({ session, onRequestUpdate }) => {
       console.error("Error ending session:", error);
     } finally {
       setIsEnding(false);
+      setShowConfirm(false);
+      setDragX(0);
     }
   };
 
@@ -292,39 +297,21 @@ const SessionCard = ({ session, onRequestUpdate }) => {
             alignItems="flex-start"
           >
             <Box flex={1}>
-              <Box display="flex" alignItems="center" gap={2}>
-                <Typography variant="h6">
-                  Session #{session.session_Id}
-                </Typography>
-                <Typography variant="h6">{session.location_Name}</Typography>
+              <Box sx={{ width: "100%" }}>
+                <SessionHeader session={session} requests={requests} />
                 {requests.length > 0 && (
-                  <Chip
-                    size="small"
-                    color="warning"
-                    label={requests.length}
-                    icon={<Bell size={16} />}
-                  />
+                  <Box sx={{ mt: 2 }}>
+                    {requests.map((request) => (
+                      <ServiceRequest
+                        key={request.request_id}
+                        request={request}
+                        onComplete={handleComplete}
+                      />
+                    ))}
+                  </Box>
                 )}
-                <Chip
-                  size="small"
-                  label={session.is_closable ? "Ready to Close" : "Active"}
-                  color={session.is_closable ? "success" : "primary"}
-                />
               </Box>
-
-              {requests.length > 0 && (
-                <Box my={2}>
-                  {requests.map((request) => (
-                    <ServiceRequest
-                      key={request.request_id}
-                      request={request}
-                      onComplete={handleComplete}
-                    />
-                  ))}
-                </Box>
-              )}
             </Box>
-
             <IconButton
               size="small"
               onClick={() => setExpanded(!expanded)}
@@ -335,7 +322,7 @@ const SessionCard = ({ session, onRequestUpdate }) => {
           </Box>
 
           <Collapse in={expanded}>
-            <Stack spacing={2}>
+            <Stack spacing={2} sx={{ mt: 2 }}>
               <TableSection session={session} />
               <BillSection session={session} />
               <Divider />

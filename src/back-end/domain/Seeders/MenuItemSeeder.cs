@@ -108,6 +108,7 @@ namespace back_end.domain.Seeders
 
             foreach (var menu in menus)
             {
+                var randomNumber = new Random();
                 foreach (var item in menuItems)
                 {
                     if (!categoryConfigs.TryGetValue(item.Category.Category_name, out var categoryConfig))
@@ -127,9 +128,9 @@ namespace back_end.domain.Seeders
                         Child_limit = categoryConfig.ChildLimit,
                         Senior_limit = categoryConfig.SeniorLimit,
                         Tot_Limit = categoryConfig.TotLimit,
-                        Total_Units_Ordered = 0,
-                        Total_Views = 0,
-                        Total_View_Seconds = 0,
+                        Total_Units_Ordered = randomNumber.Next(100),
+                        Total_Views = randomNumber.Next(30),
+                        Total_View_Seconds = randomNumber.Next(60,400),
                         Status = MenuItemStatus.Available,
                         Is_Add_On = false
                     };

@@ -17,84 +17,114 @@ namespace back_end.domain.Seeders
         private readonly ILogger<SessionParticipantSeeder> _logger;
         private readonly Random _rng = new();
 
+        private Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
+
         public SessionParticipantSeeder(ApplicationDbContext context, ILogger<SessionParticipantSeeder> logger)
         {
             _context = context;
             _logger = logger;
         }
 
+        public void SetUserSeedData(Dictionary<string, (string DisplayName, string GivenName, string Surname)> userSeedData)
+        {
+            _userSeedData = userSeedData;
+        }
+
         public void Seed()
         {
-            var sessions = _context.DiningSessions
+            var activeSessions = _context.DiningSessions
+                .Where(s => s.Ended_At == null)
                 .OrderByDescending(s => s.Started_At)
-                .Take(50)
                 .ToList();
+
+            var historicalSessions = _context.DiningSessions
+                .Where(s => s.Ended_At != null)
+                .OrderByDescending(s => s.Started_At)
+                .Take(40)
+                .ToList();
+
+            var sessions = activeSessions.Concat(historicalSessions).ToList();
 
             if (!sessions.Any())
                 throw new InvalidOperationException("No dining sessions found. Seed sessions first.");
 
-            var customers = _context.Users
-                .Where(u => u.Role == UserRoles.Customer)
-                .ToList();
-
-            var staff = _context.Users
-                .Where(u => u.Role == UserRoles.Staff)
-                .ToList();
-
-            if (!customers.Any() || !staff.Any())
-                throw new InvalidOperationException("Not enough users found. Seed users first.");
-
-            var activeAssigned = new HashSet<int>();
+            var userUsageCount = new Dictionary<string, int>();
             int created = 0;
 
             foreach (var s in sessions)
             {
-                var sessionStart = s.Started_At; // adjust if different
+                var sessionStart = s.Started_At;
                 var isActive = s.Ended_At == null;
 
-                if (!isActive) activeAssigned.Clear();
-
-                var sessionStaff = staff[_rng.Next(staff.Count)];
+                // Pick a random staff from CSV
+                var staffOids = _userSeedData.Keys.ToList();
+                var staffOid = staffOids[_rng.Next(staffOids.Count)];
+                var staffInfo = _userSeedData[staffOid];
+                if (!userUsageCount.ContainsKey(staffOid)) userUsageCount[staffOid] = 0;
+                userUsageCount[staffOid]++;
                 _context.SessionParticipants.Add(new SessionParticipant
                 {
                     Session_Id = s.Session_Id,
-                    User_Id = sessionStaff.User_id,
+                    User_Oid = staffOid,
+                    User_Name = $"{staffInfo.GivenName} {staffInfo.Surname}".Trim(),
                     Joined_At = sessionStart,
                     Left_At = s.Ended_At
                 });
                 created++;
 
-                var numCustomers = _rng.Next(1, 6);
-                var pool = isActive
-                    ? customers.Where(c => !activeAssigned.Contains(c.User_id)).ToList()
-                    : customers;
+                var numCustomers = isActive ? _rng.Next(2, 6) : _rng.Next(1, 4);
+                var customerOids = staffOids.Where(oid => oid != staffOid).OrderBy(_ => _rng.Next()).Take(numCustomers).ToList();
 
-                numCustomers = Math.Min(numCustomers, pool.Count);
-                var chosen = pool.OrderBy(_ => _rng.Next()).Take(numCustomers).ToList();
-
-                foreach (var c in chosen)
+                foreach (var customerOid in customerOids)
                 {
-                    if (isActive) activeAssigned.Add(c.User_id);
-
+                    var customerInfo = _userSeedData[customerOid];
+                    if (!userUsageCount.ContainsKey(customerOid)) userUsageCount[customerOid] = 0;
+                    userUsageCount[customerOid]++;
                     var joinTime = sessionStart.AddMinutes(_rng.Next(0, 31));
                     _context.SessionParticipants.Add(new SessionParticipant
                     {
                         Session_Id = s.Session_Id,
-                        User_Id = c.User_id,
+                        User_Oid = customerOid,
+                        User_Name = $"{customerInfo.GivenName} {customerInfo.Surname}".Trim(),
                         Joined_At = joinTime,
                         Left_At = s.Ended_At
                     });
                     created++;
                 }
+            }
 
-                //_context.SaveChanges();
-                _logger.LogInformation($"SAVE CHANGES completed. User #: {_context.Users.Count()}");
+            var unusedUsers = _userSeedData.Keys.Where(oid => !userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2).ToList();
+
+            if (unusedUsers.Any() && activeSessions.Any())
+            {
+                int sessionIndex = 0;
+
+                foreach (var oid in unusedUsers)
+                {
+                    var usage = userUsageCount.GetValueOrDefault(oid, 0);
+                    for (int i = usage; i < 2; i++)
+                    {
+                        var session = activeSessions[sessionIndex % activeSessions.Count];
+                        sessionIndex++;
+
+                        var info = _userSeedData[oid];
+
+                        _context.SessionParticipants.Add(new SessionParticipant
+                        {
+                            Session_Id = session.Session_Id,
+                            User_Oid = oid,
+                            User_Name = $"{info.GivenName} {info.Surname}".Trim(),
+                            Joined_At = session.Started_At.AddMinutes(_rng.Next(1, 30)),
+                            Left_At = null
+                        });
+                        created++;
+                    }
+                }
             }
 
             var totalActive = _context.SessionParticipants.Count(p => p.Left_At == null);
             var totalCompleted = _context.SessionParticipants.Count(p => p.Left_At != null);
             _logger.LogInformation($"Created {created} session participants ({totalActive} active, {totalCompleted} completed)");
         }
-
     }
 }

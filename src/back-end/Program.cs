@@ -251,7 +251,7 @@ using (var scope = app.Services.CreateScope())
             // The DatabaseSeeder should be idempotent and check if data already exists
 
             //Check to see if the DB has been seeded already
-            if (!context.Users.Any())
+            if (!context.MenuItems.Any())
             {
                 await seeder.SeedDatabase();
                 logger.LogInformation("Database seed completed.");

@@ -1,14 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
-using back_end.DTO.Auth;
+
 using Microsoft.AspNetCore.Mvc;
-using back_end.DTO.Analytics;
+
 using back_end.domain.Entities;
-using back_end.domain;
+
 using back_end.domain.enums;
 using back_end.DTO.DashBoardDTOs;
-using Swashbuckle.AspNetCore.SwaggerUI;
-using System.Security.Cryptography;
+
 
 namespace back_end.controllers
 {
@@ -87,6 +86,9 @@ namespace back_end.controllers
     /// Sessions are ordered by start time (newest first).
     /// </remarks>
     [HttpGet("sessions")]
+    [ProducesResponseType(typeof(List<DashBoardSessionsDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDashBoardSessions([FromQuery] int? locationId)
     {
       try
@@ -97,6 +99,7 @@ namespace back_end.controllers
             .Include(ds => ds.TableGroup)
                 .ThenInclude(tg => tg.Tables)
             .Include(ds => ds.Bills)
+            .Include(ds => ds.Participants)
             .Where(ds => ds.Ended_At == null);
 
         // Filter by location if provided
@@ -114,17 +117,15 @@ namespace back_end.controllers
           return NoContent();
         }
 
-        var dashBoardSessions = new List<object>();
+        var dashBoardSessions = new List<DashBoardSessionsDTO>();
         foreach (var session in sessions)
         {
           bool has_open_bill = session.Bills.Any(b => b.Status == BillStatus.Open);
           bool Is_Closable = !has_open_bill;
 
-          var active_participants = await _context.SessionParticipants
-              .Where(sp => sp.Session_Id == session.Session_Id && sp.Left_At == null)
-              .CountAsync();
+          var active_participants = session.Participants.Count(p => p.Left_At == null);
 
-          var dashBoard_session = new
+          var dashBoard_session = new DashBoardSessionsDTO
           {
             Session_Id = session.Session_Id,
             Menu_Id = session.Menu_Id,
@@ -185,6 +186,8 @@ namespace back_end.controllers
     /// - Location information (if filtered by location)
     /// </remarks>
     [HttpGet("summary")]
+    [ProducesResponseType(typeof(DashBoardSummaryDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetDashBoardSummary([FromQuery] int? locationId)
     {
       try
@@ -207,7 +210,7 @@ namespace back_end.controllers
         int total_active_sessions = active_sessions.Count();
 
         // Count total tables in use - sum of individual tables and tables in groups
-        int total_total_tables_in_use = active_sessions.Sum(session => GetTableCount(session));
+        int total_tables_in_use = active_sessions.Sum(session => GetTableCount(session));
 
         // Build query for active bills
         var billsQuery = _context.Bills
@@ -234,7 +237,8 @@ namespace back_end.controllers
                 sp => sp.Session_Id,
                 session => session.Session_Id,
                 (sp, session) => new { sp, session })
-            .Where(x => x.sp.Left_At == null);
+            .Where(x => x.sp.Left_At == null &&
+                        x.session.Ended_At == null);
 
         // Filter by location if provided
         if (locationId.HasValue)
@@ -253,15 +257,17 @@ namespace back_end.controllers
           locationName = location?.Name;
         }
 
-        return Ok(new
+        var summary = new DashBoardSummaryDTO
         {
           Location_Id = locationId,
           Location_Name = locationName,
           Total_Active_Sessions = total_active_sessions,
-          Total_Tables_In_Use = total_total_tables_in_use,
+          Total_Tables_In_Use = total_tables_in_use,
           Total_Active_Bills = total_active_bills,
           Total_ActiveParticipants = total_active_participants
-        });
+        };
+
+        return Ok(summary);
       }
       catch (Exception ex)
       {

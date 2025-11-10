@@ -51,38 +51,41 @@ const BillDialog = ({ onBillCreated }) => {
   const [isDialogOpen, setIsDialogOpen] = useState(true);
   const [sessionId, setSessionId] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+
 
   useEffect(() => {
+    console.log("fetchActiveSession called")
     const fetchActiveSession = async () => {
       try {
-        const response = await api.get(
-          "/dining-sessions/participants/active-session-id"
-        );
+        const response = await api.get("/DiningSession/participants/active-session-id");
+        console.log("API RESPONSE" + response)
 
-        if (response.data && response.data.session_id) {
+        if (response?.status === 200 && typeof response.data?.session_id === "number") {
           setSessionId(response.data.session_id);
           setError(null);
+        } else {
+          setError("No active session found");
         }
       } catch (err) {
-        console.error("Error in fetchActiveSession:", err);
-        if (err.response) {
-          setError(err.response.data.detail || "Error fetching session");
-        } else if (err.request) {
-          setError("No response received from server");
-        } else {
-          setError("Error setting up request");
-        }
+        setError("Error fetching session");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchActiveSession();
   }, []);
 
+    console.log("BillDialog render — sessionId =", sessionId);
+
   const handleDialogClose = async (success) => {
     if (success && onBillCreated) {
       await onBillCreated();
     }
   };
+
+  if (loading) return null; 
 
   return (
     <NewBillDialog
@@ -94,9 +97,10 @@ const BillDialog = ({ onBillCreated }) => {
 };
 
 export default function BillDialogAdapter({ onBillCreated }) {
+
   return (
-    <SessionContextWrapper>
+    <SessionProvider>
       <BillDialog onBillCreated={onBillCreated} />
-    </SessionContextWrapper>
+    </SessionProvider>
   );
 }

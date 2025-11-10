@@ -3,8 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts; // Ensure this is the correct namespace for ApplicationDbContext
 using back_end.domain.Entities;
 using back_end.DTO.Category;
-using Microsoft.AspNetCore.Http.Features;
-
 
 namespace back_end.Controllers
 {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
+using back_end.DTO.DiningSessionDTOs;
 using Swashbuckle.AspNetCore.Annotations;
 
 namespace back_end.Controllers
@@ -46,17 +47,54 @@ namespace back_end.Controllers
       return new List<object>();
     }
 
+    // Helper method to get table numbers from either single table or table group
+    private List<int> GetTableNumbers(DiningSession session)
+    {
+      if (session.Table != null)
+      {
+        return new List<int> { session.Table.table_number };
+      }
+      else if (session.TableGroup != null && session.TableGroup.Tables != null)
+      {
+        return session.TableGroup.Tables.Select(t => t.table_number).ToList();
+      }
+      return new List<int>();
+    }
+
     // GET: api/session
     /// <summary>Retrieves all dining sessions.</summary>
     /// <response code="200">A list of all sessions was returned.</response>
     /// <response code="500">An error occurred while retrieving sessions.</response>
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<DiningSession>>> GetAllSessions()
+    [ProducesResponseType(typeof(IEnumerable<DiningSessionResponseDTO>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<DiningSessionResponseDTO>>> GetAllSessions()
     {
       try
       {
-        var sessions = await _context.DiningSessions.ToListAsync();
-        return Ok(sessions);
+        var sessions = await _context.DiningSessions
+          .Include(s => s.Table)
+          .Include(s => s.TableGroup)
+              .ThenInclude(tg => tg.Tables)
+          .Include(s => s.Participants)
+          .Include(s => s.Location)
+          .OrderByDescending(s => s.Started_At)
+          .ToListAsync();
+        
+        var sessionDtos = sessions.Select(s => new DiningSessionResponseDTO
+        {
+          Session_Id = s.Session_Id,
+          Menu_Id = s.Menu_Id,
+          Location_Id = s.Location_Id,
+          Location_Name = s.Location?.Name,
+          Started_at = s.Started_At,
+          Ended_at = s.Ended_At,
+          First_Order_Time = s.First_Order_At,
+          Table_Numbers = GetTableNumbers(s),
+          Active_Participants = s.Participants.Count(p => p.Left_At == null)
+        }).ToList();
+    
+    return Ok(sessionDtos);
       }
       catch (Exception ex)
       {
@@ -64,6 +102,7 @@ namespace back_end.Controllers
         return StatusCode(500, "Internal Server Error");
       }
     }
+    
 
     // GET: api/session/{id}
     /// <summary>Gets a dining session with users, menu, orders, and table assignments.</summary>
@@ -81,7 +120,7 @@ namespace back_end.Controllers
                 .Where(s => s.Session_Id == id)
                 .Include(s => s.Menu)
                 .Include(s => s.Participants)
-                    .ThenInclude(se => se.User)
+                // .ThenInclude(se => se.User) removed for Oauth
                 .Include(s => s.Table)
                 .Include(s => s.TableGroup)
                     .ThenInclude(tg => tg.Tables)
@@ -105,12 +144,12 @@ namespace back_end.Controllers
           firstOrder = session.First_Order_At,
           active = session.Ended_At == null,
 
-          //Get all the participants in the session with their information
+          // Updated: Get all the participants in the session with their information
           guests = session.Participants.Select(s => new
           {
             participantId = s.Participant_Id,
-            userId = s.User_Id,
-            userName = $"{s.User.First_name} {s.User.Last_name}",
+            userOid = s.User_Oid,
+            userName = s.User_Name,
             joinedAt = s.Joined_At,
             leftAt = s.Left_At
           }).ToList(),
@@ -122,7 +161,8 @@ namespace back_end.Controllers
           orders = session.Orders.Select(s => new
           {
             orderID = s.Order_Id,
-            userId = s.User_Id,
+            userOid = s.User_Oid,
+            userName = s.User_Name,
             status = s.Status.ToString(),
             itemCount = s.OrderItems.Count,
             createdAt = s.Created_At,
@@ -154,7 +194,7 @@ namespace back_end.Controllers
                             .Where(s => s.Ended_At == null)
                             .Include(s => s.Menu)
                             .Include(s => s.Participants)
-                                .ThenInclude(se => se.User)
+                            // .ThenInclude(se => se.User) removed for Oauth
                             .Include(s => s.Table)
                             .Include(s => s.TableGroup)
                                 .ThenInclude(tg => tg.Tables)
@@ -209,7 +249,7 @@ namespace back_end.Controllers
                     .Include(s => s.TableGroup)
                         .ThenInclude(tg => tg.Tables)
                     .Include(s => s.Participants)
-                        .ThenInclude(p => p.User)
+                    // .ThenInclude(p => p.User) removed for Oauth
                     .Where(s => s.Ended_At == null)
                     .Where(s => s.Table_Id == table ||
                                (s.TableGroup_Id.HasValue &&
@@ -240,8 +280,8 @@ namespace back_end.Controllers
                                     .Where(s => s.Left_At == null)
                                     .Select(s => new
                                     {
-                                      userId = s.User_Id,
-                                      userName = $"{s.User.First_name} {s.User.Last_name}",
+                                      userOid = s.User_Oid,
+                                      userName = s.User_Name,
                                       joinedAt = s.Joined_At
                                     }).ToList()
         };
@@ -261,23 +301,15 @@ namespace back_end.Controllers
     /// <response code="200">Active/empty result returned for the user.</response>
     /// <response code="404">User not found.</response>
     /// <response code="500">An error occurred while retrieving the user's current session.</response>
-    [HttpGet("user/{userId}/current")]
-    public async Task<ActionResult<object>> GetCurrentSessionByUser(int userId)
+    [HttpGet("user/{userOid}/current")]
+    public async Task<ActionResult<object>> GetCurrentSessionByUser(string userOid)
     {
       try
       {
-        var user = await _context.Users.FindAsync(userId);
-
-        //Check if user exists
-        if (user == null)
-        {
-          return NotFound(new { message = $"Can't find user with ID: {userId}" });
-        }
-
         //Check for an active session that the user is currently in
         //Add Menu and Table information
         var session = await _context.SessionParticipants
-                            .Where(s => s.User_Id == userId && s.Left_At == null)
+                            .Where(s => s.User_Oid == userOid && s.Left_At == null)
                             .Include(s => s.DiningSession)
                                 .ThenInclude(se => se.Menu)
                             .Include(s => s.DiningSession)
@@ -295,8 +327,7 @@ namespace back_end.Controllers
           return Ok(new
           {
             message = "Guest is not currently in an active dining session.",
-            userId = user.User_id,
-            userName = $"{user.First_name} {user.Last_name}",
+            userOid = userOid,
             activeSession = false
           });
         }
@@ -317,7 +348,7 @@ namespace back_end.Controllers
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, $"Can't get session for user ID: {userId}");
+        _logger.LogError(ex, $"Can't get session for user Oid: {userOid}");
         return StatusCode(500, "Internal Server Error");
       }
     }

@@ -1,14 +1,12 @@
-using System.IO.Compression;
-using System.Numerics;
-using back_end.domain;
-using System.Security.Claims;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
 using back_end.DTO.bill;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using back_end.Helpers;
 
 namespace back_end.controllers
 {
@@ -104,7 +102,7 @@ namespace back_end.controllers
           return BadRequest(new { message = "Cannot create a bill for a session that has no table or table group assigned" });
         }
 
-        if (bill_data.Adult_Count <= 0 && bill_data.Senior_Count <= 0 && bill_data.Child_Count <= 0)
+        if (bill_data.Adult_Count <= 0 && bill_data.Senior_Count <= 0 && bill_data.Child_Count <= 0 && bill_data.Tot_Count <= 0)
         {
           return BadRequest(new { message = "Bill must have at least one guest in the session" });
         }
@@ -115,12 +113,31 @@ namespace back_end.controllers
           return BadRequest(new { message = "Bill_Name is required." });
         }
 
-        // Calculate total count
-        int totalCount = bill_data.Adult_Count + bill_data.Senior_Count + bill_data.Child_Count;
-
-        if (totalCount == 0)
+        int totalCount = bill_data.Total_Count
+            ?? (bill_data.Adult_Count + bill_data.Senior_Count + bill_data.Child_Count + bill_data.Tot_Count);
+        
+        // Validate against table capacity
+        int tableCapacity = 0;
+        if (session.Table_Id.HasValue && session.Table != null)
         {
-          return BadRequest(new { message = "Total guest count must be greater than zero." });
+            tableCapacity = session.Table.seat_count;
+        }
+        else if (session.TableGroup_Id.HasValue && session.TableGroup?.Tables != null)
+        {
+            tableCapacity = session.TableGroup.Tables.Sum(t => t.seat_count);
+        }
+
+        // Check total guest count across all bills in this session
+        var existingBillsGuestCount = await _context.Bills
+            .Where(b => b.Session_Id == _session_id && b.Status != BillStatus.Cancelled)
+            .SumAsync(b => b.Total_Count);
+
+        if (existingBillsGuestCount + totalCount > tableCapacity)
+        {
+            return BadRequest(new 
+            { 
+                message = $"Total guest count ({existingBillsGuestCount + totalCount}) exceeds table capacity ({tableCapacity})" 
+            });
         }
 
         var NewBill = new Billing
@@ -130,7 +147,8 @@ namespace back_end.controllers
           Senior_Count = bill_data.Senior_Count,
           Adult_Count = bill_data.Adult_Count,
           Child_Count = bill_data.Child_Count,
-          Total_Count = totalCount, // calculated total
+          Tot_Count = bill_data.Tot_Count,
+          Total_Count = totalCount,
           Status = BillStatus.Open
         };
 
@@ -146,10 +164,11 @@ namespace back_end.controllers
           Senior_Count = NewBill.Senior_Count,
           Adult_Count = NewBill.Adult_Count,
           Child_Count = NewBill.Child_Count,
+          Tot_Count = NewBill.Tot_Count,
           Total_Count = NewBill.Total_Count,
           Status = NewBill.Status.ToString(),
           Created_At = NewBill.Created_At,
-          Closed_At = NewBill.Closed_At.ToString(),
+          Closed_At = NewBill.Closed_At,
           Table_Numbers = GetTableNumbers(session)
         });
       }
@@ -243,10 +262,11 @@ namespace back_end.controllers
           Senior_Count = bill.Senior_Count,
           Adult_Count = bill.Adult_Count,
           Child_Count = bill.Child_Count,
+          Tot_Count = bill.Tot_Count,
           Total_Count = bill.Total_Count,
           Status = bill.Status.ToString(),
           Created_At = bill.Created_At,
-          Closed_At = bill.Closed_At.ToString(),
+          Closed_At = bill.Closed_At,
           Table_Numbers = GetTableNumbers(session)
         }).ToList();
 
@@ -306,10 +326,11 @@ namespace back_end.controllers
           Senior_Count = bill.Senior_Count,
           Adult_Count = bill.Adult_Count,
           Child_Count = bill.Child_Count,
+          Tot_Count = bill.Tot_Count,
           Total_Count = bill.Total_Count,
           Status = bill.Status.ToString(),
           Created_At = bill.Created_At,
-          Closed_At = bill.Closed_At.ToString(),
+          Closed_At = bill.Closed_At,
           Table_Numbers = GetTableNumbers(bill.DiningSession)
         });
       }
@@ -391,10 +412,11 @@ namespace back_end.controllers
           Senior_Count = bill.Senior_Count,
           Adult_Count = bill.Adult_Count,
           Child_Count = bill.Child_Count,
+          Tot_Count = bill.Tot_Count,
           Total_Count = bill.Total_Count,
           Status = bill.Status.ToString(),
           Created_At = bill.Created_At,
-          Closed_At = bill.Closed_At.ToString(),
+          Closed_At = bill.Closed_At,
           Table_Numbers = GetTableNumbers(bill.DiningSession)
         });
       }
@@ -479,10 +501,11 @@ namespace back_end.controllers
           Senior_Count = bill.Senior_Count,
           Adult_Count = bill.Adult_Count,
           Child_Count = bill.Child_Count,
+          Tot_Count = bill.Tot_Count,
           Total_Count = bill.Total_Count,
           Status = bill.Status.ToString(),
           Created_At = bill.Created_At,
-          Closed_At = bill.Closed_At.ToString(),
+          Closed_At = bill.Closed_At,
           Table_Numbers = GetTableNumbers(bill.DiningSession)
         });
       }
@@ -516,22 +539,25 @@ namespace back_end.controllers
     /// - The user is an active participant (hasn't left the session)
     /// - The dining session is still active (hasn't ended)
     /// </remarks>
+    [Authorize]
     [HttpGet("active/bills")]
     public async Task<ActionResult<List<BillResponse>>> GetActiveBills()
     {
       try
       {
-        // Retrieve current user ID from claims (assuming JWT authentication)
-        var userIdClaim = User.Claims.FirstOrDefault(c => c.Type == "sub" || c.Type == "User_Id");
-        var userId = userIdClaim?.Value ?? "Unknown";
+        // Retrieve current user Oid from claims (Entra ID Oauth) using ClaimsHelpers
+        var userOid = ClaimsHelpers.GetUserOid(User);
+
+        if (string.IsNullOrEmpty(userOid))
+        {
+          return Unauthorized(new { detail = "User Oid not found in claims." });
+        }
 
         // Get all bills for user's active session using joins
         var bills = await _context.Bills
-            .Include(b => b.DiningSession)
-                .ThenInclude(ds => ds.Table)
-            .Include(b => b.DiningSession)
-                .ThenInclude(ds => ds.TableGroup)
-                    .ThenInclude(tg => tg.Tables)
+            .Include(b => b.DiningSession.Table)
+            .Include(b => b.DiningSession.TableGroup)
+                .ThenInclude(tg => tg.Tables)
             .Join(
                 _context.SessionParticipants,
                 bill => bill.Session_Id,
@@ -539,11 +565,12 @@ namespace back_end.controllers
                 (bill, participant) => new { bill, participant }
             )
             .Where(x =>
-                x.participant.User_Id.ToString() == userId &&
+                x.participant.User_Oid == userOid &&
                 x.participant.Left_At == null &&  // User hasn't left
                 x.bill.DiningSession.Ended_At == null        // Session is active
             )
             .Select(x => x.bill)
+            .Distinct() // Avoid duplicate bills if any
             .ToListAsync();
 
         if (!bills.Any())
@@ -552,7 +579,7 @@ namespace back_end.controllers
         }
 
         // Convert bills to response model
-        _logger.LogInformation($"Found {bills.Count} bills for user {userId}'s active session");
+        _logger.LogInformation($"Found {bills.Count} bills for user {userOid}'s active session");
 
         var billResponses = bills.Select(bill => new BillResponse
         {
@@ -562,10 +589,11 @@ namespace back_end.controllers
           Senior_Count = bill.Senior_Count,
           Adult_Count = bill.Adult_Count,
           Child_Count = bill.Child_Count,
+          Tot_Count = bill.Tot_Count,
           Total_Count = bill.Total_Count,
           Status = bill.Status.ToString(),
           Created_At = bill.Created_At,
-          Closed_At = bill.Closed_At.ToString(),
+          Closed_At = bill.Closed_At,
           Table_Numbers = GetTableNumbers(bill.DiningSession)
         }).ToList();
 

@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using back_end.domain.Entities;
 using back_end.domain;
@@ -18,10 +19,17 @@ namespace back_end.domain.Seeders
     private readonly ILogger<BillSeeder> _logger;
     private readonly Random _rng = new();
 
+    private Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
+
     public BillSeeder(ApplicationDbContext context, ILogger<BillSeeder> logger)
     {
       _context = context;
       _logger = logger;
+    }
+
+    public void SetUserSeedData(Dictionary<string, (string DisplayName, string GivenName, string Surname)> userSeedData)
+    {
+      _userSeedData = userSeedData;
     }
 
     public void Seed()
@@ -30,29 +38,24 @@ namespace back_end.domain.Seeders
           .Include(s => s.Table)
           .Include(s => s.TableGroup)
               .ThenInclude(tg => tg.Tables)
-          .Where(s => s.Session_Id <= 5)
+          .Where(s => s.Ended_At == null)
+          .OrderBy(s => s.Session_Id)
           .ToList();
-
-      var customers = _context.Users
-          .Where(u => u.Role == UserRoles.Customer)
-          .ToList();
+      
+      if (!sessions.Any())
+      {
+        _logger.LogWarning("No active dining sessions found to create bills for.");
+        return;
+      }
 
       int created = 0;
+      var userUsageCount = new Dictionary<string, int>();
+      var userOids = _userSeedData.Keys.ToList();
 
-      foreach (var s in sessions)
+      var sessionsToProcess = sessions.Take(20).ToList();
+
+      foreach (var s in sessionsToProcess)
       {
-          var customerIds = customers.Select(c => c.User_id).ToList();
-          
-          var participantIds = _context.SessionParticipants
-              .Where(p => p.Session_Id == s.Session_Id 
-                  && p.User_Id.HasValue 
-                  && customerIds.Contains(p.User_Id.Value))
-              .Select(p => p.User_Id.Value)
-              .ToList();
-
-        if (!participantIds.Any()) continue;
-
-        // Get total seats from either individual table or table group
         int totalSeats;
         List<int> tableNumbers;
 
@@ -68,59 +71,121 @@ namespace back_end.domain.Seeders
         }
         else
         {
-          continue; // Skip sessions without table assignment
+          continue;
         }
 
         var remaining = totalSeats;
 
-        foreach (var pid in participantIds)
+        var numBillsForSession = _rng.Next(1, Math.Min(4, totalSeats + 1));
+
+        for (int billIndex = 0; billIndex < numBillsForSession; billIndex++)
         {
-          var numBills = _rng.Next(1, 4); // 1-3 bills per participant
-          for (int i = 0; i < numBills; i++)
+          if (remaining <= 0) break;
+
+          // Pick a random user as the bill owner
+          var userOid = userOids[_rng.Next(userOids.Count)];
+          var info = _userSeedData[userOid];
+
+          var maxGuests = Math.Min(remaining, 6);
+          var adult = _rng.Next(1, maxGuests + 1);
+          var senior = _rng.Next(0, Math.Max(0, maxGuests - adult) + 1);
+          var child = _rng.Next(0, Math.Max(0, maxGuests - adult - senior) + 1);
+          var tot = _rng.Next(0, Math.Max(0, maxGuests - adult - senior - child) + 1);
+          var total = adult + senior + child + tot;
+
+          if (total == 0)
           {
-            if (remaining <= 0) break;
-
-            var maxGuests = Math.Min(remaining, 6);
-            var adult = _rng.Next(1, maxGuests + 1);
-            var senior = _rng.Next(0, Math.Max(0, maxGuests - adult) + 1);
-            var child = _rng.Next(0, Math.Max(0, maxGuests - adult - senior) + 1);
-            var tot = _rng.Next(0, Math.Max(0, maxGuests - adult - senior - child) + 1);
-            var total = adult + senior + child + tot;
-            if (total == 0) continue;
-
-            remaining -= total;
-
-            BillStatus status;
-            if (s.Ended_At != null) status = BillStatus.Closed;
-            else status = s.Session_Id <= 5 ? BillStatus.Open
-                                           : (new[] { BillStatus.Closed, BillStatus.Cancelled })[_rng.Next(2)];
-
-            var tableNumbersStr = tableNumbers.Select(n => n.ToString());
-            var name = $"Table{string.Join(" & ", tableNumbersStr)} - Party of {total}";
-
-            var participant = _context.SessionParticipants
-                .FirstOrDefault(p => p.Session_Id == s.Session_Id && p.User_Id == pid);
-
-            var createdAt = (participant?.Joined_At ?? s.Started_At).AddMinutes(_rng.Next(5, 31));
-
-            var bill = new Billing
-            {
-              Session_Id = s.Session_Id,
-              Bill_Name = name,
-              Senior_Count = senior,
-              Adult_Count = adult,
-              Child_Count = child,
-              Total_Count = tot,
-              Status = status,
-              Created_At = createdAt,
-              Closed_At = status == BillStatus.Closed ? s.Ended_At : null
-            };
-
-            _context.Bills.Add(bill);
-            created++;
+            // Ensure at least one guest
+            adult = 1;
+            total = 1;
           }
+
+          remaining -= total;
+
+          BillStatus status;
+          if (s.Ended_At != null)
+          {
+            status = BillStatus.Closed;
+          }
+          else
+          {
+            // 70% Open, 20% Closed, 10% Cancelled for active sessions
+            var rand = _rng.NextDouble();
+            if (rand < 0.7)
+              status = BillStatus.Open;
+            else if (rand < 0.9)
+              status = BillStatus.Closed;
+            else
+              status = BillStatus.Cancelled;
+          }
+
+          var tableNumbersStr = tableNumbers.Select(n => n.ToString());
+          var billName = $"Table {string.Join(" & ", tableNumbersStr)} - Party of {total}";
+
+          var participant = _context.SessionParticipants
+              .FirstOrDefault(p => p.Session_Id == s.Session_Id && p.User_Oid == userOid);
+
+          var createdAt = (participant?.Joined_At ?? s.Started_At).AddMinutes(_rng.Next(5, 31));
+
+          // Track user usage
+          if (!userUsageCount.ContainsKey(userOid))
+            userUsageCount[userOid] = 0;
+          userUsageCount[userOid]++;
+
+          var bill = new Billing
+          {
+            Session_Id = s.Session_Id,
+            Bill_Name = billName,
+            Senior_Count = senior,
+            Adult_Count = adult,
+            Child_Count = child,
+            Tot_Count = tot,
+            Total_Count = total,
+            Status = status,
+            Created_At = createdAt,
+            Closed_At = status == BillStatus.Closed ? s.Ended_At : null
+          };
+
+          _context.Bills.Add(bill);
+          created++;
         }
       }
+      // Ensure unused users get bills too (distributed across sessions)
+      var unusedUsers = _userSeedData.Keys.Where(oid => !userUsageCount.ContainsKey(oid)).ToList();
+    
+      if (unusedUsers.Any() && sessions.Any())
+      {
+        int sessionIndex = 0;
+        
+        foreach (var oid in unusedUsers)
+        {
+          // Rotate through sessions
+          var session = sessions[sessionIndex % sessions.Count];
+          sessionIndex++;
+          
+          var info = _userSeedData[oid];
+          var name = (!string.IsNullOrEmpty(info.GivenName) || !string.IsNullOrEmpty(info.Surname)
+              ? $"{info.GivenName} {info.Surname}".Trim()
+              : info.DisplayName);
+
+          var bill = new Billing
+          {
+            Session_Id = session.Session_Id,
+            Bill_Name = $"Bill for {name}",
+            Senior_Count = 0,
+            Adult_Count = 1,
+            Child_Count = 0,
+            Tot_Count = 0,
+            Total_Count = 1,
+            Status = BillStatus.Open,
+            Created_At = DateTime.UtcNow.AddMinutes(_rng.Next(1, 60)),
+            Closed_At = null
+          };
+            
+          _context.Bills.Add(bill);
+          created++;
+          }
+        }
 
       var totalOpen = _context.Bills.Count(b => b.Status == BillStatus.Open);
       var totalClosed = _context.Bills.Count(b => b.Status == BillStatus.Closed);

@@ -163,7 +163,7 @@ const fetchOrders = async (billId = "") => {
             {order.items.map((item) => (
               <Box
                 component="li"
-                key={item.order_item_id}
+                key={item.order_item_id ?? item.orderItemId ?? `${order.orderId}-${item.item_id ?? item.itemId}-${index}`}
                 sx={{
                   py: 1.5,
                   borderBottom: "1px solid rgba(0, 0, 0, 0.12)",

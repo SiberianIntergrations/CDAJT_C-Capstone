@@ -317,13 +317,12 @@ export const useSessionActions = (onSuccess) => {
         const sid = toInt(sessionId);
         if (!sid) throw new Error("Session ID is required");
 
-        const payload = {
-          bill_name: billData.billName,
-          adult_count: parseInt(billData.adultCount),
-          child_count: parseInt(billData.childCount),
-          senior_count: parseInt(billData.seniorCount),
-          tot_count: parseInt(billData.totCount),
-        };
+      const payload = {
+        bill_name: billData.billName,
+        adult_count: parseInt(billData.adultCount),
+        child_count: parseInt(billData.childCount),
+        senior_count: parseInt(billData.seniorCount),
+      };
 
         if (!payload.bill_name) throw new Error("Bill name is required");
 

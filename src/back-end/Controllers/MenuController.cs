@@ -2,14 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
-using back_end.domain;
 using back_end.domain.enums;
-using System.Linq.Expressions;
 using back_end.DTO.MenuItems;
 using Microsoft.AspNetCore.Authorization;
 using back_end.DTO.MenuDTO;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
-using back_end.domain.Seeders;
+using back_end.Helpers;
 
 namespace back_end.Controllers
 {
@@ -28,8 +25,7 @@ namespace back_end.Controllers
         }
         
         
-        
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPost("createmenu")]
         [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -98,7 +94,7 @@ namespace back_end.Controllers
         /// The menu item is automatically created with 'Available' status.
         /// Tags are optional and will be associated with the item if provided.
         /// </remarks>
-        [Authorize(Roles = "Admin,Staff")]
+        [Authorize(Policy = "staffOnly")]
         [HttpPost]
         [ProducesResponseType(typeof(MenuItemResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
@@ -501,7 +497,7 @@ namespace back_end.Controllers
         /// All fields in the request body are optional - only provided fields will be updated.
         /// Menu names must be unique.
         /// </remarks>
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "adminOnly")]
         [HttpPut("{menu_id}")]
         [ProducesResponseType(typeof(MenuResponseDTO), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -589,7 +585,7 @@ namespace back_end.Controllers
         /// This endpoint requires Admin role authorization.
         /// Permanently removes the menu from the database.
         /// </remarks>
-        [Authorize(Roles = "Admin")]
+        [Authorize(Policy = "adminOnly")]
         [HttpDelete("{menu_id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
