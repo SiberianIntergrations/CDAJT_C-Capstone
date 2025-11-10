@@ -1,4 +1,19 @@
 // // File: sushi-toshi-frontend/components/staff/components/ServiceNotifications.jsx
+/**
+ * ServiceNotifications Component
+ * This was commented out by the previous project group.
+ * It provides real-time service request notifications for staff members
+ * using WebSockets to connect to active sessions.
+ * 
+ * Features:
+ * - Real-time notifications for service requests
+ * - Multi-session monitoring that creates WebSocket connections for each active session
+ * - Shows connection status indicators for each session
+ * - Notification cards: table number, request details, timestamp, statuses, claim requests
+ * - Error handling
+ * 
+ */
+
 // import { useState, useEffect, useCallback } from "react";
 // import { Bell, X, Wifi, WifiOff } from "lucide-react";
 // import { axiosInstance, createApiUrl } from "../../../config/api";

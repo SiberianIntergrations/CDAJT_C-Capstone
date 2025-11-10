@@ -38,41 +38,39 @@ const OrderDashboard = () => {
       const allOrders = [];
       for (const session of sessionsResponse.data) {
         try {
-          const sessionId =
-            session.session_id || session.Session_Id || session.session_Id;
+          const sessionId = session.session_Id;
           if (!sessionId) {
             console.error("Invalid session object:", session);
             continue;
           }
 
           const ordersResponse = await api.get(`/Order/session/${sessionId}`);
+          console.log("Orders for session", sessionId, ordersResponse.data);
           // Map out the response data of the orders
           if (Array.isArray(ordersResponse.data)) {
             allOrders.push(
               ...ordersResponse.data.map((order) => ({
-                orderId: order.orderId || order.order_Id || order.Order_Id,
-                sessionId:
-                  order.sessionId || order.session_Id || order.Session_Id,
-                billId: order.billId || order.bill_Id || order.Bill_Id,
-                customerId: order.customerId || order.customer_Id || order.User_Id,
-                customerName: order.customerName || order.customer_Name,
-                status: order.status || order.Status,
-                itemTotal: order.itemTotal || order.item_Total,
-                orderTotal: order.orderTotal || order.order_Total,
-                createdAt: order.createdAt || order.created_At,
-                completedAt: order.completedAt || order.completed_At,
+                orderId: order.orderId,
+                sessionId: order.sessionId,
+                userOid: order.userOid,
+                userName: order.userName,
+                status: order.status,
+                itemTotal: order.itemTotal,
+                orderTotal: order.orderTotal,
+                createdAt: order.createdAt,
+                completedAt: order.completedAt,
                 tableNumbers:
-                  session.Table_Numbers ||
                   session.table_Numbers ||
-                  session.table_numbers ||
+                  session.tableNumbers ||
                   [],
                 items: Array.isArray(order.items)
                   ? order.items.map((item) => ({
-                      orderItemId: item.orderItemId || item.order_Item_Id,
-                      itemId: item.itemId || item.item_Id,
-                      name: item.name || item.Name,
-                      quantity: item.quantity || item.Quantity,
-                      status: item.status || item.Status,
+                      orderItemId: item.orderItemId,
+                      itemId: item.itemId,
+                      name: item.name,
+                      quantity: item.quantity,
+                      price: item.priceAtTime,
+                      status: item.status,
                     }))
                   : [],
               }))

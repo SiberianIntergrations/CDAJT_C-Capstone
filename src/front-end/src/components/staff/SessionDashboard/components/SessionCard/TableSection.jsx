@@ -12,10 +12,13 @@ import {
 } from "@mui/material";
 import { TableIcon, AlertTriangle } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import api from "@/config/api";
 
 const TableSection = ({ session }) => {
   const { openDialog, fetchSessions } = useSession();
+  const { notifySuccess, notifyError } = useNotification();
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [removedTableIds, setRemovedTableIds] = useState(new Set());
@@ -49,9 +52,9 @@ const TableSection = ({ session }) => {
         throw new Error("Table not found");
       }
 
-      // TODO: Update endpoint (api from old project: /dining-sessions/{sessionId}/tables/{tableId})
       const response = await api.delete(
-        `/dining-sessions/${sessionId}/tables/${table.table_id}`
+        // `/dining-sessions/${sessionId}/tables/${table.table_id}`
+        `/DiningSession/${sessionId}/Tables/${table.table_id}`
       );
 
       if (response.status === 204) {
@@ -59,12 +62,18 @@ const TableSection = ({ session }) => {
         await fetchSessions();
         setConfirmDialogOpen(false);
         setTableToRemove(null);
+
+        // Snackbar
+        notifySuccess(`Table ${tableNum} removed successfully`);
       } else {
         throw new Error(response.data?.detail || "Failed to remove table");
       }
     } catch (err) {
       console.error("Error removing table:", err);
-      setError(err.message || "Failed to remove table. Please try again.");
+      
+      const errorMsg = err.message || "Failed to remove table";
+      notifyError(errorMsg);
+      setError(errorMsg);
     } finally {
       setConfirmLoading(false);
     }

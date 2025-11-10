@@ -8,12 +8,12 @@ export const OrderGrid = ({ orders, onOrderClick }) => {
       items={orders}
       renderItem={(order) => (
         <OrderCard
-          key={order.orderId}
           order={order}
           onViewDetails={() => onOrderClick(order.orderId)}
         />
       )}
-      emptyMessage="No orders to display for this status"
+      keyExtractor={(order) => `order-${order.orderId}`}
+      emptyMessage="There are currently no orders to display."
       emptyVariant="info"
     />
   );
