@@ -714,7 +714,7 @@ namespace back_end.controllers
     /// Returns the session ID of the user's current active (not ended) dining session.
     /// A user can only have one active session at a time.
     /// </remarks>
-    [Authorize]
+
     [HttpGet("participants/active-session-id")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
