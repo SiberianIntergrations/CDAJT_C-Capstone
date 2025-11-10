@@ -75,7 +75,9 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("MySqlConnection");
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+    // Use static server version to avoid connection attempt during startup (important for testing)
+    // Using MariaDB 10.5 as a reasonable baseline version
+    options.UseMySql(connectionString, new MariaDbServerVersion(new Version(10, 5, 0)));
 });
 
 // Seeders registration
