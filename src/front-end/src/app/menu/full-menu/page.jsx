@@ -252,7 +252,7 @@ const FullMenu = () => {
   useEffect(() => {
     //Session ID can only be 1 or above
     if (!sessionId || sessionId < 1) {
-      console.log("Invalid sessionId. Skipping menu fetch.");
+
       return;
     }
 
@@ -266,7 +266,6 @@ const FullMenu = () => {
 
         if (response?.status >= 200 && response.status < 300 && response.data) {
           const raw = response.data;
-          console.log("session-menu raw =", raw);
 
           const id = raw.menu_id ?? raw.menuId ?? raw.Menu_Id ?? raw.menu_Id ?? raw.MenuID ?? raw;
           const getMenuID =
@@ -280,7 +279,6 @@ const FullMenu = () => {
 
           setMenuId(getMenuID);
 
-          console.log("parsed menuId =", getMenuID);
         } else {
           console.warn("No menu found", response?.data);
           setError("No menu found for this session");
@@ -423,19 +421,13 @@ const FullMenu = () => {
     clearActionError();
 
     try {
-      console.log("🧩 handleConfirmOrder → Creating order for session:", sessionId, "bill:", selectedBillId);
-
       const orderResponse = await createOrder(sessionId, selectedBillId);
-      console.log("🧩 orderResponse:", orderResponse);
 
       if (!orderResponse) throw new Error("Failed to create order");
 
       const newOrderId = Number(orderResponse.order_Id);
 
-      console.log("🧩 newOrderId parsed:", newOrderId);
-
       const orderItems = createOrderItems();
-      console.log("🧩 addOrderItems called with:", newOrderId, orderItems);
 
       await addOrderItems(newOrderId, orderItems);
     } catch (error) {

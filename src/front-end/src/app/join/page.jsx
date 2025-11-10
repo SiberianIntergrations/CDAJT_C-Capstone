@@ -13,8 +13,6 @@ const Join = () => {
       if (!tableNumber) return;
 
       try {
-        console.log("Joining table:", tableNumber);
-
         const guestOid = `guest-${crypto.randomUUID()}`;
 
         const payload = {
@@ -29,8 +27,6 @@ const Join = () => {
           `/DiningSession/Create_Dinning_Session?assignmentType=table`,
           payload
         );
-
-        console.log("Session created:", res.data);
 
         //Store guest session
         localStorage.setItem("guest", "true");

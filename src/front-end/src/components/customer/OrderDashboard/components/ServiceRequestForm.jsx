@@ -84,8 +84,7 @@ const ServiceRequestForm = () => {
 
     try {
       const response = await apiClient.post(`/ServiceRequest/${sessionId}`, payload);
-      console.log("Response:", response);
-
+ 
       if (response.status !== 200) {
         const data = response.data;
         let errorMessage = "Failed to submit request";

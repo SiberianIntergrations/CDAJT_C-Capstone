@@ -104,7 +104,6 @@ const BillsDashboard = () => {
         setError(null);
 
         if (isGuest()) {
-          console.log("Guest detected, skipping MSAL");
           const sid = localStorage.getItem("session_id");
           if (sid) {
             setSessionId(parseInt(sid));
@@ -151,12 +150,11 @@ const BillsDashboard = () => {
   const fetchBills = async (sid) => {
 
     const apiClient = isGuest() ? publicApi : api;
-    console.log("fetchBills: " , apiClient);
+
     try {
       setLoading(true);
       setError(null);
 
-      console.log("Fetching bills for session:", sid);
       const res = await apiClient.get(`/Bill/get_bills/${sid}`);
 
       if (res.status !== 200) {
@@ -164,7 +162,7 @@ const BillsDashboard = () => {
       }
 
       const billsData = Array.isArray(res.data) ? res.data : [];
-      console.log("Bills fetched:", billsData);
+
       setBills(billsData);
     } catch (err) {
       console.error("Error fetching bills:", err);
