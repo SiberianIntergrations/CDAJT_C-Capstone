@@ -12,15 +12,15 @@ using back_end.domain.DbContexts;
 namespace back_end.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251031235446_IntialDatabase_Oct31")]
-    partial class IntialDatabase_Oct31
+    [Migration("20251110052349_Baseline")]
+    partial class Baseline
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.9")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -57,6 +57,9 @@ namespace back_end.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Tot_Count")
                         .HasColumnType("int");
 
                     b.Property<int>("Total_Count")
@@ -157,7 +160,7 @@ namespace back_end.Migrations
 
                     b.ToTable("dining_sessions", t =>
                         {
-                            t.HasCheckConstraint("CK_DiningSession_TableAssignment", "(Table_Id IS NOT NULL AND TableGroup_Id IS NULL) OR (Table_Id IS NULL AND TableGroup_Id IS NOT NULL)");
+                            t.HasCheckConstraint("CK_DiningSession_TableAssignment", "NOT (Table_Id IS NOT NULL AND TableGroup_Id IS NOT NULL)");
                         });
                 });
 
@@ -202,12 +205,7 @@ namespace back_end.Migrations
                     b.Property<DateTime>("Updated_At")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int?>("User_id")
-                        .HasColumnType("int");
-
                     b.HasKey("Location_Id");
-
-                    b.HasIndex("User_id");
 
                     b.ToTable("locations");
                 });
@@ -408,8 +406,13 @@ namespace back_end.Migrations
                     b.Property<DateTime?>("Claimed_At")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<int?>("Claimed_By")
-                        .HasColumnType("int");
+                    b.Property<string>("Claimed_By_Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Claimed_By_Oid")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<DateTime?>("Completed_At")
                         .HasColumnType("datetime(6)");
@@ -422,8 +425,15 @@ namespace back_end.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
-                    b.Property<int>("Request_By")
-                        .HasColumnType("int");
+                    b.Property<string>("Request_By_Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("Request_By_Oid")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("Session_Id")
                         .HasColumnType("int");
@@ -435,10 +445,6 @@ namespace back_end.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("request_id");
-
-                    b.HasIndex("Claimed_By");
-
-                    b.HasIndex("Request_By");
 
                     b.HasIndex("Session_Id");
 
@@ -467,8 +473,13 @@ namespace back_end.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<int?>("User_Id")
-                        .HasColumnType("int");
+                    b.Property<string>("User_Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("User_Oid")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<int>("session_id")
                         .HasColumnType("int");
@@ -476,8 +487,6 @@ namespace back_end.Migrations
                     b.HasKey("Order_Id");
 
                     b.HasIndex("Bill_Id");
-
-                    b.HasIndex("User_Id");
 
                     b.HasIndex("session_id");
 
@@ -501,14 +510,17 @@ namespace back_end.Migrations
                     b.Property<int>("Session_Id")
                         .HasColumnType("int");
 
-                    b.Property<int?>("User_Id")
-                        .HasColumnType("int");
+                    b.Property<string>("User_Name")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("User_Oid")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Participant_Id");
 
                     b.HasIndex("Session_Id");
-
-                    b.HasIndex("User_Id");
 
                     b.ToTable("session_participant");
                 });
@@ -602,64 +614,6 @@ namespace back_end.Migrations
                     b.ToTable("tag");
                 });
 
-            modelBuilder.Entity("back_end.domain.Entities.User", b =>
-                {
-                    b.Property<int>("User_id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("User_id"));
-
-                    b.Property<DateTime>("Created_at")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("First_name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<bool>("Is_email_confirmed")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTime?>("Last_Interaction_at")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Last_name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("varchar(100)");
-
-                    b.Property<int?>("Location_id")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Normalized_email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("Password_hash")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.HasKey("User_id");
-
-                    b.HasIndex("Location_id");
-
-                    b.ToTable("users");
-                });
-
             modelBuilder.Entity("back_end.domain.Entities.Billing", b =>
                 {
                     b.HasOne("back_end.domain.Entities.DiningSession", "DiningSession")
@@ -702,13 +656,6 @@ namespace back_end.Migrations
                     b.Navigation("Table");
 
                     b.Navigation("TableGroup");
-                });
-
-            modelBuilder.Entity("back_end.domain.Entities.Locations", b =>
-                {
-                    b.HasOne("back_end.domain.Entities.User", null)
-                        .WithMany("Locations")
-                        .HasForeignKey("User_id");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.MenuItemAssignment", b =>
@@ -808,17 +755,6 @@ namespace back_end.Migrations
 
             modelBuilder.Entity("back_end.domain.Entities.ServiceRequest", b =>
                 {
-                    b.HasOne("back_end.domain.Entities.User", "ClaimedByUser")
-                        .WithMany("ClaimedServices")
-                        .HasForeignKey("Claimed_By")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("back_end.domain.Entities.User", "RequestedByUser")
-                        .WithMany("RequestedServices")
-                        .HasForeignKey("Request_By")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("back_end.domain.Entities.DiningSession", "DiningSession")
                         .WithMany("ServiceRequests")
                         .HasForeignKey("Session_Id")
@@ -831,11 +767,7 @@ namespace back_end.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ClaimedByUser");
-
                     b.Navigation("DiningSession");
-
-                    b.Navigation("RequestedByUser");
 
                     b.Navigation("Table");
                 });
@@ -848,10 +780,6 @@ namespace back_end.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("back_end.domain.Entities.User", "User")
-                        .WithMany("Orders")
-                        .HasForeignKey("User_Id");
-
                     b.HasOne("back_end.domain.Entities.DiningSession", "DiningSession")
                         .WithMany("Orders")
                         .HasForeignKey("session_id")
@@ -861,8 +789,6 @@ namespace back_end.Migrations
                     b.Navigation("Bill");
 
                     b.Navigation("DiningSession");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.SessionParticipant", b =>
@@ -873,13 +799,7 @@ namespace back_end.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("back_end.domain.Entities.User", "User")
-                        .WithMany("SessionParticipants")
-                        .HasForeignKey("User_Id");
-
                     b.Navigation("DiningSession");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.TableEntity", b =>
@@ -909,15 +829,6 @@ namespace back_end.Migrations
                         .IsRequired();
 
                     b.Navigation("Location");
-                });
-
-            modelBuilder.Entity("back_end.domain.Entities.User", b =>
-                {
-                    b.HasOne("back_end.domain.Entities.Locations", "PrimaryLocation")
-                        .WithMany()
-                        .HasForeignKey("Location_id");
-
-                    b.Navigation("PrimaryLocation");
                 });
 
             modelBuilder.Entity("back_end.domain.Entities.Billing", b =>
@@ -994,19 +905,6 @@ namespace back_end.Migrations
             modelBuilder.Entity("back_end.domain.Entities.Tag", b =>
                 {
                     b.Navigation("MenuItemTags");
-                });
-
-            modelBuilder.Entity("back_end.domain.Entities.User", b =>
-                {
-                    b.Navigation("ClaimedServices");
-
-                    b.Navigation("Locations");
-
-                    b.Navigation("Orders");
-
-                    b.Navigation("RequestedServices");
-
-                    b.Navigation("SessionParticipants");
                 });
 #pragma warning restore 612, 618
         }

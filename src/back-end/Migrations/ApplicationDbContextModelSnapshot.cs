@@ -157,7 +157,7 @@ namespace back_end.Migrations
 
                     b.ToTable("dining_sessions", t =>
                         {
-                            t.HasCheckConstraint("CK_DiningSession_TableAssignment", "(Table_Id IS NOT NULL AND TableGroup_Id IS NULL) OR (Table_Id IS NULL AND TableGroup_Id IS NOT NULL)");
+                            t.HasCheckConstraint("CK_DiningSession_TableAssignment", "NOT (Table_Id IS NOT NULL AND TableGroup_Id IS NOT NULL)");
                         });
                 });
 

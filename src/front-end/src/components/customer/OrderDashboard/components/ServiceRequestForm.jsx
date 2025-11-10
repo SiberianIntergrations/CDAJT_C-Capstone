@@ -38,19 +38,19 @@ const ServiceRequestForm = () => {
   useEffect(() => {
     const getActiveSession = async () => {
       try {
+        // Handle guest users separately
         if (isGuest()) {
           const sid = localStorage.getItem("session_id");
           if (sid) {
             setSessionId(parseInt(sid));
-            return;
           } else {
             setError("Guest session not found. Please scan your table QR again.");
-            return;
           }
+          return;
         }
 
-        const apiClient = isGuest() ? publicApi : api;
-        const response = await apiClient.get("/DiningSession/participants/active-session-id");
+        // For authenticated users only
+        const response = await api.get("/DiningSession/participants/active-session-id");
 
         if (response?.data?.session_id) setSessionId(response.data.session_id);
         else setError("No active session found");

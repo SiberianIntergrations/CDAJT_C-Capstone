@@ -217,22 +217,21 @@ const FullMenu = () => {
 
   useEffect(() => {
     const getActiveSession = async () => {
-
+      // Handle guest users separately
       if (isGuest()) {
         const sid = localStorage.getItem("session_id");
         if (sid) {
           setSessionId(parseInt(sid));
-          return;
         } else {
           setError("Guest session not found. Please scan your table QR again.");
-          return;
         }
+        return;
       }
 
-      const apiClient = isGuest() ? publicApi : api;
+      // For authenticated users only
       try {
         setError(null);
-        const response = await apiClient.get(
+        const response = await api.get(
           "/DiningSession/participants/active-session-id"
         );
         if (response?.status >= 200 && response.status < 300 && response.data) {

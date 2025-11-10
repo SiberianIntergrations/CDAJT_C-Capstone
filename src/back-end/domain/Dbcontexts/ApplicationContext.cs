@@ -80,11 +80,12 @@ namespace back_end.domain.DbContexts
           .HasForeignKey(tg => tg.Location_Id)
           .OnDelete(DeleteBehavior.Restrict);
 
-      // DiningSession check constraint: must have either Table_Id or TableGroup_Id, not both
+      // DiningSession check constraint: Table_Id and TableGroup_Id cannot both be set
+      // Note: Allowing both to be NULL to support sessions created before table assignment
       modelBuilder.Entity<DiningSession>()
           .ToTable(t => t.HasCheckConstraint(
               "CK_DiningSession_TableAssignment",
-              "(Table_Id IS NOT NULL AND TableGroup_Id IS NULL) OR (Table_Id IS NULL AND TableGroup_Id IS NOT NULL)"));
+              "NOT (Table_Id IS NOT NULL AND TableGroup_Id IS NOT NULL)"));
 
       base.OnModelCreating(modelBuilder);
     }

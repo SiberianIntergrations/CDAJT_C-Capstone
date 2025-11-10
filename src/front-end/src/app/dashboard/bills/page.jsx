@@ -102,24 +102,24 @@ const BillsDashboard = () => {
 // Fetch active session ID first
   useEffect(() => {
     const fetchActiveSession = async () => {
-
-      
       try {
         setLoading(true);
         setError(null);
 
+        // Handle guest users separately
         if (isGuest()) {
           const sid = localStorage.getItem("session_id");
           if (sid) {
             setSessionId(parseInt(sid));
-            return;
           } else {
             setError("Guest session not found. Please scan your table QR again.");
-            return;
           }
+          setLoading(false);
+          return;
         }
-        const apiClient = isGuest() ? publicApi : api;
-        const response = await apiClient.get("/DiningSession/participants/active-session-id/latest");
+
+        // For authenticated users only
+        const response = await api.get("/DiningSession/participants/active-session-id/latest");
 
         console.log("active-session response:", response.data);
 
@@ -135,8 +135,8 @@ const BillsDashboard = () => {
       } catch (err) {
         console.error("Error fetching active session:", err);
         setError(
-          err?.response?.data?.detail || 
-          err?.response?.data?.message || 
+          err?.response?.data?.detail ||
+          err?.response?.data?.message ||
           "Unable to fetch your active session"
         );
       } finally {

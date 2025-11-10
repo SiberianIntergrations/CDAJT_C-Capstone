@@ -158,6 +158,10 @@ builder.Services.AddCors(options =>
 // Services
 builder.Services.AddScoped<IPricingService, PricingService>();
 
+// Temporary //**
+Console.WriteLine(">>> USING CONNECTION STRING:");
+Console.WriteLine(builder.Configuration.GetConnectionString("MySqlConnection"));
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
@@ -277,11 +281,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-<<<<<<< HEAD
 app.Run();
 
 // Make Program class accessible to integration tests
 public partial class Program { }
-=======
-app.Run();
->>>>>>> main

@@ -99,13 +99,25 @@ const AppBarWithTitle = ({ title }) => {
   };
 
   const handleLogin = async () => {
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("guest");
-      localStorage.removeItem("session_id");
-      localStorage.removeItem("guest_oid");
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("guest");
+        localStorage.removeItem("session_id");
+        localStorage.removeItem("guest_oid");
+      }
+      await loginUser();
+      window.dispatchEvent(new Event("auth:changed"));
+    } catch (error) {
+      // Handle login cancellation gracefully - user closed the popup
+      if (error.message === "Login cancelled by user") {
+        console.log("User cancelled login");
+        // Do nothing - this is expected behavior
+        return;
+      }
+      // For other errors, log them
+      console.error("Login error:", error);
+      // Optionally show a user-friendly error message here
     }
-    await loginUser();
-    window.dispatchEvent(new Event("auth:changed"));
   };
 
   const handleNavigation = (path) => {
