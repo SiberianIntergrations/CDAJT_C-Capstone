@@ -33,6 +33,7 @@ import {
   Phone,
   MapPin,
   Table,
+  Group,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -153,6 +154,7 @@ const AppBarWithTitle = ({ title }) => {
         path: "/location/menu-location",
       },
       { icon: MenuIcon, label: "Manage Menu Items", path: "/admin/menu-items" },
+      { icon: Group, label: "Manage Menu Categories", path: "/admin/menu-categories" },
       { icon: Users, label: "Manage Staff", path: "/admin/staff" },
       { icon: Tag, label: "Manage Tags", path: "/tags/tag-management" },
       { icon: BarChart, label: "Analytics", path: "/analytics/analytic-page" },
