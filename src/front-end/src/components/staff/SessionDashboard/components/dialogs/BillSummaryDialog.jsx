@@ -23,9 +23,9 @@ import {
 import { X, Receipt, Bell } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
 import api from "@/config/api";
-import { 
-  formatCurrency, 
-  formatDateTime, 
+import {
+  formatCurrency,
+  formatDateTime,
   formatPricingType,
   formatGuestBreakdown,
   formatBillStatus,
@@ -49,22 +49,26 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
     }
   }, [open, sessionId, billId]);
 
-// Check if there's already a pending "Ready for Bill" request
+  // Check if there's already a pending "Ready for Bill" request
   useEffect(() => {
     const checkPendingRequest = async () => {
-        try {
-            const response = await api.get(`/ServiceRequest/by-session/${sessionId}`)
-            const pendingBillRequests = response.data.filter(
-                req => req.notes.includes("Ready for bill") && req.status === "Pending");
-                setHasPendingRequest(pendingBillRequests.length > 0);
-            } catch (err) {
-                console.error("Error checking pending requests:", err);
-            }
-        };
-        if (open && sessionId) {
-            checkPendingRequest();
-        }
-    }, [open, sessionId]);
+      try {
+        const response = await api.get(
+          `/ServiceRequest/by-session/${sessionId}`
+        );
+        const pendingBillRequests = response.data.filter(
+          (req) =>
+            req.notes.includes("Ready for bill") && req.status === "Pending"
+        );
+        setHasPendingRequest(pendingBillRequests.length > 0);
+      } catch (err) {
+        console.error("Error checking pending requests:", err);
+      }
+    };
+    if (open && sessionId) {
+      checkPendingRequest();
+    }
+  }, [open, sessionId]);
 
   const fetchSummary = async () => {
     try {
@@ -82,16 +86,17 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
 
   const checkPendingRequest = async () => {
     if (!sessionId) return;
-    
+
     try {
       const response = await api.get(`/ServiceRequest/by-session/${sessionId}`);
-      
+
       // Check if there's already a pending "Ready for bill" request
       const pendingBillRequests = response.data.filter(
-        req => req.notes?.toLowerCase().includes("ready for bill") && 
-               req.status?.toLowerCase() === "pending"
+        (req) =>
+          req.notes?.toLowerCase().includes("ready for bill") &&
+          req.status?.toLowerCase() === "pending"
       );
-      
+
       setHasPendingRequest(pendingBillRequests.length > 0);
     } catch (err) {
       console.error("Error checking pending requests:", err);
@@ -108,7 +113,7 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
       // Create service request for "Ready for Bill"
       const response = await api.post(`/ServiceRequest/${sessionId}`, {
         notes: `Ready for bill: ${summary?.bill_name || `Bill #${billId}`}`,
-      })
+      });
 
       if (response.status !== 200) {
         throw new Error(response.data?.message || "Failed to submit request");
@@ -116,18 +121,15 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
 
       setRequestSuccess(true);
       setHasPendingRequest(true);
-      
+
       // Auto-close success message after 8 seconds
       setTimeout(() => {
         setRequestSuccess(false);
       }, 8000);
-
     } catch (err) {
       console.error("Error requesting bill:", err);
       setError(
-        err.response?.data?.message || 
-        err.message || 
-        "Failed to request bill. Please try again."
+        err.response.data || "Failed to request bill. Please try again."
       );
     } finally {
       setRequestingBill(false);
@@ -146,14 +148,19 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
     if (hasPendingRequest) return "Request Already Sent";
     if (requestingBill) return "Requesting...";
     if (requestSuccess) return "Request Sent!";
-        return "Ready for Bill";
-    };
+    return "Ready for Bill";
+  };
 
   if (loading) {
     return (
       <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
         <DialogContent>
-          <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minHeight="200px"
+          >
             <CircularProgress />
           </Box>
         </DialogContent>
@@ -184,7 +191,11 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
         )}
 
         {requestSuccess && (
-          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setRequestSuccess(false)}>
+          <Alert
+            severity="success"
+            sx={{ mb: 2 }}
+            onClose={() => setRequestSuccess(false)}
+          >
             Bill request sent successfully! Staff will bring your bill shortly.
           </Alert>
         )}
@@ -197,12 +208,12 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
                 {summary.bill_name}
               </Typography>
               <Box display="flex" gap={2} flexWrap="wrap" alignItems="center">
-                <Chip 
+                <Chip
                   label={formatBillStatus(summary.status)}
                   color={getBillStatusColor(summary.status)}
                   size="small"
                 />
-                <Chip 
+                <Chip
                   label={formatPricingType(summary.pricing_type)}
                   variant="outlined"
                   size="small"
@@ -228,13 +239,14 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
               <TableContainer component={Paper} variant="outlined">
                 <Table size="small">
                   <TableHead
-                  sx={{
+                    sx={{
                       backgroundColor: "primary.main",
                       "& .MuiTableCell-head": {
                         color: "white",
                         fontWeight: 600,
                       },
-                    }}>
+                    }}
+                  >
                     <TableRow>
                       <TableCell>Type</TableCell>
                       <TableCell align="right">Count</TableCell>
@@ -246,30 +258,48 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
                     {summary.adult_count > 0 && (
                       <TableRow>
                         <TableCell>Adults</TableCell>
-                        <TableCell align="right">{summary.adult_count}</TableCell>
-                        <TableCell align="right">{formatCurrency(summary.adult_base_price)}</TableCell>
                         <TableCell align="right">
-                          {formatCurrency(summary.adult_count * summary.adult_base_price)}
+                          {summary.adult_count}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatCurrency(summary.adult_base_price)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatCurrency(
+                            summary.adult_count * summary.adult_base_price
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
                     {summary.senior_count > 0 && (
                       <TableRow>
                         <TableCell>Seniors</TableCell>
-                        <TableCell align="right">{summary.senior_count}</TableCell>
-                        <TableCell align="right">{formatCurrency(summary.senior_base_price)}</TableCell>
                         <TableCell align="right">
-                          {formatCurrency(summary.senior_count * summary.senior_base_price)}
+                          {summary.senior_count}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatCurrency(summary.senior_base_price)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatCurrency(
+                            summary.senior_count * summary.senior_base_price
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
                     {summary.child_count > 0 && (
                       <TableRow>
                         <TableCell>Children</TableCell>
-                        <TableCell align="right">{summary.child_count}</TableCell>
-                        <TableCell align="right">{formatCurrency(summary.child_base_price)}</TableCell>
                         <TableCell align="right">
-                          {formatCurrency(summary.child_count * summary.child_base_price)}
+                          {summary.child_count}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatCurrency(summary.child_base_price)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatCurrency(
+                            summary.child_count * summary.child_base_price
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
@@ -277,14 +307,22 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
                       <TableRow>
                         <TableCell>Toddlers</TableCell>
                         <TableCell align="right">{summary.tot_count}</TableCell>
-                        <TableCell align="right">{formatCurrency(summary.toddler_base_price)}</TableCell>
                         <TableCell align="right">
-                          {formatCurrency(summary.tot_count * summary.toddler_base_price)}
+                          {formatCurrency(summary.toddler_base_price)}
+                        </TableCell>
+                        <TableCell align="right">
+                          {formatCurrency(
+                            summary.tot_count * summary.toddler_base_price
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
                     <TableRow>
-                      <TableCell colSpan={3} align="right" sx={{ fontWeight: 600 }}>
+                      <TableCell
+                        colSpan={3}
+                        align="right"
+                        sx={{ fontWeight: 600 }}
+                      >
                         Base Charges Subtotal:
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 600 }}>
@@ -325,12 +363,20 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
                         <TableRow key={item.order_item_id}>
                           <TableCell>{item.item_name}</TableCell>
                           <TableCell align="right">{item.quantity}</TableCell>
-                          <TableCell align="right">{formatCurrency(item.price_per_unit)}</TableCell>
-                          <TableCell align="right">{formatCurrency(item.line_total)}</TableCell>
+                          <TableCell align="right">
+                            {formatCurrency(item.price_per_unit)}
+                          </TableCell>
+                          <TableCell align="right">
+                            {formatCurrency(item.line_total)}
+                          </TableCell>
                         </TableRow>
                       ))}
                       <TableRow>
-                        <TableCell colSpan={3} align="right" sx={{ fontWeight: 600 }}>
+                        <TableCell
+                          colSpan={3}
+                          align="right"
+                          sx={{ fontWeight: 600 }}
+                        >
                           Add-ons Subtotal:
                         </TableCell>
                         <TableCell align="right" sx={{ fontWeight: 600 }}>
@@ -349,13 +395,17 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
             <Box>
               <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
                 <Typography variant="body1">Subtotal:</Typography>
-                <Typography variant="body1">{formatCurrency(summary.subtotal)}</Typography>
+                <Typography variant="body1">
+                  {formatCurrency(summary.subtotal)}
+                </Typography>
               </Box>
               <Box display="flex" justifyContent="space-between" sx={{ mb: 1 }}>
                 <Typography variant="body1">
                   Tax ({(summary.tax_rate * 100).toFixed(0)}%):
                 </Typography>
-                <Typography variant="body1">{formatCurrency(summary.tax_amount)}</Typography>
+                <Typography variant="body1">
+                  {formatCurrency(summary.tax_amount)}
+                </Typography>
               </Box>
               <Divider sx={{ my: 1 }} />
               <Box display="flex" justifyContent="space-between">
@@ -374,14 +424,20 @@ const BillSummaryDialog = ({ open, sessionId, billId, onClose }) => {
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={handleClose}>Close</Button>
         {summary?.status?.toUpperCase() === "OPEN" && (
-          <Button 
-          variant="contained" 
-          onClick={handleRequestBill}
-          disabled={requestingBill || requestSuccess || hasPendingRequest}
-          startIcon={requestingBill ? <CircularProgress size={16} /> : <Bell size={16} />}
+          <Button
+            variant="contained"
+            onClick={handleRequestBill}
+            disabled={requestingBill || requestSuccess || hasPendingRequest}
+            startIcon={
+              requestingBill ? (
+                <CircularProgress size={16} />
+              ) : (
+                <Bell size={16} />
+              )
+            }
           >
             {getButtonText()}
-            </Button>
+          </Button>
         )}
       </DialogActions>
     </Dialog>

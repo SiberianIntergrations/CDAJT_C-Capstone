@@ -186,7 +186,7 @@ const SessionCard = ({ session, onRequestUpdate }) => {
     try {
       setIsEnding(true);
       clearActionError();
-      
+
       await endSession(session.session_Id);
       setRequests([]); // Clear requests after ending session
     } catch (error) {
@@ -194,7 +194,7 @@ const SessionCard = ({ session, onRequestUpdate }) => {
     } finally {
       setIsEnding(false);
       setShowConfirm(false);
-      setDragX(0);
+      // setDragX(0);
     }
   };
 

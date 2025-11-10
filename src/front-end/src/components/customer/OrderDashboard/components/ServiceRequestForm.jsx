@@ -12,7 +12,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import api from "@/config/api";
-import publicApi from "@/config/publicApi"
+import publicApi from "@/config/publicApi";
 
 const ServiceRequestForm = () => {
   const [message, setMessage] = useState("");
@@ -20,9 +20,14 @@ const ServiceRequestForm = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [sessionId, setSessionId] = useState(null);
-  const [userId, setUserId] = useState(null);
 
-  const isGuest = () => typeof window !== "undefined" && localStorage.getItem("guest") === "true";
+  const isGuest = () =>
+    typeof window !== "undefined" && localStorage.getItem("guest") === "true";
+
+  const getUserName = () => {
+    if (typeof window === "undefined") return "User";
+    return localStorage.getItem("user_name") || localStorage.getItem("username") || "User";
+  };
 
   const commonRequests = [
     "Need water refill",
@@ -38,54 +43,87 @@ const ServiceRequestForm = () => {
   useEffect(() => {
     const getActiveSession = async () => {
       try {
+        const guest = isGuest();
+
         // Handle guest users separately
-        if (isGuest()) {
+        if (guest) {
           const sid = localStorage.getItem("session_id");
-          if (sid) {
-            setSessionId(parseInt(sid));
-          } else {
+
+          if (!sid) {
             setError("Guest session not found. Please scan your table QR again.");
+            return;
           }
+
+          const parsed = parseInt(sid, 10);
+          if (isNaN(parsed)) {
+            setError("Invalid guest session. Please scan your table QR again.");
+            return;
+          }
+
+          setSessionId(parsed);
           return;
         }
 
-        // For authenticated users only
-        const response = await api.get("/DiningSession/participants/active-session-id");
+        // Signed-in user: call API
+        const apiClient = guest ? publicApi : api;
 
-        if (response?.data?.session_id) setSessionId(response.data.session_id);
-        else setError("No active session found");
+        const response = await apiClient.get(
+          "/DiningSession/participants/active-session-id"
+        );
+
+        if (response?.data?.session_id) {
+          setSessionId(response.data.session_id);
+        } else {
+          setError("No active session found");
+        }
       } catch (err) {
         console.error("Error fetching session:", err);
-        setError(err.response?.data?.message || "Unexpected error occurred");
+
+        // Compatible error extraction (Axios or fetch)
+        const message =
+          err?.response?.data ||
+          err?.message ||
+          "Unexpected error occurred";
+
+        setError(message);
       }
     };
 
-      getActiveSession();
-    }, []);
+    getActiveSession();
+  }, []);
 
-    //Send the service request to the staff
-    const handleSubmit = async (e) => {
+  //Send the service request to the staff
+  const handleSubmit = async (e) => {
+    const apiClient = isGuest() ? publicApi : api;
+    e.preventDefault();
+    if (!message.trim() || !sessionId) return;
 
-      const apiClient = isGuest() ? publicApi : api;
-      e.preventDefault();
-      if (!message.trim() || !sessionId) return;
+    setIsSubmitting(true);
+    setError("");
+    setSuccess(false);
 
-      setIsSubmitting(true);
-      setError("");
-      setSuccess(false);
+    const tableId = localStorage.getItem("table_id");
+    if (!tableId) {
+      setError("Table ID not found. Please scan your table QR code again.");
+      setIsSubmitting(false);
+      return;
+    }
 
-      const payload = {
+    const payload = {
       Session_Id: sessionId,
-      Table_Id: localStorage.getItem("table_id"),
-      Request_By_Name: localStorage.getItem("guest") ? "Guest" : getUserName(),
+      Table_Id: tableId,
+      Request_By_Name: localStorage.getItem("guest") === "true" ? "Guest" : getUserName(),
       Request_By_Oid: localStorage.getItem("guest_oid") || "",
       Notes: message,
     };
 
     try {
-      const response = await apiClient.post(`/ServiceRequest/${sessionId}`, payload);
- 
-      if (response.status !== 200) {
+      const response = await apiClient.post(
+        `/ServiceRequest/${sessionId}`,
+        payload
+      );
+
+      if (response.status < 200 || response.status >= 300) {
         const data = response.data;
         let errorMessage = "Failed to submit request";
         if (data && typeof data === "object" && data.detail) {
@@ -94,17 +132,20 @@ const ServiceRequestForm = () => {
         throw new Error(errorMessage);
       }
 
-        setSuccess(true);
-        setMessage("");
-        setTimeout(() => setSuccess(false), 3000);
-
-      } catch (err) {
-        console.error("Service request error:", err);
-        setError(err.response?.data?.message || err.message);
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
+      setSuccess(true);
+      setMessage("");
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      console.error("Service request error:", err);
+      const errorMessage =
+        err?.response?.data ||
+        err?.message ||
+        "Failed to submit request";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <Box maxWidth="sm" mx="auto" sx={{ pt: 3 }}>
