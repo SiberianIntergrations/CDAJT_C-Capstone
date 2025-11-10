@@ -30,7 +30,6 @@ const MenuForm = ({ initialData, onSubmit, onClose, mode }) => {
   };
 
   const handleSubmit = (e) => {
-    console.log("Submitting Form:", formData)
     e.preventDefault();
     onSubmit(formData);
   };
