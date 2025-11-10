@@ -155,6 +155,9 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Services
+builder.Services.AddScoped<IPricingService, PricingService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline

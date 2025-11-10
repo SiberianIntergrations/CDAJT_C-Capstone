@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using back_end.Helpers;
+using back_end.Services;
 
 namespace back_end.controllers
 {
@@ -17,12 +18,14 @@ namespace back_end.controllers
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _config;
     private readonly ILogger<BillController> _logger;
+    private readonly IPricingService _pricingService;
 
-    public BillController(ApplicationDbContext context, IConfiguration config, ILogger<BillController> logger)
+    public BillController(ApplicationDbContext context, IConfiguration config, ILogger<BillController> logger, IPricingService pricingService)
     {
       _context = context;
       _config = config;
       _logger = logger;
+      _pricingService = pricingService;
     }
 
     // Helper method to get table numbers from session
@@ -127,16 +130,20 @@ namespace back_end.controllers
             tableCapacity = session.TableGroup.Tables.Sum(t => t.seat_count);
         }
 
-        // Check total guest count across all bills in this session
+        // Check total guest count across open bills in this session
         var existingBillsGuestCount = await _context.Bills
-            .Where(b => b.Session_Id == _session_id && b.Status != BillStatus.Cancelled)
+            .Where(b => 
+                b.Session_Id == _session_id && 
+                b.Status == BillStatus.Open
+            )
             .SumAsync(b => b.Total_Count);
 
         if (existingBillsGuestCount + totalCount > tableCapacity)
         {
             return BadRequest(new 
             { 
-                message = $"Total guest count ({existingBillsGuestCount + totalCount}) exceeds table capacity ({tableCapacity})" 
+                message = $"Total guest count ({existingBillsGuestCount + totalCount}) exceeds table capacity ({tableCapacity}). " +
+                        $"Current open bills: {existingBillsGuestCount} guests, New bill: {totalCount} guests." 
             });
         }
 
@@ -604,6 +611,116 @@ namespace back_end.controllers
         _logger.LogError($"Database error retrieving bills: {ex.Message}");
         return StatusCode(500, new { detail = "Error retrieving bills" });
       }
+    }
+
+    /// <summary>
+    /// Retrieves a detailed bill summary with pricing breakdown for payment.
+    /// </summary>
+    [HttpGet("summary/{_bill_id}")]
+    [ProducesResponseType(typeof(BillSummaryResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetBillSummary(int _session_id, int _bill_id)
+    {
+        try
+        {
+            var bill = await _context.Bills
+                .Include(b => b.DiningSession.Table)
+                .Include(b => b.DiningSession.TableGroup)
+                    .ThenInclude(tg => tg.Tables)
+                .FirstOrDefaultAsync(b => b.Bill_Id == _bill_id && b.Session_Id == _session_id);
+
+            if (bill == null)
+            {
+                return NotFound(new { message = "Bill or session was not found" });
+            }
+
+            // Get pricing based on when the bill was created
+            var pricing = _pricingService.GetPricingForDate(bill.Created_At);
+
+            // Calculate base charges using day-specific pricing
+            decimal baseChargesSubtotal = 
+                (bill.Adult_Count * pricing.AdultBasePrice) +
+                (bill.Senior_Count * pricing.SeniorBasePrice) +
+                (bill.Child_Count * pricing.ChildBasePrice) +
+                (bill.Tot_Count * pricing.ToddlerBasePrice);
+
+            // Get all add-on items for this bill
+            var addOnItems = await _context.OrderItems
+              .Include(oi => oi.SessionOrder)
+              .Include(oi => oi.MenuItem)
+              .Where(oi => 
+                  oi.SessionOrder.Bill_Id == _bill_id &&
+                  oi.SessionOrder.Status != OrderStatus.Cancelled &&
+                  _context.MenuItemAssignments
+                      .Any(mia => mia.Item_Id == oi.Item_Id && mia.Is_Add_On == true)
+              )
+              .Select(oi => new BillAddOnItem
+              {
+                  Order_Item_Id = oi.Order_Item_Id,
+                  Item_Id = oi.Item_Id,
+                  Item_Name = oi.MenuItem.Name,
+                  Quantity = oi.Quantity,
+                  Price_Per_Unit = oi.Price_At_Time,
+                  Line_Total = oi.Quantity * oi.Price_At_Time,
+                  Status = oi.Order_Item_Status.ToString()
+              })
+              .ToListAsync();
+
+            decimal addOnSubtotal = addOnItems.Sum(item => item.Line_Total);
+            decimal subtotal = baseChargesSubtotal + addOnSubtotal;
+            decimal taxAmount = Math.Round(subtotal * pricing.TaxRate, 2);
+            decimal totalAmount = subtotal + taxAmount;
+
+            var summary = new BillSummaryResponse
+            {
+              Bill_Id = bill.Bill_Id,
+              Session_Id = bill.Session_Id,
+              Bill_Name = bill.Bill_Name ?? string.Empty,
+
+              // Guest counts
+              Adult_Count = bill.Adult_Count,
+              Senior_Count = bill.Senior_Count,
+              Child_Count = bill.Child_Count,
+              Tot_Count = bill.Tot_Count,
+              Total_Count = bill.Total_Count,
+
+              // Base pricing (day-specific)
+              Adult_Base_Price = pricing.AdultBasePrice,
+              Senior_Base_Price = pricing.SeniorBasePrice,
+              Child_Base_Price = pricing.ChildBasePrice,
+              Toddler_Base_Price = pricing.ToddlerBasePrice,
+              Base_Charges_Subtotal = baseChargesSubtotal,
+
+              // Add-ons
+              AddOn_Items = addOnItems,
+              AddOn_Subtotal = addOnSubtotal,
+
+              // Totals
+              Subtotal = subtotal,
+              Tax_Rate = pricing.TaxRate,
+              Tax_Amount = taxAmount,
+              Total_Amount = totalAmount,
+
+              // Status
+              Status = bill.Status.ToString(),
+              Pricing_Type = pricing.PricingType,
+              Created_At = bill.Created_At,
+              Closed_At = bill.Closed_At,
+              Table_Numbers = GetTableNumbers(bill.DiningSession)
+            };
+
+            _logger.LogInformation(
+                $"Generated {pricing.PricingType} bill summary for Bill {_bill_id}: " +
+                $"Total ${totalAmount:F2} (Base: ${baseChargesSubtotal:F2}, Add-ons: ${addOnSubtotal:F2}, Tax: ${taxAmount:F2})");
+
+            return Ok(summary);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calculating bill summary for Bill {BillId}", _bill_id);
+            return StatusCode(500, new { message = "Error calculating bill summary", error = ex.Message });
+        }
     }
   }
 }
