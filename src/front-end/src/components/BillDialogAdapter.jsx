@@ -55,11 +55,9 @@ const BillDialog = ({ onBillCreated }) => {
 
 
   useEffect(() => {
-    console.log("fetchActiveSession called")
     const fetchActiveSession = async () => {
       try {
         const response = await api.get("/DiningSession/participants/active-session-id");
-        console.log("API RESPONSE" + response)
 
         if (response?.status === 200 && typeof response.data?.session_id === "number") {
           setSessionId(response.data.session_id);
@@ -76,8 +74,6 @@ const BillDialog = ({ onBillCreated }) => {
 
     fetchActiveSession();
   }, []);
-
-    console.log("BillDialog render — sessionId =", sessionId);
 
   const handleDialogClose = async (success) => {
     if (success && onBillCreated) {

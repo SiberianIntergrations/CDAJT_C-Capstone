@@ -71,7 +71,7 @@ namespace back_end.Controllers
     }
 
 
-    [Authorize]
+
     [HttpGet]
     public async Task<ActionResult<IEnumerable<TableGroup>>> GetAllTableGroups([FromQuery] bool? activeOnly, [FromQuery] int? locationId)
     {
@@ -124,7 +124,6 @@ namespace back_end.Controllers
       }
     }
 
-    [Authorize]
     [HttpGet("available")]
     public async Task<ActionResult<IEnumerable<TableGroup>>> GetAvailableTableGroups([FromQuery] int? locationId)
     {
@@ -171,7 +170,7 @@ namespace back_end.Controllers
       }
     }
 
-    [Authorize]
+
     [HttpGet("{table_group_id}")]
     public async Task<IActionResult> GetTableGroup(int table_group_id)
     {
@@ -300,6 +299,14 @@ namespace back_end.Controllers
         if (isInActiveSession)
         {
           return BadRequest("Cannot delete table group that is in an active session");
+        }
+
+        // Check if group is in an active session
+        var isInEndedSession = tableGroup.DiningSessions.Any(ds => ds.Ended_At != null);
+
+        if (isInEndedSession)
+        {
+          return BadRequest("Cannot delete table group that is in an ended session");
         }
 
         // Check if group has tables assigned

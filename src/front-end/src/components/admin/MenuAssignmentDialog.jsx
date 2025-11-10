@@ -139,10 +139,10 @@ const MenuAssignmentDialog = ({
     } catch (err) {
       console.error("Submit error:", err);
       setError(
-        err.response?.data?.message ||
-        (editingAssignment
-          ? "Failed to update assignment"
-          : "Failed to create assignment")
+        err.response.data ||
+          (editingAssignment
+            ? "Failed to update assignment"
+            : "Failed to create assignment")
       );
     } finally {
       setSubmitting(false);
@@ -156,7 +156,9 @@ const MenuAssignmentDialog = ({
       return true;
     }
     // Otherwise, check if this menu is already assigned
-    return !assignments.some((assignment) => assignment.menu_Id === menu.menu_id);
+    return !assignments.some(
+      (assignment) => assignment.menu_Id === menu.menu_id
+    );
   });
 
   return (
@@ -181,7 +183,11 @@ const MenuAssignmentDialog = ({
           </Stack>
 
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            <Alert
+              severity="error"
+              sx={{ mb: 3 }}
+              onClose={() => setError(null)}
+            >
               {error}
             </Alert>
           )}
@@ -209,7 +215,7 @@ const MenuAssignmentDialog = ({
                     <TableRow key={assignment.menu_Id}>
                       <TableCell>
                         {/* FIXED: Use the nested menu object directly */}
-                        {assignment.menu?.name || 'Unknown Menu'}
+                        {assignment.menu?.name || "Unknown Menu"}
                       </TableCell>
                       <TableCell>${assignment.price.toFixed(2)}</TableCell>
                       <TableCell>{assignment.status}</TableCell>
@@ -314,7 +320,7 @@ const MenuAssignmentDialog = ({
                     setFormData((prev) => ({
                       ...prev,
                       is_add_on: e.target.checked,
-                      price: e.target.checked ?  prev.price : "0" ,
+                      price: e.target.checked ? prev.price : "0",
                     }))
                   }
                 />

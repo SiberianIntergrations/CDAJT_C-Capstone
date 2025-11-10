@@ -3,9 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using back_end.domain.DbContexts;
 using back_end.domain.Entities;
 using back_end.domain.enums;
+using System.Linq.Expressions;
 using back_end.DTO.MenuItems;
 using Microsoft.AspNetCore.Authorization;
-using back_end.Helpers;
+using back_end.DTO.MenuDTO;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using back_end.domain.Seeders;
+using Pomelo.EntityFrameworkCore.MySql.Storage.Internal;
+using System.Formats.Asn1;
+using System.Security.Cryptography.X509Certificates;
 
 namespace back_end.Controllers
 {
@@ -136,7 +142,7 @@ namespace back_end.Controllers
         /// This endpoint requires authentication.
         /// Returns the menu item with all associated tags.
         /// </remarks>
-        [Authorize]
+
         [HttpGet("{item_id}")]
         [ProducesResponseType(typeof(Menu_Item), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -187,7 +193,7 @@ namespace back_end.Controllers
         /// This endpoint requires authentication.
         /// Returns all menu items in the system with their associated tags.
         /// </remarks>
-        [Authorize]
+
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<Menu_Item>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -371,7 +377,7 @@ namespace back_end.Controllers
         /// </remarks>
         [Authorize(Policy = "staffOnly")]
         [HttpPost("{item_id:int}/image")]
-        [RequestSizeLimit(5 * 1024 * 1024)]
+        // [RequestSizeLimit(5 * 1024 * 1024)]
         [Consumes("multipart/form-data")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -514,17 +520,20 @@ namespace back_end.Controllers
                 var frontEndFolder = Path.GetFullPath(
                     Path.Combine(backendRoot, "..", "front-end", "public", "menu-items")
                 );
-                
-                string fileName = Path.GetFileName(item.image_url);
-                var ImagePath = Path.Combine(frontEndFolder, fileName);
-                if (!System.IO.File.Exists(ImagePath))
+                if (item.image_url != null)
                 {
-                    return BadRequest(ImagePath);
+                    string fileName = Path.GetFileName(item.image_url);
+                    var ImagePath = Path.Combine(frontEndFolder, fileName);
+                    if (!System.IO.File.Exists(ImagePath))
+                    {
+                        return BadRequest(ImagePath);
+                    }
+                    else
+                    {
+                        System.IO.File.Delete(ImagePath);
+                    }  
                 }
-                else
-                {
-                    System.IO.File.Delete(ImagePath);
-                }
+
                 _context.Remove(item);
                 await _context.SaveChangesAsync();
                 return Ok("Image Was Deleted");
@@ -616,7 +625,7 @@ namespace back_end.Controllers
         /// This endpoint requires authentication.
         /// Returns all tags for the specified menu item, sorted alphabetically by tag name.
         /// </remarks>
-        [Authorize]
+
         [HttpGet("{item_id}/tags")]
         [ProducesResponseType(typeof(IEnumerable<TagResponseDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -674,7 +683,7 @@ namespace back_end.Controllers
         /// This endpoint requires authentication.
         /// Returns all tags for the specified menu item with their color codes, sorted alphabetically by tag name.
         /// </remarks>
-        [Authorize]
+ [Authorize(Policy = "staffOnly")]
         [HttpGet("{item_id}/tags-with-colors")]
         [ProducesResponseType(typeof(IEnumerable<FullTagResponseDTO>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -764,7 +773,7 @@ namespace back_end.Controllers
                 _logger.LogError(ex, "Error Getting Menu Item Tags with Colors");
                 return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
             }
-        }           
+        }
 
         /// <summary>
         /// Removes a tag from a menu item.

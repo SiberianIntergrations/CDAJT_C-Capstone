@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import {Alert} from "@mui/material";
 import styles from "@/components/analytics/OrderTiming.module.css"; // Import CSS module
 
 ChartJS.register(
@@ -24,6 +25,7 @@ ChartJS.register(
   Legend
 );
 import api from "@/config/api";
+  import storage from "@/utils/storage";
 
 const OrderTiming = () => {
   const [data, setData] = useState(null);
@@ -31,27 +33,47 @@ const OrderTiming = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const router = useRouter();
+  const [selectedLocation, setSelectedLocation] = useState(
+    storage.get("branch-location")
+  );
 
   useEffect(() => {
     const fetchData = async () => {
-      const accessToken = localStorage.getItem("access_token");
+      // const accessToken = localStorage.getItem("access_token");
 
-      if (!accessToken) {
-        setError("No token found");
-        router.push("/auth/login");
-        return;
-      }
+      // if (!accessToken) {
+      //   setError("No token found");
+      //   router.push("/auth/login");
+      //   return;
+      // }
 
       try {
-        const response = await api.get("analytics/order-timing");
+        const response = await api.get(`analytics/order-timing/${selectedLocation}`);
 
         setData(response.data);
         console.log(response.data)
         setDailyAverageTiming(response.data.dailyAverageTiming);
       } catch (err) {
+      if (err.response) {
+        const { status, data } = err.response;
         console.error("Error fetching data:", err);
-        if (err.response && err.response.status === 401) {
-          // console.log(err.response);
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
         }
       } finally {
         setLoading(false);
@@ -64,7 +86,21 @@ const OrderTiming = () => {
   useEffect(() => {}, [dailyAverageTiming]);
 
   if (loading) return <p>Loading...</p>;
-  if (error) return <p>{error}</p>;
+if (error) return (
+  <Alert
+    severity="error"
+    sx={{
+      mb: 2,
+      borderRadius: 2,
+      textAlign: "center", 
+      justifyContent: "center",
+      alignItems: "center",
+    }}
+  >
+    {error}
+  </Alert>
+);
+
 
   const calculateAverage = (days) => {
     if (!dailyAverageTiming) return null;

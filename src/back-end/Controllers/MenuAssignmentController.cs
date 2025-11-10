@@ -61,6 +61,7 @@ namespace back_end.Controllers
         /// Creates a new association between a menu and a menu item.
         /// All limit and statistics fields default to 0 if not provided.
         /// </remarks>
+ [Authorize(Policy = "adminOnly")]
         [HttpPost]
         [ProducesResponseType(typeof(MenuItemAssignment), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
