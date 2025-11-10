@@ -1,10 +1,11 @@
 "use client";
-import React, { useEffect } from "react";
+
+import React, { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import publicApi from "@/config/publicApi";
 import { Container, Box, Typography, CircularProgress } from "@mui/material";
 
-const Join = () => {
+function JoinInner() {
   const searchParams = useSearchParams();
   const tableNumber = searchParams.get("table");
 
@@ -28,12 +29,12 @@ const Join = () => {
           payload
         );
 
-        //Store guest session
+        // Store guest session
         localStorage.setItem("guest", "true");
         localStorage.setItem("session_id", res.data.session_Id);
         localStorage.setItem("guest_oid", guestOid);
 
-        //force full reload so HomePage re-runs and shows AppBar
+        // Force full reload so HomePage re-runs and shows AppBar
         window.location.href = "/";
       } catch (err) {
         console.error("Error creating guest session:", err);
@@ -60,6 +61,12 @@ const Join = () => {
       </Box>
     </Container>
   );
-};
+}
 
-export default Join;
+export default function Join() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <JoinInner />
+    </Suspense>
+  );
+}
