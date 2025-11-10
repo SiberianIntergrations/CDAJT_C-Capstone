@@ -97,8 +97,16 @@ const AppBarWithTitle = ({ title }) => {
   };
 
   const handleLogin = async () => {
-    await loginUser();
-    window.dispatchEvent(new Event("auth:changed"));
+    try {
+      await loginUser();
+      window.dispatchEvent(new Event("auth:changed"));
+    } catch (error) {
+      // Only show error if it's not a user cancellation
+      if (!error.message?.includes("cancelled by user")) {
+        console.error("Login failed:", error);
+        // Optionally show a user-friendly error message here
+      }
+    }
   };
 
   const handleNavigation = (path) => {

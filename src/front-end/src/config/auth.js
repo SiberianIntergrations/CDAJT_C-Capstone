@@ -24,6 +24,12 @@ export const msalConfig = {
             if (containsPii) {
                 return;
             }
+            // Filter out user-cancelled popup errors
+            if (message.includes("PopupHandler.monitorPopupForHash - window closed")) {
+                // User closed the popup, don't log as error
+                console.log("Login popup was closed by user");
+                return;
+            }
             switch (level) {
                 case LogLevel.Error:
                     console.error(message);

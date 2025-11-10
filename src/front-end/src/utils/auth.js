@@ -1,5 +1,3 @@
-import api from "@/config/api";
-import { setAuthTokens, clearAuthTokens } from "@/utils/token";
 import { msalConfig } from "@/config/auth";
 import msalInstance from "@/config/msalInstance";
 
@@ -13,6 +11,15 @@ export const loginUser = async () => {
     // loginResponse.account contains user info
     return loginResponse;
   } catch (error) {
+    // Check if the error is due to user closing the popup
+    if (error.errorCode === "user_cancelled" ||
+        error.message?.includes("window closed") ||
+        error.errorMessage?.includes("window closed")) {
+      // User intentionally closed the popup, don't log as error
+      console.log("Login popup was closed by user");
+      throw new Error("Login cancelled by user");
+    }
+    // For other errors, log them
     console.error("MSAL login error:", error);
     throw error;
   }
