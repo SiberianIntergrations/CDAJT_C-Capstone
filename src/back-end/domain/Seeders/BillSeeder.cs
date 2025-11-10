@@ -191,6 +191,37 @@ namespace back_end.domain.Seeders
       var totalClosed = _context.Bills.Count(b => b.Status == BillStatus.Closed);
       var totalCancelled = _context.Bills.Count(b => b.Status == BillStatus.Cancelled);
       _logger.LogInformation($"Created {created} bills ({totalOpen} open, {totalClosed} closed, {totalCancelled} cancelled)");
+
+      // After bills are seeded, ensure closed/cancelled bills have no open/pending/processing orders/items
+      var closedOrCancelledBills = _context.Bills
+          .Include(b => b.Orders)
+              .ThenInclude(o => o.OrderItems)
+          .Where(b => b.Status == BillStatus.Closed || b.Status == BillStatus.Cancelled)
+          .ToList();
+
+      foreach (var bill in closedOrCancelledBills)
+      {
+          foreach (var order in bill.Orders)
+          {
+              // If order is not delivered or cancelled, set to delivered
+              if (order.Status == OrderStatus.Pending ||
+                  order.Status == OrderStatus.Processing)
+              {
+                  order.Status = OrderStatus.Delivered;
+              }
+
+              foreach (var item in order.OrderItems)
+              {
+                  // If item is not delivered or cancelled, set to delivered
+                  if (item.Order_Item_Status == OrderStatus.Pending ||
+                      item.Order_Item_Status == OrderStatus.Processing)
+                  {
+                      item.Order_Item_Status = OrderStatus.Delivered;
+                      item.Completed_At = DateTime.UtcNow;
+                  }
+              }
+          }
+      }
     }
   }
 }
