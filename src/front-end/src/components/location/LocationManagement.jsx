@@ -90,8 +90,31 @@ const LocationManagement = () => {
       setDeleteDialogOpen(false);
       setLocationToDelete(null);
     } catch (err) {
-      setError("Failed to delete location");
-      console.error(err);
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
     }
   };
 
@@ -108,8 +131,31 @@ const LocationManagement = () => {
       await fetchLocations();
       setIsFormOpen(false);
     } catch (err) {
-      setError("Failed to save location");
-      console.error(err);
+      console.error("Error fetching data:", err);
+      if (err.response) {
+        const { status, data } = err.response;
+        console.log("Status", status)
+        console.log("Data", err.response.data)
+        
+        switch (status) {
+          case 401:
+            setError("Unauthorized. Please log in again.");
+            router.push("/auth/login");
+            break;
+          case 409:
+            setError(err.response.data || "Conflict error occurred");
+            console.log("Conflict message:", err.response.data);
+            break;
+          case 404:
+            setError(err.response.data || "Resource not found");
+            break;
+          case 500:
+            setError(err.response.data || "Server error occurred");
+            break;
+          default:
+            setError(err.response.data || "An error occurred");
+        }
+      }
     }
   };
 
