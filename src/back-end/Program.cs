@@ -277,7 +277,11 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+<<<<<<< HEAD
 app.Run();
 
 // Make Program class accessible to integration tests
 public partial class Program { }
+=======
+app.Run();
+>>>>>>> main

@@ -12,6 +12,8 @@ import {
 } from "@mui/material";
 import api from "@/config/api";
 import { formatGuestBreakdown } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
+import publicApi from "@/config/publicApi";
+
 
 const BillSelect = (props) => {
   // Accept both prop names; prefer `session_id` if provided
@@ -22,6 +24,8 @@ const BillSelect = (props) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
+
+  const isGuest = () => typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
   // TODO: Change to polling or WebSocket for rendering bill updates
 
@@ -38,12 +42,11 @@ const BillSelect = (props) => {
       }
 
       try {
-        setLoading(true);
-        setError(null);
 
-        // api from old project: /bills/by-session/{sessionId} GET
-        const response = await api.get(`/Bill/get_bills/${effectiveSessionId}`);
-        // console.log("Bills response:", response.data);
+      setLoading(true);
+      setError(null);
+      const apiClient = isGuest() ? publicApi : api;
+      const response = await apiClient.get(`/Bill/get_bills/${effectiveSessionId}`);
 
         const billsData = Array.isArray(response.data) ? response.data : [];
         //   const openBills = billsData.filter((bill) => bill.status === "OPEN");

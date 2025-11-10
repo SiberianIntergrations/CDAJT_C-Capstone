@@ -53,6 +53,8 @@ const AppBarWithTitle = ({ title }) => {
   );
   const [allLocations, setAllLocations] = useState([]);
   const { isAuthenticated, userRole, loading } = useAuth();
+  const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true";
+
 
   useEffect(() => {
     const fetchAllLocations = async () => {
@@ -97,16 +99,13 @@ const AppBarWithTitle = ({ title }) => {
   };
 
   const handleLogin = async () => {
-    try {
-      await loginUser();
-      window.dispatchEvent(new Event("auth:changed"));
-    } catch (error) {
-      // Only show error if it's not a user cancellation
-      if (!error.message?.includes("cancelled by user")) {
-        console.error("Login failed:", error);
-        // Optionally show a user-friendly error message here
-      }
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("guest");
+      localStorage.removeItem("session_id");
+      localStorage.removeItem("guest_oid");
     }
+    await loginUser();
+    window.dispatchEvent(new Event("auth:changed"));
   };
 
   const handleNavigation = (path) => {
@@ -163,6 +162,8 @@ const AppBarWithTitle = ({ title }) => {
     ],
   };
 
+  const effectiveRole = userRole || (isGuest ? "customer" : null);
+
   const renderMenuList = () => (
     <List
       sx={{
@@ -170,8 +171,8 @@ const AppBarWithTitle = ({ title }) => {
         pt: 3,
       }}
     >
-      {userRole &&
-        menuItems[userRole].map((item, index) => {
+      {effectiveRole &&
+        menuItems[effectiveRole].map((item, index) => {
           const Icon = item.icon;
           return (
             <ListItemButton
@@ -224,7 +225,7 @@ const AppBarWithTitle = ({ title }) => {
             flex: "1 1 0",
           }}
         >
-          {isAuthenticated && (
+          {(isAuthenticated  || isGuest) && (
             <IconButton
               color="inherit"
               aria-label="menu"
@@ -335,11 +336,11 @@ const AppBarWithTitle = ({ title }) => {
           <Button
             color="inherit"
             onClick={
-              isAuthenticated
+              isAuthenticated || isGuest
                 ? handleLogout
                 : handleLogin
             }
-            startIcon={isAuthenticated ? <LogOut /> : <LogIn />}
+            startIcon={isAuthenticated || isGuest ? <LogOut /> : <LogIn />}
             sx={{
               minWidth: { xs: 40, sm: "auto" },
               px: { xs: 1, sm: 2 },
@@ -349,7 +350,7 @@ const AppBarWithTitle = ({ title }) => {
             }}
           >
             <Typography sx={{ display: { xs: "none", sm: "block" } }}>
-              {isAuthenticated ? "Logout" : "Login"}
+              {isAuthenticated || isGuest ? "Logout" : "Login"}
             </Typography>
           </Button>
         </Box>
