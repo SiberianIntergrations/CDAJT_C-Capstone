@@ -362,16 +362,16 @@ describe('Header', () => {
       const roles = ['customer', 'staff', 'admin'];
 
       roles.forEach(role => {
-        const { unmount } = render(<Header />);
         useAuth.mockReturnValue({
           isAuthenticated: true,
           userRole: role,
         });
 
-        unmount();
-        render(<Header />);
+        const { unmount } = render(<Header />);
 
         expect(screen.getByText('Logout')).toBeInTheDocument();
+
+        unmount();
       });
     });
   });

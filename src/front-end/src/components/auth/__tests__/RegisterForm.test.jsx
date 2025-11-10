@@ -42,8 +42,10 @@ describe('RegisterForm', () => {
       expect(screen.getByLabelText(/First Name/i)).toHaveValue('James');
       expect(screen.getByLabelText(/Last Name/i)).toHaveValue('Smith');
       expect(screen.getByLabelText(/Email Address/i)).toHaveValue('jamie2@example.com');
-      expect(screen.getByLabelText(/^Password$/i)).toHaveValue('somethingCool1');
-      expect(screen.getByLabelText(/Confirm Password/i)).toHaveValue('somethingCool1');
+
+      const [passwordField, confirmPasswordField] = screen.getAllByLabelText(/Password/i);
+      expect(passwordField).toHaveValue('somethingCool1');
+      expect(confirmPasswordField).toHaveValue('somethingCool1');
     });
 
     it('renders the UserPlus icon', () => {
@@ -68,8 +70,8 @@ describe('RegisterForm', () => {
       const firstNameInput = screen.getByLabelText(/First Name/i);
       const lastNameInput = screen.getByLabelText(/Last Name/i);
       const emailInput = screen.getByLabelText(/Email Address/i);
-      const passwordInput = screen.getByLabelText(/^Password$/i);
-      const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+
+      const [passwordInput, confirmPasswordInput] = screen.getAllByLabelText(/Password/i);
 
       await user.clear(firstNameInput);
       await user.type(firstNameInput, 'John');
@@ -100,7 +102,7 @@ describe('RegisterForm', () => {
       const firstNameInput = screen.getByLabelText(/First Name/i);
       const lastNameInput = screen.getByLabelText(/Last Name/i);
       const emailInput = screen.getByLabelText(/Email Address/i);
-      const passwordInput = screen.getByLabelText(/^Password$/i);
+      const passwordInput = screen.getAllByLabelText(/Password/i)[0];
       const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
       const submitButton = screen.getByRole('button', { name: /Register/i });
 
@@ -210,7 +212,7 @@ describe('RegisterForm', () => {
       const user = userEvent.setup();
       render(<RegisterForm />);
 
-      const passwordInput = screen.getByLabelText(/^Password$/i);
+      const passwordInput = screen.getAllByLabelText(/Password/i)[0];
       const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
       const submitButton = screen.getByRole('button', { name: /Register/i });
 
@@ -230,7 +232,7 @@ describe('RegisterForm', () => {
       const user = userEvent.setup();
       render(<RegisterForm />);
 
-      const passwordInput = screen.getByLabelText(/^Password$/i);
+      const passwordInput = screen.getAllByLabelText(/Password/i)[0];
       const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
       const submitButton = screen.getByRole('button', { name: /Register/i });
 
@@ -393,7 +395,7 @@ describe('RegisterForm', () => {
       expect(screen.getByLabelText(/First Name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Last Name/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/Email Address/i)).toBeInTheDocument();
-      expect(screen.getByLabelText(/^Password$/i)).toBeInTheDocument();
+      expect(screen.getAllByLabelText(/Password/i)[0]).toBeInTheDocument();
       expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
     });
 
@@ -407,7 +409,7 @@ describe('RegisterForm', () => {
     it('password inputs have type password', () => {
       render(<RegisterForm />);
 
-      const passwordInput = screen.getByLabelText(/^Password$/i);
+      const passwordInput = screen.getAllByLabelText(/Password/i)[0];
       const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
 
       expect(passwordInput).toHaveAttribute('type', 'password');
@@ -422,8 +424,13 @@ describe('RegisterForm', () => {
       expect(screen.getByLabelText(/First Name/i)).toHaveAttribute('required');
       expect(screen.getByLabelText(/Last Name/i)).toHaveAttribute('required');
       expect(screen.getByLabelText(/Email Address/i)).toHaveAttribute('required');
-      expect(screen.getByLabelText(/^Password$/i)).toHaveAttribute('required');
-      expect(screen.getByLabelText(/Confirm Password/i)).toHaveAttribute('required');
+
+      // Get all password fields and check they are required
+      const passwordFields = screen.getAllByLabelText(/Password/i);
+      expect(passwordFields.length).toBe(2); // Should have exactly 2 password fields
+      passwordFields.forEach(field => {
+        expect(field).toHaveAttribute('required');
+      });
     });
 
     it('has proper autocomplete attributes', () => {
@@ -432,8 +439,12 @@ describe('RegisterForm', () => {
       expect(screen.getByLabelText(/First Name/i)).toHaveAttribute('autocomplete', 'given-name');
       expect(screen.getByLabelText(/Last Name/i)).toHaveAttribute('autocomplete', 'family-name');
       expect(screen.getByLabelText(/Email Address/i)).toHaveAttribute('autocomplete', 'email');
-      expect(screen.getByLabelText(/^Password$/i)).toHaveAttribute('autocomplete', 'new-password');
-      expect(screen.getByLabelText(/Confirm Password/i)).toHaveAttribute('autocomplete', 'new-password');
+
+      // Get all password fields and check their autocomplete attributes
+      const passwordFields = screen.getAllByLabelText(/Password/i);
+      passwordFields.forEach(field => {
+        expect(field).toHaveAttribute('autocomplete', 'new-password');
+      });
     });
   });
 });

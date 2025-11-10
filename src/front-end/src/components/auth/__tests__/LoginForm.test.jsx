@@ -156,8 +156,8 @@ describe('LoginForm', () => {
 
       await user.click(submitButton);
 
-      // Try to click again while loading
-      await user.click(submitButton);
+      // Button should be disabled while loading
+      expect(submitButton).toBeDisabled();
 
       // Should only be called once
       expect(loginUser).toHaveBeenCalledTimes(1);

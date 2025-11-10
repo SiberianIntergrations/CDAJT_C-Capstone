@@ -6,7 +6,7 @@ import { logoutUser } from "@/utils/auth";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const dropdownRef = useRef(null);
+  const dropdownContainerRef = useRef(null);
 
   const { isAuthenticated, userRole } = useAuth();
 
@@ -24,7 +24,7 @@ const Header = () => {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (dropdownContainerRef.current && !dropdownContainerRef.current.contains(event.target)) {
         closeMenu();
       }
     };
@@ -39,14 +39,13 @@ const Header = () => {
           HOME
         </Link>
       </span>
-      <div className={styles.menuDropdownContainer}>
+      <div className={styles.menuDropdownContainer} ref={dropdownContainerRef}>
         <span onClick={toggleMenu} className={styles.navbarLinksTitles}>
           MENUS
         </span>
         {isMenuOpen && (
           <div
             className={`${styles.dropdownMenu} ${styles.dropdownMenuVisible}`}
-            ref={dropdownRef}
           >
             <Link href="/menu/drinks" onClick={closeMenu}>
               Drinks
