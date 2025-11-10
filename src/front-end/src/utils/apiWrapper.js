@@ -39,8 +39,18 @@ export const createApiWrapper = ({
       }
       
       return result;
-    } catch (err) {
-      handleError(err, context);
+    } catch (error) {
+      const errorData = error.response?.data;
+      const detailedError = {
+        ...error,
+        userMessage: errorData?.detail || 
+                    errorData?.message || 
+                    errorData?.error ||
+                    (typeof errorData === 'string' ? errorData : null) ||
+                    error.message
+      };
+
+      handleError(detailedError, context);
       return defaultReturn;
     } finally {
       setIsLoading(false);

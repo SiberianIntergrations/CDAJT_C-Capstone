@@ -28,7 +28,7 @@ const NotificationSystem = () => {
         bottom: { xs: 70, sm: 24 },
       }}
     >
-      <Alert onClose={handleClose} severity={severity} sx={{ width: "100%" }} >
+      <Alert onClose={handleClose} severity={severity} variant="filled" sx={{ width: "100%", maxWidth: { xs: "calc(100vw - 32px)", sm: "400px" }}} >
         {message}
       </Alert>
     </Snackbar>
