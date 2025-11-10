@@ -18,6 +18,7 @@ import publicApi from "@/config/publicApi";
 import NewBillDialog from "@/components/staff/SessionDashboard/components/dialogs/NewBillDialog";
 import BillSummaryDialog from "@/components/staff/SessionDashboard/components/dialogs/BillSummaryDialog";
 import { SessionProvider } from "@/components/staff/SessionDashboard/context/SessionContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import { getStatusColorValue, formatDateTime, formatBillStatus, getTableDescription, sortBillsByStatus } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const AddButton = styled(IconButton)(({ theme }) => ({
@@ -68,6 +69,7 @@ const BillCard = styled(Card, {
 }));
 
 const BillsDashboard = () => {
+  const { notifySuccess, notifyError } = useNotification();
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -179,7 +181,7 @@ const BillsDashboard = () => {
         setBills([]);
         setError(null);
       } else {
-        setError(
+        notifyError(
           err?.response?.data?.detail || 
           err?.response?.data?.message || 
           "Error loading bills"

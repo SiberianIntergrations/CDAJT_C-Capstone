@@ -2,12 +2,15 @@ import { useState } from "react";
 import { Box, Typography, Chip, Button, Alert, Collapse } from "@mui/material";
 import { Users } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import SwipeableBillCard from "./SwipeableBillCard";
 import BillSummaryDialog from "@/components/staff/SessionDashboard/components/dialogs/BillSummaryDialog";
 import { sortBillsByStatus } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const BillSection = ({ session }) => {
   const { openDialog, closeBill } = useSession();
+  const { notifySuccess, notifyError } = useNotification();
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
@@ -16,11 +19,18 @@ const BillSection = ({ session }) => {
   const handleCloseBill = async (billId) => {
     try {
       setLoading(true);
-      await closeBill(session.session_Id, billId);
       setError(null); // Clear error on success
+
+      await closeBill(session.session_Id, billId);
+      notifySuccess("Bill closed successfully");
     } catch (err) {
       console.error("Error closing bill:", err);
-      setError(err.message || "Failed to close bill. Please try again");
+      const errorMsg = err.message || "Failed to close bill";
+      
+      // Show in Snackbar for immediate feedback
+      notifyError(errorMsg);
+      // show in the Alert component
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

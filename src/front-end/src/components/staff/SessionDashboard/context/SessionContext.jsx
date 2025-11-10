@@ -116,11 +116,12 @@ export const SessionProvider = ({ children }) => {
           }
         );
       }
+      triggerUpdate();
+      return true;
     } catch (error) {
       console.error("Error creating session:", error);
-      return false;
+      throw error;
     }
-    triggerUpdate();
   };
 
   const addTable = async (sessionId, tableId) => {
@@ -154,8 +155,16 @@ export const SessionProvider = ({ children }) => {
   };
 
   const endSession = async (sessionId) => {
-    const result = await closeDiningSession(sessionId);
-    return result !== null && result !== undefined;
+    try {
+      const result = await closeDiningSession(sessionId);
+      if (result === null || result === undefined) {
+        throw new Error("Failed to close session");
+      }
+      return result;
+    } catch (error) {
+      console.error("Error in endSession wrapper:", error);
+      throw error;
+    }
   };
 
   const openDialog = useCallback((dialogName, sessionId = null) => {
@@ -238,7 +247,7 @@ export const SessionProvider = ({ children }) => {
     triggerUpdate,
   };
 
-console.log("SessionProvider initialized – createBill:", typeof createBill);
+  console.log("SessionProvider initialized – createBill:", typeof createBill);
 
   return (
     <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
