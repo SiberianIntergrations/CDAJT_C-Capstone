@@ -141,7 +141,7 @@ const TableCard = ({ table }) => {
       await refreshData();
       setConfirmAction(null);
     } catch (error) {
-      setActionError(error.response?.data?.message || "Failed to delete table");
+      setActionError(error.response.data || "Failed to delete table");
       setConfirmAction(null);
     } finally {
       setIsProcessing(false);
@@ -159,7 +159,7 @@ const TableCard = ({ table }) => {
       setConfirmAction(null);
     } catch (error) {
       setActionError(
-        error.response?.data?.message || "Failed to remove table from group"
+        error.response.data || "Failed to remove table from group"
       );
       setConfirmAction(null);
     } finally {
