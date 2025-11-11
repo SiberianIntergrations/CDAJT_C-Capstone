@@ -87,41 +87,31 @@ export const SessionProvider = ({ children }) => {
   // Combined loading state
   const isLoading = dataLoading || actionLoading;
 
-  // Wrap each action to trigger updates after completion
-  const createSession = async (
-    menuId,
-    locationId,
-    tableId,
-    tableGroupId,
-    tableAssignmentType
-  ) => {
-    try {
-      if (tableAssignmentType === "table") {
-        await api.post(
-          `/DiningSession/Create_Dinning_Session?assignmentType=table`,
-          {
-            menu_Id: menuId,
-            location_Id: locationId,
-            table_Id: tableId,
-          }
-        );
-      } else if (tableAssignmentType === "tableGroup") {
-        await api.post(
-          `/DiningSession/Create_Dinning_Session?assignmentType=table_group`,
-          {
-            menu_Id: menuId,
-            location_Id: locationId,
-            tableGroup_Id: tableGroupId,
-          }
-        );
+  const createSession = useCallback(
+    async (menuId, locationId, tableId, tableGroupId, tableAssignmentType) => {
+      try {
+        const sessionData = {
+          Menu_Id: menuId,
+          Location_Id: locationId,
+        };
+
+        if (tableAssignmentType === "table" && tableId) {
+          sessionData.Table_Id = tableId;
+        } else if (tableAssignmentType === "tableGroup" && tableGroupId) {
+          sessionData.TableGroup_Id = tableGroupId;
+        }
+
+        // Use the notification-enabled action
+        const result = await createDiningSession(sessionData);
+        
+        return result !== null && result !== undefined;
+      } catch (error) {
+        console.error("Error creating session:", error);
+        throw error;
       }
-      triggerUpdate();
-      return true;
-    } catch (error) {
-      console.error("Error creating session:", error);
-      throw error;
-    }
-  };
+    },
+    [createDiningSession]
+  );
 
   const addTable = async (sessionId, tableId) => {
     const result = await addTableToSession(sessionId, tableId);
