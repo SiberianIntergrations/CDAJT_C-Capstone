@@ -743,6 +743,7 @@ namespace back_end.controllers
                 (ds, sp) => new { ds, sp })
             .Where(x => x.sp.User_Oid == userOid &&
                         x.ds.Ended_At == null)
+            .OrderByDescending(x => x.ds.Started_At) // Added to ensure the most recent session is shown
             .Select(x => x.ds.Session_Id)
             .FirstOrDefaultAsync();
 

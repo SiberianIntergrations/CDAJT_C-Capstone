@@ -168,7 +168,7 @@ export const SessionProvider = ({ children }) => {
   };
 
   const openDialog = useCallback((dialogName, sessionId = null) => {
-    console.log("Dialog session: ", sessionId);
+    // console.log("Dialog session: ", sessionId);
     setDialogState((prev) => ({
       ...prev,
       [dialogName]: true,
@@ -247,7 +247,7 @@ export const SessionProvider = ({ children }) => {
     triggerUpdate,
   };
 
-  console.log("SessionProvider initialized – createBill:", typeof createBill);
+  // console.log("SessionProvider initialized – createBill:", typeof createBill);
 
   return (
     <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
