@@ -3,7 +3,6 @@ import {
   useContext,
   useState,
   useCallback,
-  useEffect,
 } from "react";
 import { useSessionData } from "../hooks/useSessionData";
 import { useSessionActions } from "../hooks/useSessionActions";

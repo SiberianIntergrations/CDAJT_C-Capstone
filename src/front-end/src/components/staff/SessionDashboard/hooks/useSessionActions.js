@@ -46,8 +46,9 @@ export const useSessionActions = (onSuccess) => {
       setActionError,
       handleError,
       onSuccess,
+      notifySuccess
     }),
-    [handleError, onSuccess]
+    [handleError, onSuccess, notifySuccess]
   );
 
   // DINING SESSION OPERATION
@@ -76,13 +77,13 @@ export const useSessionActions = (onSuccess) => {
             payload
           );
 
-          notifySuccess("Session created successfully");
-
           return response.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Dining session created successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   /**
@@ -131,13 +132,13 @@ export const useSessionActions = (onSuccess) => {
 
           const res = await api.put(`/DiningSession/${sid}/close`);
 
-          notifySuccess(`Session #${sid} ended successfully`);
-
           return res.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Dining session closed successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   /**
@@ -156,13 +157,13 @@ export const useSessionActions = (onSuccess) => {
             table_Id: tid,
           });
 
-          notifySuccess("Table added successfully");
-
           return res.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Table added to session successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   /**
@@ -181,13 +182,13 @@ export const useSessionActions = (onSuccess) => {
             tableGroup_Id: tgid,
           });
 
-          notifySuccess("Table group added successfully");
-
           return res.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Table group added to session successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   /**
@@ -204,13 +205,13 @@ export const useSessionActions = (onSuccess) => {
 
           const res = await api.delete(`/DiningSession/${sid}/Tables/${tid}`);
 
-          notifySuccess("Table removed successfully");
-
           return res.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Table removed from session successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   /**
@@ -229,13 +230,13 @@ export const useSessionActions = (onSuccess) => {
             `/DiningSession/${sid}/table-groups/${tgid}`
           );
 
-          notifySuccess("Table group removed successfully");
-
           return res.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Table group removed from session successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   /**
@@ -398,13 +399,13 @@ export const useSessionActions = (onSuccess) => {
 
           const res = await api.post(`/Bill/create_Bill/${sid}`, payload);
 
-          notifySuccess("Bill created successfully");
-
           return res.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Bill created successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   /**
@@ -462,13 +463,13 @@ export const useSessionActions = (onSuccess) => {
             params: { _session_id: sid },
           });
 
-          notifySuccess("Bill closed successfully");
-
           return res.data;
         },
-        { triggerSuccess: true }
+        { triggerSuccess: true,
+          successMessage: "Bill closed successfully"
+        }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper]
   );
 
   return {

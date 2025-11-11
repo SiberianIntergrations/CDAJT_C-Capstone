@@ -14,12 +14,10 @@ import {
 } from "@mui/material";
 import { X } from "lucide-react";
 import { useSession } from "../../context/SessionContext";
-import { useNotification } from "@/contexts/NotificationContext";
 import { validateBillData } from "@/components/staff/SessionDashboard/utils/sessionHelpers";
 
 const NewBillDialog = ({ open, sessionId, onClose }) => {
   const { createBill } = useSession();
-  const { notifySuccess, notifyError } = useNotification();
 
   const [formData, setFormData] = useState({
     billName: "",
@@ -80,26 +78,21 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
       setSubmitting(true);
       setError({});
 
-      await createBill(sessionId, formData);
-
-      notifySuccess("Bill created successfully");
-
-      setFormData({
-        billName: "",
-        adultCount: "",
-        childCount: "",
-        seniorCount: "",
-        totCount: "",
-      });
-
-      onClose();
+      const result = await createBill(sessionId, formData);
+      if (result) {
+        setFormData({
+          billName: "",
+          adultCount: "",
+          childCount: "",
+          seniorCount: "",
+          totCount: "",
+        });
+        onClose();
+      }
     } catch (error) {
       console.error("Error creating bill:", error);
-
-      const errorMsg = error.message || "Failed to create bill";
-      notifyError(errorMsg)
       setError({
-        submit: errorMsg
+        submit: error.message || "Failed to create bill"
       });
     } finally {
       setSubmitting(false);

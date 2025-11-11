@@ -26,7 +26,7 @@ export const createApiWrapper = ({
    * @returns {Promise} Result of the API call
    */
   return async (context, apiCall, options = {}) => {
-    const { triggerSuccess = false, defaultReturn = null } = options;
+    const { triggerSuccess = false, defaultReturn = null, successMessage = null } = options;
 
     try {
       setActionError(null);
@@ -34,6 +34,12 @@ export const createApiWrapper = ({
       
       const result = await apiCall();
       
+      // Show success notification if message provided
+      if (successMessage && typeof notifySuccess === "function") {
+        notifySuccess(successMessage);
+      }
+      
+      // Call onSuccess callback for data refresh
       if (triggerSuccess && typeof onSuccess === "function") {
         await onSuccess();
       }
