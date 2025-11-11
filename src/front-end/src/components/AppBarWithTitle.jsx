@@ -42,6 +42,7 @@ import { logoutUser, loginUser } from "@/utils/auth";
 import api from "@/config/api";
 import storage from "@/utils/storage";
 import { LocationOn } from "@mui/icons-material";
+import { useNotification } from "@/contexts/NotificationContext";
 
 const AppBarWithTitle = ({ title }) => {
   const router = useRouter();
@@ -53,6 +54,7 @@ const AppBarWithTitle = ({ title }) => {
   );
   const [allLocations, setAllLocations] = useState([]);
   const { isAuthenticated, userRole, loading } = useAuth();
+  const { notifySuccess, notifyError, notifyInfo } = useNotification();
   const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
 
@@ -64,16 +66,24 @@ const AppBarWithTitle = ({ title }) => {
         }
         const response = await api.get("location/");
         setAllLocations(response.data);
-        // const locationResponse = await api.get(
-        //   "staff/get-initial-staff-location"
-        // );
-        // setSelectedLocation(locationResponse.data.location_Id);
+
+        // Set initial location if not already set
+        const storedLocation = storage.get("branch-location");
+        if (!storedLocation && response.data.length > 0) {
+          const firstLocation = response.data[0].location_Id;
+          setSelectedLocation(firstLocation);
+          storage.set("branch-location", firstLocation);
+
+          const locationName = response.data[0].name;
+          notifyInfo(`Working location set to ${locationName}`);
+        }
       } catch (err) {
         console.error("Error Fetching Locations", err);
+        notifyError("Failed to load locations");
       }
     };
     fetchAllLocations();
-  }, [isAuthenticated, userRole, loading]);
+  }, [isAuthenticated, userRole, loading, notifyError, notifyInfo]);
 
   useEffect(() => {
     // Listen for MSAL account changes and force rerender
@@ -142,11 +152,7 @@ const AppBarWithTitle = ({ title }) => {
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
       { icon: Table, label: "Tables", path: "/dashboard/tables" },
-      { icon: Users, label: "Orders", path: "/staff/dashboard/orders" },
-      { icon: Clock, label: "Bills", path: "/dashboard/bills" },
-      { icon: MenuSquare, label: "Menu", path: "/menu/full-menu" },
-      { icon: Users, label: "Orders", path: "/dashboard/orders" },
-      { icon: Phone, label: "Call Server", path: "/dashboard/call-server" },
+      { icon: Users, label: "Order Management", path: "/staff/dashboard/orders" },
     ],
     admin: [
       { icon: Home, label: "Home", path: "/" },
