@@ -31,12 +31,13 @@ export const useOrderActions = (onSuccess) => {
 
   // Wrapper that handles all the repetitive loading/error logic
   const apiWrapper = useMemo(
-    createApiWrapper({
-      setIsLoading,
-      setActionError,
-      handleError,
-      onSuccess,
-    }),
+    () =>
+      createApiWrapper({
+        setIsLoading,
+        setActionError,
+        handleError,
+        onSuccess,
+      }),
     [handleError, onSuccess]
   );
 
