@@ -51,12 +51,11 @@ export const useOrderActions = (onSuccess) => {
             session_Id: sessionId,
             bill_Id: billId,
           });
-          notifySuccess("Order created successfully");
           return result;
         },
         { triggerSuccess: true }
       ),
-    [apiWrapper, notifySuccess]
+    [apiWrapper] // Removed notifySuccess to avoid duplicate notifications. Create order in full-menu triggers its own success message with Alert.
   );
 
   // ORDER MANAGEMENT
