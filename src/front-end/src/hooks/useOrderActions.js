@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { createApiWrapper } from "@/utils/apiWrapper";
 import { useNotification } from "@/contexts/NotificationContext";
 import orderService from "@/services/orderService";
@@ -30,7 +30,7 @@ export const useOrderActions = (onSuccess) => {
   );
 
   // Wrapper that handles all the repetitive loading/error logic
-  const apiWrapper = useCallback(
+  const apiWrapper = useMemo(
     createApiWrapper({
       setIsLoading,
       setActionError,
@@ -43,26 +43,29 @@ export const useOrderActions = (onSuccess) => {
   // ORDER CREATION
 
   const createOrder = useCallback(
-    (sessionId, billId) =>
-      apiWrapper(
+    async (sessionId, billId, requestByOid = null, requestByName = null) => {
+      return apiWrapper(
         "createOrder",
         async () => {
           const result = await orderService.createOrder({
             session_Id: sessionId,
             bill_Id: billId,
+            request_by_Oid: requestByOid, // optional
+            request_by_Name: requestByName,
           });
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper] // Removed notifySuccess to avoid duplicate notifications. Create order in full-menu triggers its own success message with Alert.
   );
 
   // ORDER MANAGEMENT
 
   const approveOrder = useCallback(
-    (orderId) =>
-      apiWrapper(
+    async (orderId) => {
+      return apiWrapper(
         "approveOrder",
         async () => {
           const result = await orderService.approveOrder(orderId);
@@ -70,13 +73,14 @@ export const useOrderActions = (onSuccess) => {
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper, notifySuccess]
   );
 
   const cancelOrder = useCallback(
-    (orderId) =>
-      apiWrapper(
+    async (orderId) => {
+      return apiWrapper(
         "cancelOrder",
         async () => {
           const result = await orderService.cancelOrder(orderId);
@@ -84,13 +88,14 @@ export const useOrderActions = (onSuccess) => {
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper, notifySuccess]
   );
 
   const completeOrder = useCallback(
-    (orderId) =>
-      apiWrapper(
+    async (orderId) => {
+      return apiWrapper(
         "completeOrder",
         async () => {
           const result = await orderService.completeOrder(orderId);
@@ -98,31 +103,45 @@ export const useOrderActions = (onSuccess) => {
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper, notifySuccess]
   );
 
   // ORDER ITEMS MANAGEMENT
 
   const addOrderItems = useCallback(
-    (orderId, items) =>
-      apiWrapper(
+    async (orderId, items) => {
+      return apiWrapper(
         "addOrderItems",
         async () => {
           const result = await orderService.addOrderItems(orderId, items);
-          notifySuccess(
-            `${items.length} item${items.length > 1 ? "s" : ""} added to order`
-          );
+
+          // Generate list of items ordered from 1 to 4+ before counting
+          let message;
+          if (items.length === 1) {
+            message = `${items[0].name} added to order`;
+          } else if (items.length === 2) {
+            message = `${items[0].name} and ${items[1].name} added to order`;
+          } else if (items.length === 3) {
+            message = `${items[0].name}, ${items[1].name}, and ${items[2].name} added to order`;
+          } else {
+            // For 4+ items, show first 2 and count
+            message = `${items[0].name}, ${items[1].name}, and ${items.length - 2} other item${items.length - 2 > 1 ? "s" : ""} added to order`;
+          }
+
+          notifySuccess(message);
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper, notifySuccess]
   );
 
   const updateOrderItem = useCallback(
-    (orderId, itemId, updateData) =>
-      apiWrapper(
+    async (orderId, itemId, updateData) => {
+      return apiWrapper(
         "updateOrderItem",
         async () => {
           const result = await orderService.updateOrderItem(
@@ -130,90 +149,116 @@ export const useOrderActions = (onSuccess) => {
             itemId,
             updateData
           );
-          notifySuccess("Order item updated successfully");
+          const itemName = updateData.name || result?.name || "Order item";
+          notifySuccess(`${itemName} updated successfully`);
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper, notifySuccess]
   );
 
   const completeOrderItem = useCallback(
-    (orderId, itemId) =>
-      apiWrapper(
+    async (orderId, itemId, itemName = null) => {
+      return apiWrapper(
         "completeOrderItem",
         async () => {
           const result = await orderService.completeOrderItem(orderId, itemId);
-          notifySuccess("Order item marked as complete");
+          const name = itemName || result?.name || "Order item";
+          notifySuccess(`${name} marked as complete`);
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper, notifySuccess]
   );
 
   const removeOrderItem = useCallback(
-    (orderId, orderItemId) =>
-      apiWrapper(
+    async (orderId, orderItemId, itemName = null) => {
+      return apiWrapper(
         "removeOrderItem",
         async () => {
           const result = await orderService.removeOrderItem(
             orderId,
             orderItemId
           );
-          notifySuccess("Order item removed successfully");
+          const name = itemName || result?.name || "Order item";
+          notifySuccess(`${name} removed successfully`);
           return result;
         },
         { triggerSuccess: true }
-      ),
+      );
+    },
     [apiWrapper, notifySuccess]
   );
 
   // ORDER RETRIEVAL
 
-  const getAllOrders = useCallback(
-    () =>
-      apiWrapper(
+  // TODO: Might need to comment this out later in front and backend as there is no filterization which will cause performance issues as it calls ALL orders without filter.
+   const getAllOrders = useCallback(
+    async () => {
+      return apiWrapper(
         "getAllOrders",
         async () => orderService.getAllOrders(),
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
+  const getAllOrdersByLocation = useCallback(
+    async (locationId = null) => {
+      return apiWrapper(
+        "getAllOrdersByLocation",
+        async () => orderService.getAllOrdersByLocation(locationId),
+        { defaultReturn: [] }
+      );
+    },
+    [apiWrapper]
+  )
+
   const getOrderById = useCallback(
-    (orderId) =>
-      apiWrapper("getOrderById", async () => orderService.getOrderById(orderId)),
+    async (orderId) => {
+      return apiWrapper(
+        "getOrderById",
+        async () => orderService.getOrderById(orderId)
+      );
+    },
     [apiWrapper]
   );
 
   const getOrdersBySession = useCallback(
-    (sessionId) =>
-      apiWrapper(
+    async (sessionId, billId = null) => { // supports filtering by bill when splitting
+      return apiWrapper(
         "getOrdersBySession",
-        async () => orderService.getOrdersBySession(sessionId),
+        async () => orderService.getOrdersBySession(sessionId, billId),
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
   const getOrdersByUser = useCallback(
-    (userId) =>
-      apiWrapper(
+    async (userOid) => {
+      return apiWrapper(
         "getOrdersByUser",
-        async () => orderService.getOrdersByUser(userId),
+        async () => orderService.getOrdersByUser(userOid),
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
   const getActiveSessionOrders = useCallback(
-    (billId = null) =>
-      apiWrapper(
+    async (billId = null) => {
+      return apiWrapper(
         "getActiveSessionOrders",
         async () => orderService.getActiveSessionOrders(billId),
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -237,6 +282,7 @@ export const useOrderActions = (onSuccess) => {
 
     // Order Retrieval
     getAllOrders,
+    getAllOrdersByLocation,
     getOrderById,
     getOrdersBySession,
     getOrdersByUser,

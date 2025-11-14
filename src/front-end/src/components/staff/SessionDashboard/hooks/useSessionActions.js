@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import api from "@/config/api";
 import { createApiWrapper } from "@/utils/apiWrapper";
 import { useNotification } from "@/contexts/NotificationContext";
@@ -30,32 +30,32 @@ export const useSessionActions = (onSuccess) => {
 
   // Centralized error handler
   const handleError = useCallback(
-    (error) => {
-    const errorMessage = error.userMessage || "An error occurred";
+    (error, context) => {
+      const errorMessage = error.userMessage || `Failed to ${context}`;
 
-    setActionError(errorMessage);
-    notifyError(errorMessage);
+      setActionError(errorMessage);
+      notifyError(errorMessage);
     },
     [notifyError]
   );
 
   // Wrapper that handles all the repetitive loading/error logic
-  const apiWrapper = useCallback(
-    createApiWrapper({
-      setIsLoading,
-      setActionError,
-      handleError,
-      onSuccess,
-      notifySuccess
-    }),
-    [handleError, onSuccess, notifySuccess]
+  const apiWrapper = useMemo(
+    () =>
+      createApiWrapper({
+        setIsLoading,
+        setActionError,
+        handleError,
+        onSuccess,
+      }),
+    [handleError, onSuccess]
   );
 
   // DINING SESSION OPERATION
 
   const createSession = useCallback(
-    (sessionData) =>
-      apiWrapper(
+    async (sessionData) => { 
+      return apiWrapper(
         "createSession",
         async () => {
           const payload = {
@@ -82,16 +82,17 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Dining session created successfully"
         }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
   /**
-   * List of dining sessions filterd by active status
+   * List of dining sessions filtered by active status
    */
   const listDiningSessions = useCallback(
-    (activeOnly = true) =>
-      apiWrapper(
+    async (activeOnly = true) => {
+      return apiWrapper(
         "listDiningSessions",
         async () => {
           const res = await api.get("/DiningSession/get_list_dining_sessions", {
@@ -100,7 +101,8 @@ export const useSessionActions = (onSuccess) => {
           return res.data || [];
         },
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -108,14 +110,15 @@ export const useSessionActions = (onSuccess) => {
    * Get detailed information about a specific session
    */
   const getDiningSessionDetail = useCallback(
-    (sessionId) =>
-      apiWrapper("getDiningSessionDetail", async () => {
+    async (sessionId) => {
+      return apiWrapper("getDiningSessionDetail", async () => {
         const sid = toInt(sessionId);
         validateIds({ "session ID": sid });
 
         const res = await api.get(`/DiningSession/get_location/${sid}`);
         return res.data;
-      }),
+      });
+    },
     [apiWrapper]
   );
 
@@ -123,8 +126,8 @@ export const useSessionActions = (onSuccess) => {
    * Closes dining session after all bills are paid
    */
   const closeSession = useCallback(
-    async (sessionId) =>
-      apiWrapper(
+    async (sessionId) => {
+      return apiWrapper(
         "closeSession",
         async () => {
           const sid = toInt(sessionId);
@@ -137,7 +140,8 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Dining session closed successfully"
         }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -145,8 +149,8 @@ export const useSessionActions = (onSuccess) => {
    * Add table to session
    */
   const addTable = useCallback(
-    (sessionId, tableId) =>
-      apiWrapper(
+    async (sessionId, tableId) => {
+      return apiWrapper(
         "addTable",
         async () => {
           const sid = toInt(sessionId);
@@ -162,7 +166,8 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Table added to session successfully"
         }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -170,8 +175,8 @@ export const useSessionActions = (onSuccess) => {
    * Add table group to a session
    */
   const addTableGroupToSession = useCallback(
-    (sessionId, tableGroupId) =>
-      apiWrapper(
+    async (sessionId, tableGroupId) => {
+      return apiWrapper(
         "addTableGroupToSession",
         async () => {
           const sid = toInt(sessionId);
@@ -187,7 +192,8 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Table group added to session successfully"
         }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -195,8 +201,8 @@ export const useSessionActions = (onSuccess) => {
    * Remove table from a session
    */
   const removeTableFromSession = useCallback(
-    (sessionId, tableId) =>
-      apiWrapper(
+    async (sessionId, tableId) => {
+      return apiWrapper(
         "removeTableFromSession",
         async () => {
           const sid = toInt(sessionId);
@@ -210,7 +216,8 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Table removed from session successfully"
         }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -218,8 +225,8 @@ export const useSessionActions = (onSuccess) => {
    * Remove table group from a session
    */
   const removeTableGroupFromSession = useCallback(
-    (sessionId, tableGroupId) =>
-      apiWrapper(
+    async (sessionId, tableGroupId) => {
+      return apiWrapper(
         "removeTableGroupFromSession",
         async () => {
           const sid = toInt(sessionId);
@@ -235,7 +242,8 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Table group removed from session successfully"
         }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -243,13 +251,14 @@ export const useSessionActions = (onSuccess) => {
    * Get active session ID for current user
    */
   const getActiveSessionId = useCallback(
-    () =>
-      apiWrapper("getActiveSessionId", async () => {
+    async () => {
+      return apiWrapper("getActiveSessionId", async () => {
         const res = await api.get(
           "/DiningSession/participants/active-session-id"
         );
         return res.data?.Session_Id || res.data?.session_id || null;
-      }),
+      });
+    },
     [apiWrapper]
   );
 
@@ -257,14 +266,15 @@ export const useSessionActions = (onSuccess) => {
    * Get menu ID for a session
    */
   const getSessionMenuId = useCallback(
-    (sessionId) =>
-      apiWrapper("getSessionMenuId", async () => {
+    async (sessionId) => {
+      return apiWrapper("getSessionMenuId", async () => {
         const sid = toInt(sessionId);
         validateIds({ "session ID": sid });
 
         const res = await api.get(`/DiningSession/session-menu/${sid}`);
         return res.data?.Menu_Id || res.data?.menu_id || null;
-      }),
+      });
+    },
     [apiWrapper]
   );
 
@@ -274,15 +284,16 @@ export const useSessionActions = (onSuccess) => {
    * Fetches all active sessions
    */
   const fetchActiveSessions = useCallback(
-    () =>
-      apiWrapper(
+    async () => {
+      return apiWrapper(
         "fetchActiveSessions",
         async () => {
           const res = await api.get("/session/active");
           return res.data || [];
         },
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -290,14 +301,15 @@ export const useSessionActions = (onSuccess) => {
    * Fetch a session by ID
    */
   const fetchSessionById = useCallback(
-    (sessionId) =>
-      apiWrapper("fetchSessionById", async () => {
+    async (sessionId) => {
+      return apiWrapper("fetchSessionById", async () => {
         const sid = toInt(sessionId);
         validateIds({ "session ID": sid });
 
         const res = await api.get(`/session/${sid}`);
         return res.data;
-      }),
+      });
+    },
     [apiWrapper]
   );
 
@@ -306,14 +318,15 @@ export const useSessionActions = (onSuccess) => {
    */
 
   const fetchSessionByTable = useCallback(
-    (tableId) =>
-      apiWrapper("fetchSessionByTable", async () => {
+    async (tableId) => {
+      return apiWrapper("fetchSessionByTable", async () => {
         const tid = toInt(tableId);
         validateIds({ "table ID": tid });
 
         const res = await api.get(`/session/table/${tid}`);
         return res.data;
-      }),
+      });
+    },
     [apiWrapper]
   );
 
@@ -323,8 +336,8 @@ export const useSessionActions = (onSuccess) => {
    * List empty tables
    */
   const listEmptyTables = useCallback(
-    (locationId) =>
-      apiWrapper(
+    async (locationId) => {
+      return apiWrapper(
         "listEmptyTables",
         async () => {
           const params = {};
@@ -334,7 +347,8 @@ export const useSessionActions = (onSuccess) => {
           return res.data || [];
         },
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -344,8 +358,8 @@ export const useSessionActions = (onSuccess) => {
    * Fetches available table groups
    */
   const fetchAvailableTableGroups = useCallback(
-    (locationId) =>
-      apiWrapper(
+    async (locationId) => {
+      return apiWrapper(
         "fetchAvailableTableGroups",
         async () => {
           const params = {};
@@ -355,7 +369,8 @@ export const useSessionActions = (onSuccess) => {
           return res.data || [];
         },
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -365,8 +380,8 @@ export const useSessionActions = (onSuccess) => {
    * Create a bill for a session
    */
   const createBill = useCallback(
-    (sessionId, billData) =>
-      apiWrapper(
+    async (sessionId, billData) => {
+      return apiWrapper(
         "createBill",
         async () => {
           const sid = toInt(sessionId);
@@ -404,7 +419,8 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Bill created successfully"
         }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -412,8 +428,8 @@ export const useSessionActions = (onSuccess) => {
    * Get all bills for a session
    */
   const getBills = useCallback(
-    (sessionId, tableId) =>
-      apiWrapper(
+    async (sessionId, tableId) => {
+      return apiWrapper(
         "getBills",
         async () => {
           const sid = toInt(sessionId);
@@ -426,7 +442,8 @@ export const useSessionActions = (onSuccess) => {
           return res.data || [];
         },
         { defaultReturn: [] }
-      ),
+      );
+    },
     [apiWrapper]
   );
 
@@ -434,8 +451,8 @@ export const useSessionActions = (onSuccess) => {
    * Get detailed bill summary with pricing breakdown
    */
   const getBillSummary = useCallback(
-    (sessionId, billId) =>
-      apiWrapper("getBillSummary", async () => {
+    async (sessionId, billId) => {
+      return apiWrapper("getBillSummary", async () => {
         const sid = toInt(sessionId);
         const bid = toInt(billId);
         validateIds({ "session ID": sid, "bill ID": bid });
@@ -444,15 +461,17 @@ export const useSessionActions = (onSuccess) => {
           params: { _session_id: sid },
         });
         return res.data;
-      }),
+      });
+    },
     [apiWrapper]
   );
+
   /**
    * Closes a bill
    */
   const closeBill = useCallback(
-    (sessionId, billId) =>
-      apiWrapper(
+    async (sessionId, billId) => {
+      return apiWrapper(
         "closeBill",
         async () => {
           const sid = toInt(sessionId);
@@ -468,7 +487,8 @@ export const useSessionActions = (onSuccess) => {
         { triggerSuccess: true,
           successMessage: "Bill closed successfully"
         }
-      ),
+      );
+},
     [apiWrapper]
   );
 
