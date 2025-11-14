@@ -2,7 +2,7 @@
 
 ## Session Management
 
-Sessions are displayed for each group currently dining in the restaurant. Each session includes details such as the table number, number of guests, service request status, number of bills open in the session, and tables assigned in the session. The session view displays a TagChip that shows if it is an active session (only active sessions for the selected location are shown).
+Sessions are displayed for each group currently dining in the restaurant. Each session includes details such as the table number, number of guests, service request status, number of bills open in the session, and tables assigned in the session. The session view displays a TagChip that shows if it is an active session. Only active sessions for the selected location are shown.
 
 **Note:** A gold background indicates that a current Server Request is Present.
 
@@ -19,14 +19,14 @@ Sessions are displayed for each group currently dining in the restaurant. Each s
 
 ## Table Management
 
-Tables are the seating arrangements within the restaurant. Each table has a unique identifier (table number) and can be assigned to different sessions based on guest arrivals. Tables are assigned a QR code that guests can scan to view the menu and place orders. The Table Management section shows if a table is in a Group, allowing larger parties to be seated together. Tables can be added and removed from Groups as needed. A gold background indicates that a table is currently in an assigned group.
+Tables are the seating arrangements within the restaurant. Each table has a unique identifier (table number) and can be assigned to different sessions based on guest arrivals. Tables are assigned a QR code that guests can scan to view the menu and place orders. The Table Management section shows if a table is active and if it is currently assigned to an active session, allowing for efficient table management. Tables can be added and removed from Groups as needed. Only tables for the selected location that are not part of a table group are displayed.
 
 ### Admin Capabilities
 
-- **Add Table to Group**: Admin can group multiple tables together to accommodate larger parties. This is useful for events or large gatherings where guests need to be seated together.
-- **Remove Table from Group**: Admin can ungroup tables when they are no longer needed for a large party. This allows the tables to be used independently for smaller groups.
-- **Update the QR Code**: Admin can update the QR code assigned to a table. This may be necessary if the QR code is damaged or if there are changes to the menu or ordering system that require a new code.
-- **Delete a Table**: Admin can remove a table from the system. This action is typically taken when a table is permanently removed from the restaurant's seating arrangement.
+- **Add New Table**: Admin can add a new individual table in the "Add New" dropdown menu. This involves selecting a location for the new table as well as assigning it a table number, seat count and an optional QR code url.
+- **Edit Table**: Admin can update the information related to an existing table. This includes changing the table number, seat count or QR code url.
+- **Deactivate or Activate Table**: Admin can deactivate or activate an existing table. This action is typically taken when a table is temporarily unavailable for customer use.
+- **Delete Table**: Admin can remove a table from the system. This action is typically taken when a table is permanently removed from the restaurant's seating arrangement.
 
 ![Table Management Page](pictures/Table%20Management.png)
 
@@ -41,6 +41,8 @@ Table Groups allow Admin to manage larger parties by grouping multiple tables to
 ### Admin Capabilities
 
 - **Create a New Table Group**: Admin can create a new table group by selecting multiple tables to be grouped together. This action is useful for accommodating larger parties.
+- **Add Table to Group**: Admin can group multiple tables together to accommodate larger parties. This is useful for events or large gatherings where guests need to be seated together.
+- **Remove Table from Group**: Admin can ungroup tables when they are no longer needed for a large party. This allows the tables to be used independently for smaller groups.
 - **Delete a Table Group**: Admin can delete an existing table group when it is no longer needed. This action will ungroup the tables, making them available for individual seating.
 
 ![Table Group Management](pictures/Table%20Group%20Management.png)
