@@ -2,14 +2,16 @@
 
 ## Session Management
 
-Sessions are displayed for each group currently dining in the restaurant. Each session includes details such as the table number, number of guests, service request status, number of bills open in the session, and tables assigned in the session. The session view displays a TagChip that shows if it is an active session (only active sessions are shown).
+Sessions are displayed for each group currently dining in the restaurant. Each session includes details such as the table number, number of guests, service request status, number of bills open in the session, and tables assigned in the session. The session view displays a TagChip that shows if it is an active session (only active sessions for the selected location are shown).
+
+**Note:** A gold background indicates that a current Server Request is Present.
 
 ### Admin Capabilities
 
-- **Close Session**: Admin can close a session which will end the dining experience for that group. This action typically involves finalizing the bill and clearing the table for the next guests.
-- **Open a New Session**: Admin can initiate a new session for incoming guests. This involves assigning a table, recording the number of guests, and setting up any initial service requests.
-- **Close a Bill**: Admin can close individual bills within a session. This is useful when guests want to pay separately or when splitting the bill among multiple parties.
-- **Create a New Bill**: Admin can create additional bills within an existing session. This allows for flexibility in billing, accommodating requests for separate payments or itemized billing.
+- **End Session**: Admin can close a session which will end the dining experience for that group. This action typically involves finalizing the bill and clearing the table for the next guests.
+- **Add New Session**: Admin can initiate a new session for incoming guests. This involves assigning a table, recording the number of guests, and setting up any initial service requests.
+- **Close Bill**: Admin can close individual bills within a session. This is useful when guests want to pay separately or when splitting the bill among multiple parties.
+- **Create New Bill**: Admin can create additional bills within an existing session. This allows for flexibility in billing, accommodating requests for separate payments or itemized billing.
 
 ![Session Management Page](pictures/Sessions%20--%20Active%20Sessions.png)
 
@@ -32,7 +34,7 @@ Tables are the seating arrangements within the restaurant. Each table has a uniq
 
 ## Table Group Management
 
-Table Groups allow Admin to manage larger parties by grouping multiple tables together. This is particularly useful for events or large gatherings where guests need to be seated together. The Table Group Management section provides an overview of all current table groups, including details such as the tables included in each group and the total number of guests. 
+Table Groups allow Admin to manage larger parties by grouping multiple tables together. This is particularly useful for events or large gatherings where guests need to be seated together. The Table Group Management section provides an overview of all current table groups, including details such as the tables included in each group and the total number of guests.
 
 **Note**: QR codes do not have to be created for table groups. Orders are still associated with the group.
 
