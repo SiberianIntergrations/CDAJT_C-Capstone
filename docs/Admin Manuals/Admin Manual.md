@@ -25,8 +25,8 @@ Tables are the seating arrangements within the restaurant. Each table has a uniq
 
 - **Add New Table**: Admin can add a new individual table in the "Add New" dropdown menu. This involves selecting a location for the new table as well as assigning it a table number, seat count and an optional QR code url.
 - **Edit Table**: Admin can update the information related to an existing table. This includes changing the table number, seat count or QR code url.
-- **Deactivate or Activate Table**: Admin can deactivate or activate an existing table. This action is typically taken when a table is temporarily unavailable for customer use.
-- **Delete Table**: Admin can remove a table from the system. This action is typically taken when a table is permanently removed from the restaurant's seating arrangement.
+- **Deactivate or Activate Table**: Admin can deactivate or activate an existing table. This action is typically taken when a table is temporarily unavailable for customer use. Only tables that are not linked to a session can be deactivated.
+- **Delete Table**: Admin can remove a table from the system. This action is typically taken when a table is permanently removed from the restaurant's seating arrangement. Only tables that are not linked to a session can be deleted.
 
 ![Table Management Page](pictures/Table%20Management.png)
 
@@ -34,19 +34,20 @@ Tables are the seating arrangements within the restaurant. Each table has a uniq
 
 ## Table Group Management
 
-Table Groups allow Admin to manage larger parties by grouping multiple tables together. This is particularly useful for events or large gatherings where guests need to be seated together. The Table Group Management section provides an overview of all current table groups, including details such as the tables included in each group and the total number of guests.
+Table Groups allow Admin to manage larger parties by grouping multiple tables together. This is particularly useful for events or large gatherings where guests need to be seated together. The Table Group Management section provides an overview of all current table groups, including details such as the tables included in each group and the total number of guests. Only table groups for the selected location are displayed.
 
 **Note**: QR codes do not have to be created for table groups. Orders are still associated with the group.
 
 ### Admin Capabilities
 
-- **Create a New Table Group**: Admin can create a new table group by selecting multiple tables to be grouped together. This action is useful for accommodating larger parties.
-- **Add Table to Group**: Admin can group multiple tables together to accommodate larger parties. This is useful for events or large gatherings where guests need to be seated together.
-- **Remove Table from Group**: Admin can ungroup tables when they are no longer needed for a large party. This allows the tables to be used independently for smaller groups.
-- **Delete a Table Group**: Admin can delete an existing table group when it is no longer needed. This action will ungroup the tables, making them available for individual seating.
+- **Add New Table Group**: Admin can create a new table group in the "Add New" dropdown menu. This involves selecting a location for the new table group as well as assigning it a unique name.
+- **Edit Table Group**: Admin can update the table group name related to an existing table group.
+- **Deactivate or Activate Table Group**: Admin can deactivate or activate an existing table group. This action is typically taken when a table group is temporarily unavailable for customer use. Only table groups that are not linked to a session can be deactivated.
+- **Add Table to Group**: Admin can select individual tables to add to a table group. Only tables that are not linked to a session can be added to a table group.
+- **Remove Table from Group**: Admin can remove individual tables from a table group when they are no longer needed. This allows the tables to be used independently for smaller groups. Only tables that are in a table group that is not linked to a session can be removed from the table group.
+- **Delete Table Group**: Admin can delete an existing table group when it is no longer needed. This action will ungroup the tables, making them available for individual seating. Only table groups that are not linked to a session can be deleted.
 
 ![Table Group Management](pictures/Table%20Group%20Management.png)
-![Table Group Management - Expanded View](pictures/Table%20Group%20Management%20--%20expanded%20View.png)
 
 ---
 
