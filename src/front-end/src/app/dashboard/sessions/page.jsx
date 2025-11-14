@@ -14,7 +14,6 @@ const ErrorMessage = styled.div`
 
 const FullPageContainer = styled.div`
   overflow-y: auto;
-  background-color: #f5f5f5;
 `;
 
 function ErrorFallback({ error }) {
