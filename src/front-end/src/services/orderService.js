@@ -146,6 +146,16 @@ export const orderService = {
   },
 
   /**
+   * Gets all orders based on location (Staff/Admin only)
+   * @returns {Promise<Array>} Array of all orders by location
+   */
+  getAllOrdersByLocation: async (locationId = null) => {
+    const params = locationId ? { locationId } : {};
+    const response = await api.get("/Order/all_orders", { params });
+    return response.data;
+  },
+
+  /**
    * Gets detailed information about a specific order
    * @param {number} orderId - Order ID
    * @returns {Promise<Object>} Order details with customer info and items
@@ -160,8 +170,9 @@ export const orderService = {
    * @param {number} sessionId - Session ID
    * @returns {Promise<Array>} Array of orders with items
    */
-  getOrdersBySession: async (sessionId) => {
-    const response = await api.get(`/Order/session/${sessionId}`);
+  getOrdersBySession: async (sessionId, billId = null) => {
+    const params = billId ? { bill_id: billId } : {};
+    const response = await api.get(`/Order/session/${sessionId}`, { params });
     return response.data;
   },
 
@@ -170,8 +181,8 @@ export const orderService = {
    * @param {number} userId - User ID
    * @returns {Promise<Array>} Array of user's order history
    */
-  getOrdersByUser: async (userId) => {
-    const response = await api.get(`/Order/user/${userId}`);
+  getOrdersByUser: async (userOid) => {
+    const response = await api.get(`/Order/user/${userOid}`);
     return response.data;
   },
 

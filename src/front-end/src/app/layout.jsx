@@ -6,11 +6,14 @@ import "@/app/globals.css";
 import { ThemeProvider, CssBaseline } from "@mui/material";
 import { createTheme } from "@mui/material/styles";
 import { MenuProvider } from "@/contexts/MenuContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { OrderProvider } from "@/contexts/OrderContext";
+import NotificationSystem from "@/components/common/NotificationSystem";
 import Layout from "@/components/Layout.jsx";
 import "@/styles/global.css";
 
-import { MsalProvider } from '@azure/msal-react';
-import msalInstance from '@/config/msalInstance';
+import { MsalProvider } from "@azure/msal-react";
+import msalInstance from "@/config/msalInstance";
 import { useEffect, useState, createContext } from "react";
 import { silentRequest } from "@/config/auth";
 
@@ -123,20 +126,26 @@ export default function RootLayout({ children }) {
         msalInstance.setActiveAccount(account);
         setActiveAccount(account);
         setIsLoggedIn(true);
-        msalInstance.acquireTokenSilent({ ...silentRequest, account }).then((response) => {
-          let rawRoles = response.idTokenClaims?.roles || response.idTokenClaims?.role || [];
-          const roleList = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
-          setRoles(roleList);
-          if (roleList.includes("user.Admin")) setUserRole("admin");
-          else if (roleList.includes("user.Staff")) setUserRole("staff");
-          else setUserRole("customer");
-          setAuthLoading(false);
-        }).catch(() => {
-          setIsLoggedIn(false);
-          setUserRole(null);
-          setRoles([]);
-          setAuthLoading(false);
-        });
+        msalInstance
+          .acquireTokenSilent({ ...silentRequest, account })
+          .then((response) => {
+            let rawRoles =
+              response.idTokenClaims?.roles ||
+              response.idTokenClaims?.role ||
+              [];
+            const roleList = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
+            setRoles(roleList);
+            if (roleList.includes("user.Admin")) setUserRole("admin");
+            else if (roleList.includes("user.Staff")) setUserRole("staff");
+            else setUserRole("customer");
+            setAuthLoading(false);
+          })
+          .catch(() => {
+            setIsLoggedIn(false);
+            setUserRole(null);
+            setRoles([]);
+            setAuthLoading(false);
+          });
       } else {
         setIsLoggedIn(false);
         setUserRole(null);
@@ -146,7 +155,9 @@ export default function RootLayout({ children }) {
       }
     });
 
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return (
@@ -154,15 +165,34 @@ export default function RootLayout({ children }) {
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider theme={theme}>
           <MsalProvider instance={msalInstance}>
-            <AuthContext.Provider value={{ activeAccount, userRole, roles, isLoggedIn, authLoading, setActiveAccount, setUserRole, setRoles, setIsLoggedIn }}>
+            <AuthContext.Provider
+              value={{
+                activeAccount,
+                userRole,
+                roles,
+                isLoggedIn,
+                authLoading,
+                setActiveAccount,
+                setUserRole,
+                setRoles,
+                setIsLoggedIn,
+              }}
+            >
               <CssBaseline />
-              <MenuProvider>
-                <Layout>{children}</Layout>
-              </MenuProvider>
+              <NotificationProvider>
+                <MenuProvider>
+                  <OrderProvider>
+                  <Layout>
+                    {children}
+                  </Layout>
+                  </OrderProvider>
+                </MenuProvider>
+                <NotificationSystem />
+              </NotificationProvider>
             </AuthContext.Provider>
           </MsalProvider>
         </ThemeProvider>
       </body>
     </html>
   );
-};
+}

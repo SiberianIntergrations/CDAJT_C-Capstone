@@ -18,6 +18,7 @@ import { validateBillData } from "@/components/staff/SessionDashboard/utils/sess
 
 const NewBillDialog = ({ open, sessionId, onClose }) => {
   const { createBill } = useSession();
+
   const [formData, setFormData] = useState({
     billName: "",
     adultCount: 0,
@@ -77,21 +78,21 @@ const NewBillDialog = ({ open, sessionId, onClose }) => {
       setSubmitting(true);
       setError({});
 
-      await createBill(sessionId, formData);
-
-      setFormData({
-        billName: "",
-        adultCount: "",
-        childCount: "",
-        seniorCount: "",
-        totCount: "",
-      });
-
-      onClose();
+      const result = await createBill(sessionId, formData);
+      if (result) {
+        setFormData({
+          billName: "",
+          adultCount: "",
+          childCount: "",
+          seniorCount: "",
+          totCount: "",
+        });
+        onClose();
+      }
     } catch (error) {
       console.error("Error creating bill:", error);
       setError({
-        submit: error.message || "Failed to create bill. Please try again.",
+        submit: error.message || "Failed to create bill"
       });
     } finally {
       setSubmitting(false);

@@ -8,6 +8,7 @@ import { sortBillsByStatus } from "@/components/staff/SessionDashboard/utils/ses
 
 const BillSection = ({ session }) => {
   const { openDialog, closeBill } = useSession();
+
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [summaryDialogOpen, setSummaryDialogOpen] = useState(false);
@@ -16,11 +17,14 @@ const BillSection = ({ session }) => {
   const handleCloseBill = async (billId) => {
     try {
       setLoading(true);
-      await closeBill(session.session_Id, billId);
       setError(null); // Clear error on success
+
+      await closeBill(session.session_Id, billId);
     } catch (err) {
       console.error("Error closing bill:", err);
-      setError(err.message || "Failed to close bill. Please try again");
+      const errorMsg = err.message || "Failed to close bill";
+
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

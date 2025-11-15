@@ -18,6 +18,7 @@ import TableSection from "./TableSection";
 import BillSection from "./BillSection";
 import SessionHeader from "./SessionHeader";
 import { useSession } from "../../context/SessionContext";
+import { useNotification } from "@/contexts/NotificationContext";
 import api from "@/config/api";
 
 const CardWrapper = styled("div")(({ theme }) => ({
@@ -119,13 +120,8 @@ const SessionCard = ({ session, onRequestUpdate }) => {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const { endSession, actionError, clearActionError } = useSession();
-
-  useEffect(() => {
-    if (actionError) {
-      setShowConfirm(false);
-    }
-  }, [actionError]);
+  const { endSession } = useSession();
+  const { notifyError, notifySuccess } = useNotification();
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -152,8 +148,10 @@ const SessionCard = ({ session, onRequestUpdate }) => {
       if (response.status !== 200)
         throw new Error("Failed to complete request");
       await fetchRequests();
+      notifySuccess("Service request completed!");
     } catch (error) {
       console.error("Error completing request:", error);
+      notifyError("Failed to complete service request");
     }
   };
 
@@ -182,11 +180,9 @@ const SessionCard = ({ session, onRequestUpdate }) => {
     }
 
     if (isEnding) return;
-
+setIsEnding(true);      
     try {
-      setIsEnding(true);
-      clearActionError();
-
+      
       await endSession(session.session_Id);
       setRequests([]); // Clear requests after ending session
     } catch (error) {
@@ -194,7 +190,6 @@ const SessionCard = ({ session, onRequestUpdate }) => {
     } finally {
       setIsEnding(false);
       setShowConfirm(false);
-      // setDragX(0);
     }
   };
 
@@ -206,28 +201,8 @@ const SessionCard = ({ session, onRequestUpdate }) => {
     return () => clearInterval(interval);
   }, [fetchRequests, isEnding]);
 
-  const handleErrorClose = () => {
-    clearActionError();
-  };
-
   return (
     <CardWrapper>
-      <Snackbar
-        open={Boolean(actionError)}
-        autoHideDuration={6000}
-        onClose={handleErrorClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleErrorClose}
-          severity="error"
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          {actionError}
-        </Alert>
-      </Snackbar>
-
       {showConfirm && (
         <ConfirmEndButton showConfirm={showConfirm}>
           <Box

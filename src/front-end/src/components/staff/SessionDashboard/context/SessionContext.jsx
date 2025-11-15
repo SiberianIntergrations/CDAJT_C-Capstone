@@ -3,7 +3,6 @@ import {
   useContext,
   useState,
   useCallback,
-  useEffect,
 } from "react";
 import { useSessionData } from "../hooks/useSessionData";
 import { useSessionActions } from "../hooks/useSessionActions";
@@ -88,40 +87,31 @@ export const SessionProvider = ({ children }) => {
   // Combined loading state
   const isLoading = dataLoading || actionLoading;
 
-  // Wrap each action to trigger updates after completion
-  const createSession = async (
-    menuId,
-    locationId,
-    tableId,
-    tableGroupId,
-    tableAssignmentType
-  ) => {
-    try {
-      if (tableAssignmentType === "table") {
-        await api.post(
-          `/DiningSession/Create_Dinning_Session?assignmentType=table`,
-          {
-            menu_Id: menuId,
-            location_Id: locationId,
-            table_Id: tableId,
-          }
-        );
-      } else if (tableAssignmentType === "tableGroup") {
-        await api.post(
-          `/DiningSession/Create_Dinning_Session?assignmentType=table_group`,
-          {
-            menu_Id: menuId,
-            location_Id: locationId,
-            tableGroup_Id: tableGroupId,
-          }
-        );
+  const createSession = useCallback(
+    async (menuId, locationId, tableId, tableGroupId, tableAssignmentType) => {
+      try {
+        const sessionData = {
+          Menu_Id: menuId,
+          Location_Id: locationId,
+        };
+
+        if (tableAssignmentType === "table" && tableId) {
+          sessionData.Table_Id = tableId;
+        } else if (tableAssignmentType === "tableGroup" && tableGroupId) {
+          sessionData.TableGroup_Id = tableGroupId;
+        }
+
+        // Use the notification-enabled action
+        const result = await createDiningSession(sessionData);
+        
+        return result !== null && result !== undefined;
+      } catch (error) {
+        console.error("Error creating session:", error);
+        throw error;
       }
-    } catch (error) {
-      console.error("Error creating session:", error);
-      return false;
-    }
-    triggerUpdate();
-  };
+    },
+    [createDiningSession]
+  );
 
   const addTable = async (sessionId, tableId) => {
     const result = await addTableToSession(sessionId, tableId);
@@ -154,12 +144,20 @@ export const SessionProvider = ({ children }) => {
   };
 
   const endSession = async (sessionId) => {
-    const result = await closeDiningSession(sessionId);
-    return result !== null && result !== undefined;
+    try {
+      const result = await closeDiningSession(sessionId);
+      if (result === null || result === undefined) {
+        throw new Error("Failed to close session");
+      }
+      return result;
+    } catch (error) {
+      console.error("Error in endSession wrapper:", error);
+      throw error;
+    }
   };
 
   const openDialog = useCallback((dialogName, sessionId = null) => {
-    console.log("Dialog session: ", sessionId);
+    // console.log("Dialog session: ", sessionId);
     setDialogState((prev) => ({
       ...prev,
       [dialogName]: true,
@@ -238,7 +236,7 @@ export const SessionProvider = ({ children }) => {
     triggerUpdate,
   };
 
-console.log("SessionProvider initialized – createBill:", typeof createBill);
+  // console.log("SessionProvider initialized – createBill:", typeof createBill);
 
   return (
     <SessionContext.Provider value={value}>{children}</SessionContext.Provider>
