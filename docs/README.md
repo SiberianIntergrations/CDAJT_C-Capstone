@@ -157,7 +157,7 @@ CDAJT_C-Capstone/
 - `menu`, `menu_item`, `category`, `tag` - Menu management
 - `dining_session`, `session_participant` - Session tracking
 - `session_order`, `order_item` - Order management
-- `bill` - Billing and payments
+- `bill` - Billing for payments
 - `table_entity`, `table_group` - Table management
 - `location` - Multi-location support
 - `service_requests` - Customer assistance
@@ -372,7 +372,6 @@ docker-compose up --build
 4. **Submit Orders** directly to the kitchen
 5. **Request Assistance** from staff when needed
 6. **Split Bills** among participants
-7. **Pay** your portion of the bill
 
 #### Staff
 
@@ -381,7 +380,7 @@ docker-compose up --build
 3. **Manage Tables** and table groups for large parties
 4. **Monitor Orders** in real-time
 5. **Respond to Requests** from customers
-6. **Close Sessions** and process payments
+6. **Close Sessions** to process payments
 
 #### Administrators
 
