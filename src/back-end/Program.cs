@@ -4,11 +4,9 @@ using back_end.domain.Seeders;
 using back_end.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
-using System.Security.Claims;
-using Microsoft.Identity.Web;
 using System.Text.Json.Serialization;
 using Microsoft.OpenApi.Models;
 
@@ -16,13 +14,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container
 builder.Services.AddControllers()
-    //Prevent circular references/infinite loops when reading the JSON
     .AddJsonOptions(options =>
     {
-        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
-// Removed invalid field declaration. If you need the directory name, use the following line directly:
 
 Console.WriteLine(Path.GetPathRoot(Directory.GetCurrentDirectory()));
 
@@ -30,44 +26,38 @@ Console.WriteLine(Path.GetPathRoot(Directory.GetCurrentDirectory()));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Sushi Toshi API",
         Version = "v1",
         Description = "API for Sushi Toshi Restaurant Management System"
     });
-    var scopes = new Dictionary<string, string>()
-    { };
-    scopes.Add($"{builder.Configuration["ApiScopeUrl"]}user_impersonation", "Access application on user behalf");
-    c.AddSecurityDefinition("oauth2", new OpenApiSecurityScheme
+    
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Type = SecuritySchemeType.OAuth2,
-        Flows = new OpenApiOAuthFlows
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT Authorization header using the Bearer scheme. Enter your token in the text input below."
+    });
+    
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
         {
-            Implicit = new OpenApiOAuthFlow()
+            new OpenApiSecurityScheme
             {
-                AuthorizationUrl = new Uri("https://renovationstationexsm3943.ciamlogin.com/e90f24c7-0844-464a-a0b1-aab345a6adff/oauth2/v2.0/authorize"),
-                //TokenUrl = new Uri("https://renovationstationexsm3943.ciamlogin.com/e90f24c7-0844-464a-a0b1-aab345a6adff/oauth2/v2.0/token"),
-                Scopes = scopes,
-                
-            }
-        }
-    });
-    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme {
-                Reference = new OpenApiReference {
+                Reference = new OpenApiReference
+                {
                     Type = ReferenceType.SecurityScheme,
-                    Id = "oauth2"
-                },
-                Scheme = "oauth2",
-                Name = "oauth2",
-                In = ParameterLocation.Header
+                    Id = "Bearer"
+                }
             },
-            new List<string> { $"{builder.Configuration["ApiScopeUrl"]}user_impersonation" }
+            Array.Empty<string>()
         }
     });
+    
     c.EnableAnnotations();
 });
 
@@ -81,43 +71,52 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Seeders registration
 builder.Services.AddDatabaseSeeders();
 
-// JWT Auth
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddMicrosoftIdentityWebApi(builder.Configuration, "AzureAd");
+// Auth0 JWT Authentication for APIs
+var domain = $"https://{builder.Configuration["Auth0:Domain"]}/";
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = domain;
+        options.Audience = builder.Configuration["Auth0:Audience"];
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = "https://schemas.sushitoshi.com/roles" // Custom claim for roles
+        };
+    });
+
+// Authorization policies
 builder.Services.AddAuthorization(options =>
 {
-
     options.AddPolicy("adminOnly", policy =>
     {
         policy.RequireAuthenticatedUser();
-        policy.RequireRole("user.Admin");
+        policy.RequireRole("Admin");
     });
+    
     options.AddPolicy("staffOnly", policy =>
     {
         policy.RequireAuthenticatedUser();
-        policy.RequireRole(["user.Staff","user.Admin"]);
+        policy.RequireRole("Staff", "Admin");
     });
-
 });
-
-builder.Services.AddAuthorization();
 
 // Add rate limiting for API protection
 builder.Services.AddRateLimiter(options =>
 {
-    // Fixed window rate limiter for general API calls
     options.AddFixedWindowLimiter("api", config =>
     {
-        config.PermitLimit = 100; // 100 requests
-        config.Window = TimeSpan.FromMinutes(1); // per minute
+        config.PermitLimit = 100;
+        config.Window = TimeSpan.FromMinutes(1);
         config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         config.QueueLimit = 5;
     });
 
-    // Stricter rate limiting for authentication endpoints
     options.AddFixedWindowLimiter("auth", config =>
     {
-        config.PermitLimit = 10; // 10 requests
-        config.Window = TimeSpan.FromMinutes(1); // per minute
+        config.PermitLimit = 10;
+        config.Window = TimeSpan.FromMinutes(1);
         config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
         config.QueueLimit = 2;
     });
@@ -125,14 +124,13 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
-// Add CORS policy (environment-based configuration)
+// Add CORS policy
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            // Development: Allow local frontend ports
             policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
                   .AllowAnyMethod()
                   .AllowAnyHeader()
@@ -140,7 +138,6 @@ builder.Services.AddCors(options =>
         }
         else
         {
-            // Production: Use specific origins from configuration
             var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
                 ?? Array.Empty<string>();
 
@@ -151,9 +148,12 @@ builder.Services.AddCors(options =>
         }
     });
 });
-
+builder.Services.AddHttpContextAccessor();
 // Services
 builder.Services.AddScoped<IPricingService, PricingService>();
+// Services
+builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddScoped<IAuthOService, AuthOService>(); // ADD THIS LINE
 
 var app = builder.Build();
 
@@ -161,18 +161,15 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
-
-    // Swagger UI found at http://localhost:5264/swagger
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Sushi Toshi API v1");
-        c.RoutePrefix = "swagger"; // Access Swagger UI at /swagger
+        c.RoutePrefix = "swagger";
     });
 }
 else
 {
-    // Global exception handler for production
     app.UseExceptionHandler(errorApp =>
     {
         errorApp.Run(async context =>
@@ -194,23 +191,18 @@ else
         });
     });
 
-    // Enable HTTPS redirection in production
     app.UseHttpsRedirection();
 }
 
 app.UseRateLimiter();
-
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Map controllers
 app.MapControllers();
 
-// Health check endpoint
 app.MapGet("/health", () => "API is running!");
 
-// Test database connection endpoint
 app.MapGet("/db-test", async (ApplicationDbContext context) =>
 {
     try
@@ -224,12 +216,7 @@ app.MapGet("/db-test", async (ApplicationDbContext context) =>
     }
 });
 
-// Database initialization on startup
-// This section handles:
-// 1. Testing database connection
-// 2. Applying EF Core migrations
-// 3. Seeding initial data using the DatabaseSeeder service
-// Note: The application will start even if database connection fails
+// Database initialization
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -237,20 +224,13 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        // Test the connection first
         var canConnect = await context.Database.CanConnectAsync();
         if (canConnect)
         {
             logger.LogInformation("Database connection successful");
-
-            // Apply pending migrations to update database schema
             await context.Database.MigrateAsync();
             logger.LogInformation("Database migrations applied successfully");
 
-            // Seed initial data (users, roles, default settings, etc.)
-            // The DatabaseSeeder should be idempotent and check if data already exists
-
-            //Check to see if the DB has been seeded already
             if (!context.MenuItems.Any())
             {
                 await seeder.SeedDatabase();
@@ -269,8 +249,6 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         logger.LogError(ex, "An error occurred during database initialization: {Message}", ex.Message);
-        // Don't throw - allow the application to start even if DB is not ready
-        // This is useful for containerized environments where DB might start after the app
     }
 }
 
