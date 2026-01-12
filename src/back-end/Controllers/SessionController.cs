@@ -148,7 +148,7 @@ namespace back_end.Controllers
           guests = session.Participants.Select(s => new
           {
             participantId = s.Participant_Id,
-            userOid = s.User_Oid,
+            userId = s.User_Id,
             userName = s.User_Name,
             joinedAt = s.Joined_At,
             leftAt = s.Left_At
@@ -161,7 +161,7 @@ namespace back_end.Controllers
           orders = session.Orders.Select(s => new
           {
             orderID = s.Order_Id,
-            userOid = s.User_Oid,
+            userId = s.User_Id,
             userName = s.User_Name,
             status = s.Status.ToString(),
             itemCount = s.OrderItems.Count,
@@ -280,7 +280,7 @@ namespace back_end.Controllers
                                     .Where(s => s.Left_At == null)
                                     .Select(s => new
                                     {
-                                      userOid = s.User_Oid,
+                                      userId = s.User_Id,
                                       userName = s.User_Name,
                                       joinedAt = s.Joined_At
                                     }).ToList()
@@ -302,14 +302,14 @@ namespace back_end.Controllers
     /// <response code="404">User not found.</response>
     /// <response code="500">An error occurred while retrieving the user's current session.</response>
     [HttpGet("user/{userOid}/current")]
-    public async Task<ActionResult<object>> GetCurrentSessionByUser(string userOid)
+    public async Task<ActionResult<object>> GetCurrentSessionByUser(int userId)
     {
       try
       {
         //Check for an active session that the user is currently in
         //Add Menu and Table information
         var session = await _context.SessionParticipants
-                            .Where(s => s.User_Oid == userOid && s.Left_At == null)
+                            .Where(s => s.User_Id == userId && s.Left_At == null)
                             .Include(s => s.DiningSession)
                                 .ThenInclude(se => se.Menu)
                             .Include(s => s.DiningSession)
@@ -327,7 +327,7 @@ namespace back_end.Controllers
           return Ok(new
           {
             message = "Guest is not currently in an active dining session.",
-            userOid = userOid,
+            userId = userId,
             activeSession = false
           });
         }
@@ -348,7 +348,7 @@ namespace back_end.Controllers
       }
       catch (Exception ex)
       {
-        _logger.LogError(ex, $"Can't get session for user Oid: {userOid}");
+        _logger.LogError(ex, $"Can't get session for user Id: {userId}");
         return StatusCode(500, "Internal Server Error");
       }
     }

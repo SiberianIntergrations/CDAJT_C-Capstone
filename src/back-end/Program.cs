@@ -71,18 +71,23 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Seeders registration
 builder.Services.AddDatabaseSeeders();
 
-// Auth0 JWT Authentication for APIs
-var domain = $"https://{builder.Configuration["Auth0:Domain"]}/";
+// Simple JWT Authentication
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = domain;
-        options.Audience = builder.Configuration["Auth0:Audience"];
         options.TokenValidationParameters = new TokenValidationParameters
         {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
             NameClaimType = ClaimTypes.NameIdentifier,
-            RoleClaimType = "https://schemas.sushitoshi.com/roles" // Custom claim for roles
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
@@ -151,9 +156,6 @@ builder.Services.AddCors(options =>
 builder.Services.AddHttpContextAccessor();
 // Services
 builder.Services.AddScoped<IPricingService, PricingService>();
-// Services
-builder.Services.AddScoped<IPricingService, PricingService>();
-builder.Services.AddScoped<IAuthOService, AuthOService>(); // ADD THIS LINE
 
 var app = builder.Build();
 

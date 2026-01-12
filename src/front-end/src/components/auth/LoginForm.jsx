@@ -36,14 +36,18 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
+      console.log("Logging in")
       const response = await loginUser(formData.email, formData.password);
-
+      
+      // Token is already stored in loginUser function
+      console.log("AfterLogin")
       router.push("/");
     } catch (err) {
       console.error("Login error:", err);
       setError(
         err.response?.data?.detail ||
-          "Login failed. Please check your credentials and try again."
+        err.response?.data?.message ||
+        "Login failed. Please check your credentials and try again."
       );
     } finally {
       setLoading(false);

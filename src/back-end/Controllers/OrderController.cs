@@ -74,30 +74,31 @@ namespace back_end.Controllers
                     return NotFound("Bill Was not found for the current session order Create Bill");
                 }
 
-                string userOid;
+                int? userId = null;
                 string userName;
 
-                if (!string.IsNullOrEmpty(order_data.Request_By_Oid))
+                if (order_data.Request_By_User_Id.HasValue)
                 {
-                    userOid = order_data.Request_By_Oid;
+                    userId = order_data.Request_By_User_Id;
                     userName = order_data.Request_By_Name ?? "Guest";
                 }
                 else
                 {
-                    userOid = ClaimsHelpers.GetUserOid(User);
+                    var userIdString = ClaimsHelpers.GetUserId(User);
                     userName = ClaimsHelpers.GetUserDisplayName(User);
 
-                    if (string.IsNullOrEmpty(userOid))
+                    if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var parsedUserId))
                     {
-                        return Unauthorized(new { message = "User Oid not found in claims." });
+                        return Unauthorized(new { message = "User ID not found in claims." });
                     }
+                    userId = parsedUserId;
                 }
 
                 var newOrder = new SessionOrder
                 {
                     session_id = order_data.Session_Id,
                     Bill_Id = order_data.Bill_Id,
-                    User_Oid = userOid,
+                    User_Id = userId,
                     User_Name = userName,
                     Status = OrderStatus.Pending,
                     Created_At = DateTime.UtcNow
@@ -110,7 +111,7 @@ namespace back_end.Controllers
                     Order_Id = newOrder.Order_Id,
                     Session_Id = newOrder.session_id,
                     Bill_Id = newOrder.Bill_Id,
-                    User_Oid = newOrder.User_Oid,
+                    User_Id = newOrder.User_Id,
                     User_Name = newOrder.User_Name,
                     Status = newOrder.Status,
                     Created_At = newOrder.Created_At,
@@ -144,12 +145,12 @@ namespace back_end.Controllers
                 {
                     return NotFound("Order not found");
                 }
-                // Use Oauth user info
-                var userOid = ClaimsHelpers.GetUserOid(User);
+                // Use authenticated user info
+                var userIdString = ClaimsHelpers.GetUserId(User);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
-                if (string.IsNullOrEmpty(userOid))
+                if (string.IsNullOrEmpty(userIdString))
                 {
-                    return Unauthorized("User Oid not found in claims.");
+                    return Unauthorized("User ID not found in claims.");
                 }
 
                 if (order.Status != OrderStatus.Pending)
@@ -177,7 +178,7 @@ namespace back_end.Controllers
                     Order_Id = order.Order_Id,
                     Session_Id = order.session_id,
                     Bill_Id = order.Bill_Id,
-                    User_Oid = order.User_Oid,
+                    User_Id = order.User_Id,
                     User_Name = order.User_Name,
                     Status = order.Status,
                     Created_At = order.Created_At,
@@ -247,17 +248,23 @@ namespace back_end.Controllers
                 {
                     return NotFound("Order Data was not found");
                 }
-                // Use Oauth user info
-                var userOid = ClaimsHelpers.GetUserOid(User);
+                // Use authenticated user info
+                var userIdString = ClaimsHelpers.GetUserId(User);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
-                if (string.IsNullOrEmpty(userOid))
+                if (string.IsNullOrEmpty(userIdString))
                 {
-                    return Unauthorized("User Oid not found in claims.");
+                    return Unauthorized("User ID not found in claims.");
                 }
+
+                if (!int.TryParse(userIdString, out var userId))
+                {
+                    return Unauthorized("Invalid User ID format.");
+                }
+
                 if (order.Status != OrderStatus.Pending)
                 {
                     // TODO: Please verify new functionality
-                    if (!(userRole.Contains("user.Staff") || userRole.Contains("user.Admin")) && userOid != order.User_Oid)
+                    if (!(userRole.Contains("Staff") || userRole.Contains("Admin")) && userId != order.User_Id)
                     {
                         return Conflict("Can not Modify a Approved Order");
                     }
@@ -385,7 +392,7 @@ namespace back_end.Controllers
                     Order_Id = order.Order_Id,
                     Session_Id = order.session_id,
                     Bill_Id = order.Bill_Id,
-                    User_Oid = order.User_Oid,
+                    User_Id = order.User_Id,
                     Status = order.Status,
                     Created_At = order.Created_At,
                     Completed_At = order.Completed_At,
@@ -477,7 +484,7 @@ namespace back_end.Controllers
                     Order_Id = order.Order_Id,
                     Session_Id = order.session_id,
                     Bill_Id = order.Bill_Id,
-                    User_Oid = order.User_Oid,
+                    User_Id = order.User_Id,
                     User_Name = order.User_Name,
                     Status = order.Status,
                     Created_At = order.Created_At,
@@ -532,27 +539,33 @@ namespace back_end.Controllers
                 }
 
                 //Determine guest or logged in
-                string? userOid = null;
+                int? userId = null;
                 string? userName = null;
 
                 if (User.Identity?.IsAuthenticated == true)
                 {
-                    userOid = ClaimsHelpers.GetUserOid(User);
+                    var userIdString = ClaimsHelpers.GetUserId(User);
                     userName = ClaimsHelpers.GetUserDisplayName(User);
-                    _logger.LogInformation("🔐 Authenticated user {Oid} ({Name})", userOid, userName);
+                    
+                    if (int.TryParse(userIdString, out var parsedUserId))
+                    {
+                        userId = parsedUserId;
+                        _logger.LogInformation("🔐 Authenticated user {UserId} ({Name})", userId, userName);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Could not parse user ID from claims: {UserIdString}", userIdString);
+                    }
                 }
                 else
                 {
-                    userOid = Request.Headers["X-Guest-Oid"].FirstOrDefault()
-                            ?? Request.Query["guest_oid"].FirstOrDefault()
-                            ?? order.User_Oid;
+                    // For guests, use null userId (they don't have database user records)
+                    userId = null;
                     userName = "Guest";
                 }
 
-                if (string.IsNullOrEmpty(userOid))
-                {
-                    return Unauthorized(new { message = "User or guest Oid not found." });
-                }
+                // For guests, we still allow the operation but with null user ID
+                // The User_Id field in the order can be null for guest users
 
                 //Add items to order
                 foreach (var item in items)
@@ -579,7 +592,7 @@ namespace back_end.Controllers
                     message = "Items added successfully",
                     count = items.Count,
                     orderId,
-                    userOid,
+                    userId,
                     userName
                 });
             }
@@ -620,20 +633,25 @@ namespace back_end.Controllers
                     return NotFound("Order not found");
                 }
 
-                // Use OAuth user info
-                var userOid = ClaimsHelpers.GetUserOid(User);
+                // Use authenticated user info
+                var userIdString = ClaimsHelpers.GetUserId(User);
                 var userRole = User.FindFirst(ClaimTypes.Role)?.Value ?? string.Empty;
                 
-                if (string.IsNullOrEmpty(userOid))
+                if (string.IsNullOrEmpty(userIdString))
                 {
-                    return Unauthorized("User Oid not found in claims.");
+                    return Unauthorized("User ID not found in claims.");
+                }
+
+                if (!int.TryParse(userIdString, out var userId))
+                {
+                    return Unauthorized("Invalid User ID format.");
                 }
                 
                 // Check if user is the owner of the order
-                bool isOwner = order.User_Oid == userOid;
+                bool isOwner = order.User_Id == userId;
                 
                 // Check if user is staff/admin
-                bool isStaff = userRole.Contains("user.Staff") || userRole.Contains("user.Admin");
+                bool isStaff = userRole.Contains("Staff") || userRole.Contains("Admin");
 
                 if (!isOwner && !isStaff)
                 {
@@ -813,7 +831,7 @@ namespace back_end.Controllers
 
                     customer = new
                     {
-                        userOid = order.User_Oid,
+                        userId = order.User_Id,
                         userName = order.User_Name
                     },
 
@@ -880,22 +898,25 @@ namespace back_end.Controllers
                 }
 
                 // Determine user identity
-                var userOid = ClaimsHelpers.GetUserOid(User);
+                int? userId = null;
                 var userRole = ClaimsHelpers.GetUserRole(User) ?? "";
-                bool isStaff = userRole.Contains("user.Staff") || userRole.Contains("user.Admin");
+                bool isStaff = userRole.Contains("Staff") || userRole.Contains("Admin");
 
-                // Fallback for guests (no MSAL claims)
-                if (string.IsNullOrEmpty(userOid))
+                // For authenticated users, get their User ID
+                if (User.Identity?.IsAuthenticated == true)
                 {
-                    userOid = Request.Headers["X-Guest-Oid"].FirstOrDefault()
-                            ?? Request.Query["guest_oid"].FirstOrDefault();
+                    var userIdString = ClaimsHelpers.GetUserId(User);
+                    if (int.TryParse(userIdString, out var parsedUserId))
+                    {
+                        userId = parsedUserId;
+                    }
                 }
 
-                // Fetch orders
+                // Fetch orders (staff can see all, regular users can only see their own)
                 var sessionOrder = await _context.SessionOrders
                     .Where(o => o.session_id == sessionId &&
                                 (!bill_id.HasValue || o.Bill_Id == bill_id.Value) &&
-                                (isStaff || string.IsNullOrEmpty(userOid) || o.User_Oid == userOid))
+                                (isStaff || !userId.HasValue || o.User_Id == userId))
                     .Include(o => o.OrderItems)
                         .ThenInclude(or => or.MenuItem)
                     .OrderBy(o => o.Created_At)
@@ -907,7 +928,7 @@ namespace back_end.Controllers
                     billId = o.Bill_Id,
                     billStatus = o.Bill?.Status.ToString(),
                     sessionId = o.session_id,
-                    userOid = o.User_Oid,
+                    userId = o.User_Id,
                     userName = o.User_Name,
                     status = o.Status,
                     itemTotal = o.OrderItems.Count,
@@ -963,24 +984,24 @@ namespace back_end.Controllers
         /// </remarks>
         //GET: api/order/user/{userOid}
         //Get all orders placed by a specific customer
-        [HttpGet("user/{userOid}")]
+        [HttpGet("user/{userId}")]
         [ProducesResponseType(typeof(IEnumerable<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<IEnumerable<object>>> GetOrderByUser(string userOid)
+        public async Task<ActionResult<IEnumerable<object>>> GetOrderByUser(int userId)
         {
             try
             {
-                //Check if userOid is valid
-                if (string.IsNullOrWhiteSpace(userOid))
+                //Check if userId is valid
+                if (userId <= 0)
                 {
-                    return NotFound(new { message = $"Can't find user with Oid: {userOid}" });
+                    return NotFound(new { message = $"Invalid user ID: {userId}" });
                 }
 
                 //Get all orders from this user and sort by the newest
                 //Include session menu and item details
                 var order = await _context.SessionOrders
-                            .Where(o => o.User_Oid == userOid)
+                            .Where(o => o.User_Id == userId)
                             .Include(o => o.DiningSession)
                                 .ThenInclude(or => or.Menu)
                             .Include(o => o.OrderItems)
@@ -1012,7 +1033,7 @@ namespace back_end.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Can't find Order for User Oid: {userOid}");
+                _logger.LogError(ex, $"Can't find Order for User ID: {userId}");
                 return StatusCode(500, "Internal Server Error");
             }
         }
@@ -1026,18 +1047,18 @@ namespace back_end.Controllers
 
             try
             {
-                //Get the currently logged in user's Oid
-                var userOid = ClaimsHelpers.GetUserOid(User);
-                if (string.IsNullOrWhiteSpace(userOid))
+                //Get the currently logged in user's ID
+                var userIdString = ClaimsHelpers.GetUserId(User);
+                if (string.IsNullOrWhiteSpace(userIdString) || !int.TryParse(userIdString, out var userId))
                 {
-                    return Unauthorized(new { message = $"Can't find user Oid in claims." });
+                    return Unauthorized(new { message = $"Can't find valid user ID in claims." });
                 }
 
                 //Get the user's session that's currently active
                 var activeSessionId = await (
                     from p in _context.SessionParticipants
                     join ds in _context.DiningSessions on p.Session_Id equals ds.Session_Id
-                    where p.User_Oid == userOid
+                    where p.User_Id == userId
                     && p.Left_At == null
                     && ds.Ended_At == null
                     orderby ds.Started_At descending
@@ -1050,7 +1071,7 @@ namespace back_end.Controllers
                 }
 
                 var orders = await _context.SessionOrders
-                                .Where(o => o.User_Oid == userOid && o.session_id == activeSessionId && (bill_id == null || o.Bill_Id == bill_id))
+                                .Where(o => o.User_Id == userId && o.session_id == activeSessionId && (bill_id == null || o.Bill_Id == bill_id))
                                 .Include(o => o.DiningSession)
                                     .ThenInclude(or => or.Menu)
                                 .Include(o => o.Bill)

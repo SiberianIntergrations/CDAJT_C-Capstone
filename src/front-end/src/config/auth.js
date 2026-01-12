@@ -1,85 +1,171 @@
-import { LogLevel } from '@azure/msal-browser';
-import { useRouter } from "next/navigation";
-
-export const API_SCOPE =
-  process.env.NEXT_PUBLIC_API_SCOPE || "api://99ffb099-af80-41d1-9c16-e844f8ed5308/user_impersonation";
-
-export const msalConfig = {
-  auth: {
-    clientId: process.env.NEXT_PUBLIC_API_CLIENTID ||  '99ffb099-af80-41d1-9c16-e844f8ed5308',
-    authority: process.env.NEXT_PUBLIC_API_AUTHORITY || `https://renovationstationexsm3943.ciamlogin.com/`,
-    redirectUri: '/',
-  },
-  cache: {
-    cacheLocation: 'localStorage', // This configures where your cache will be stored
-    storeAuthStateInCookie: false, // Set this to "true" if you want to use cookies to store auth state
-},
-  system: {
-    loggerOptions: {
-        /**
-         * Below you can configure MSAL.js logs. For more information, visit:
-         * https://docs.microsoft.com/azure/active-directory/develop/msal-logging-js
-         */
-        loggerCallback: (level, message, containsPii) => {
-            if (containsPii) {
-                return;
-            }
-            switch (level) {
-                case LogLevel.Error:
-                    console.error(message);
-                    return;
-                case LogLevel.Info:
-                    // console.info(message);
-                    return;
-                case LogLevel.Verbose:
-                    console.debug(message);
-                    return;
-                case LogLevel.Warning:
-                    console.warn(message);
-                    return;
-                default:
-                    return;
-            }
-        },
-    },
-},
-};
-
-export const createLoginRequest = (redirectUri) => ({
-    ...loginRequest,
-    redirectUri,
-})
+// config/auth.js
+import api from "@/config/api";
+/**
+ * Custom claims namespace for roles (keep for backend compatibility)
+ */
+export const ROLES_CLAIM = 'roles';
+export const ROLE_CLAIM_TYPE = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'; // .NET ClaimTypes.Role
 
 /**
- * Scopes you add here will be prompted for user consent during sign-in.
- * By default, MSAL.js will add OIDC scopes (openid, profile, email) to any login request.
- * For more information about OIDC scopes, visit:
- * https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-permissions-and-consent#openid-connect-scopes
+ * Extract roles from JWT token claims
+ * @param {object} tokenClaims - The decoded JWT token claims
+ * @returns {array} - Array of role strings
  */
-export const loginRequest = {
-    scopes: ["openid", "offline_access", "profile", API_SCOPE],
-};
+export function extractRoles(tokenClaims) {
+    if (!tokenClaims) return [];
+    
+    // Check multiple possible role claim locations
+    const roles = tokenClaims.roles || 
+                  tokenClaims[ROLES_CLAIM] || 
+                  tokenClaims[ROLE_CLAIM_TYPE] || // ✅ .NET ClaimTypes.Role
+                  tokenClaims.role || // ✅ singular 'role'
+                  [];
+    
+    return Array.isArray(roles) ? roles : [roles];
+}
 
- export const silentRequest = {
-     scopes: ["openid", "offline_access", "profile", API_SCOPE],
-     loginHint: "example@renovationstationexsm3943.onmicrosoft.com"
- };
- 
 
-//to use: userHasAnyRole(msalInstance.getActiveAccount()?.idTokenClaims, ["admin.UpdateOTISStatus"])
-export function userHasAnyRole(claims, rolesToCheck) {
-    if (claims = undefined) {
+export function registerUser(formData){
+    console.log(formData);
+    return api.post("/auth/register", {
+        email: formData.email,   
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+    });
+}
+
+/**
+ * Check if user has any of the specified roles
+ * @param {object} tokenClaims - The decoded JWT token claims or user object
+ * @param {array} rolesToCheck - Array of role strings to check
+ * @returns {boolean} - True if user has any of the roles
+ */
+export function userHasAnyRole(tokenClaims, rolesToCheck) {
+    if (!tokenClaims) {
         return false;
     }
     
-    if (typeof claims !== 'object' || !Array.isArray(rolesToCheck)) {
-        throw new Error("Invalid arguments: claims must be an object and rolesToCheck must be an array.");
+    if (typeof tokenClaims !== 'object' || !Array.isArray(rolesToCheck)) {
+        console.error("Invalid arguments: tokenClaims must be an object and rolesToCheck must be an array.");
+        return false;
     }
 
-    const roles = claims.roles || []; // Extract the "roles" claim from the access token
+    const roles = extractRoles(tokenClaims);
+    
     if (!Array.isArray(roles)) {
-        throw new Error("Invalid access token: 'roles' claim must be an array.");
+        console.error("Invalid token: 'roles' claim must be an array.");
+        return false;
     }
 
     return rolesToCheck.some(role => roles.includes(role));
 }
+
+/**
+ * Check if user has a specific role
+ * @param {object} tokenClaims - The decoded JWT token claims
+ * @param {string} role - Role string to check
+ * @returns {boolean} - True if user has the role
+ */
+export function userHasRole(tokenClaims, role) {
+    return userHasAnyRole(tokenClaims, [role]);
+}
+
+/**
+ * Decode JWT token to get claims
+ * @param {string} token - JWT token string
+ * @returns {object} - Decoded token claims
+ */
+export function decodeToken(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+            atob(base64)
+                .split('')
+                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        console.error('Error decoding token:', error);
+        return null;
+    }
+}
+
+/**
+ * Get user roles from token
+ * @param {string} accessToken - JWT access token
+ * @returns {array} - Array of role strings
+ */
+export function getUserRoles(accessToken) {
+    if (!accessToken) return [];
+    
+    const tokenClaims = decodeToken(accessToken);
+    return extractRoles(tokenClaims);
+}
+
+/**
+ * Map roles to app-specific roles
+ * @param {array} roles - Array of role strings
+ * @returns {string} - Primary app role
+ */
+export function mapToAppRole(roles) {
+    if (!Array.isArray(roles)) return 'customer';
+    
+    if (roles.includes('Admin') || roles.includes('admin')) return 'admin';
+    if (roles.includes('Staff') || roles.includes('staff')) return 'staff';
+    if (roles.includes('Customer') || roles.includes('customer')) return 'customer';
+    
+    return 'customer'; // Default role
+}
+
+/**
+ * Get current user from stored token
+ * @returns {object|null} - Decoded user claims or null
+ */
+export function getCurrentUserFromToken() {
+    if (typeof window === 'undefined') return null;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) return null;
+    
+    return decodeToken(token);
+}
+
+/**
+ * Check if token is expired
+ * @param {string} token - JWT token string
+ * @returns {boolean} - True if token is expired
+ */
+export function isTokenExpired(token) {
+    if (!token) return true;
+    
+    const claims = decodeToken(token);
+    if (!claims || !claims.exp) return true;
+    
+    // exp is in seconds, Date.now() is in milliseconds
+    return claims.exp * 1000 < Date.now();
+}
+
+/**
+ * Logger utility (optional - for debugging)
+ */
+export const logger = {
+    error: (message, ...args) => {
+        console.error(`[Auth Error]: ${message}`, ...args);
+    },
+    info: (message, ...args) => {
+        if (process.env.NODE_ENV === 'development') {
+            console.info(`[Auth Info]: ${message}`, ...args);
+        }
+    },
+    warn: (message, ...args) => {
+        console.warn(`[Auth Warning]: ${message}`, ...args);
+    },
+    debug: (message, ...args) => {
+        if (process.env.NODE_ENV === 'development') {
+            console.debug(`[Auth Debug]: ${message}`, ...args);
+        }
+    }
+};

@@ -16,16 +16,11 @@ namespace back_end.domain.Entities
         [ForeignKey(nameof(Table))]
         public int Table_Id { get; set; }
 
-        // Replacing Request_By and Claimed_By with Oid and Name
-        [MaxLength(100)]
-        public string Request_By_Oid { get; set; } = string.Empty;
-        [MaxLength(200)]
-        public string Request_By_Name { get; set; } = string.Empty;
+        //[ForeignKey(nameof(RequestedByUser))]
+        public int Request_By { get; set; }
 
-        [MaxLength(100)]
-        public string? Claimed_By_Oid { get; set; }
-        [MaxLength(200)]
-        public string? Claimed_By_Name { get; set; }
+        //[ForeignKey(nameof(ClaimedByUser))]
+        public int? Claimed_By { get; set; }
 
         [MaxLength(500)]
         public string Notes { get; set; } = string.Empty;
@@ -38,10 +33,15 @@ namespace back_end.domain.Entities
 
         public DateTime? Completed_At { get; set; }
 
+
         public DiningSession DiningSession { get; set; } = null!;
         public TableEntity Table { get; set; } = null!;
-        // Removed: public User RequestedByUser { get; set; } = null!;
-        // Removed: public User? ClaimedByUser { get; set; }
+        [ForeignKey("Request_By")]
+        public User RequestedByUser { get; set; } = null!;
+        [ForeignKey("Claimed_By")]
+        public User? ClaimedByUser { get; set; }
+
+
     }
 
 }
