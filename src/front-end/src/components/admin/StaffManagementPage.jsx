@@ -1,104 +1,50 @@
 import React, { useState, useEffect } from "react";
 import {
   Box,
+  Button,
   Container,
   Typography,
   Alert,
   Snackbar,
+  Dialog,
+  IconButton,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { UserPlus } from "lucide-react";
+import StaffManagementForm from "@/components/admin/StaffManagementForm";
 import StaffList from "@/components/admin/StaffList";
+import PasswordChangeDialog from "@/components/admin/PasswordChangeDialog";
 import api from "@/config/api";
-import { useMsal } from "@azure/msal-react";
-import { silentRequest } from "@/config/auth";
+
+// TODO: Missing Staff api
 
 const StaffManagementPage = () => {
   const [staff, setStaff] = useState([]);
+  const [customers, setCustomers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState(null);
+  const [editMode, setEditMode] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
     severity: "success",
   });
-
-  const { instance: msalInstance } = useMsal();
-  const accounts = msalInstance.getAllAccounts();
-  const account = accounts && accounts.length > 0 ? accounts[0] : null;
-  const currentUser = account ? account.username : null;
-
-  // Replace with your actual Entra group IDs
-  const STAFF_GROUP_ID = "972540cb-bba6-4ebd-9f74-222073fce290";
-  const ADMIN_GROUP_ID = "53b1f86b-82a1-4572-b8d3-9a78b5a6e689";
-
-  // Fetch staff from Entra group members using MS Graph API
+  const [submitting, setSubmitting] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null)
   const fetchStaff = async () => {
     try {
       setLoading(true);
-      setError(null);
 
-      if (!account) throw new Error("No authenticated account found");
+      const response = await api.get("/staff");
 
-      // Add required Graph scopes
-      const graphScopes = [
-        "User.ReadBasic.All",
-        "GroupMember.Read.All",
-        "Directory.Read.All"
-      ];
+      if (response.status !== 200)
+        throw new Error("Failed to fetch staff members");
 
-      // Acquire access token for MS Graph
-      const response = await msalInstance.acquireTokenSilent({
-        ...silentRequest,
-        account,
-        scopes: graphScopes,
-      });
-      const accessToken = response.accessToken;
-
-      // Helper to fetch group members
-      const fetchGroupMembers = async (groupId) => {
-        const res = await fetch(
-          `https://graph.microsoft.com/v1.0/groups/${groupId}/members?$select=id,displayName,givenName,surname,mail,userPrincipalName,accountEnabled,officeLocation`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-            },
-          }
-        );
-        if (!res.ok) throw new Error("Failed to fetch group members");
-        const data = await res.json();
-        return data.value || [];
-      };
-
-      // Fetch both groups, merge, and dedupe by user id
-      const [staffMembers, adminMembers] = await Promise.all([
-        fetchGroupMembers(STAFF_GROUP_ID),
-        fetchGroupMembers(ADMIN_GROUP_ID),
-      ]);
-      const allUsersMap = {};
-      staffMembers.forEach((u) => {
-        allUsersMap[u.id] = { ...u, role: "staff" };
-      });
-      adminMembers.forEach((u) => {
-        allUsersMap[u.id] = { ...u, role: "admin" };
-      });
-
-      const allUsers = Object.values(allUsersMap);
-
-      // Map to staff list format, filter out group objects
-      const mapped = allUsers
-        .filter(user => !user['@odata.type'] || !user['@odata.type'].toLowerCase().includes("group"))
-        .map((user) => ({
-          user_id: user.id,
-          first_name: user.givenName || "",
-          last_name: user.surname || "",
-          email: user.mail || user.userPrincipalName,
-          location: "", // Always empty for now
-          role: user.role,
-          status: user.accountEnabled === false ? "inactive" : "active",
-        }));
-
-      setStaff(mapped);
+      const data = response.data;
+      setStaff(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -106,24 +52,153 @@ const StaffManagementPage = () => {
     }
   };
 
-  useEffect(() => {
-    fetchStaff();
-    // eslint-disable-next-line
-  }, []);
+  const fetchCustomers = async() => {
+    try {
+      setLoading(true)
+      const response = await api.get("/staff/customers")
+      if(response.status !== 200){
+        throw new Error("Failed to fetch customer list");
 
-  // Only redirect to Entra for edit/password
-  const handleEditRedirect = (staffMember) => {
-    window.open(
-      `https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/${staffMember.user_id}`,
-      "_blank"
-    );
+      }
+      const data = response.data
+      console.log(data)
+      setCustomers(data)
+    }
+    catch (e){
+      setError(e.message)
+    }
+    finally {
+      setLoading(false);
+    }
   };
 
-  const handlePasswordRedirect = (staffMember) => {
-    window.open(
-      `https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/resetPassword/userId/${staffMember.user_id}`,
-      "_blank"
-    );
+  const StyledButton = styled(IconButton)(({ theme }) => ({
+    backgroundColor: theme.palette.primary.main,
+    color: "white",
+    padding: theme.spacing(1),
+    minWidth: "auto",
+    "&:hover": {
+      backgroundColor: theme.palette.primary.dark,
+    },
+    "& svg": {
+      width: 30,
+      height: 30,
+    },
+  }));
+
+  const token = localStorage.getItem("access_token");
+  const tokenData = JSON.parse(atob(token.split(".")[1]));
+  const currentUser = tokenData.sub;
+
+  useEffect(() => {
+    fetchStaff();
+    fetchCustomers();
+  }, []);
+
+  const handleStatusChange = async (staffMember, newStatus) => {
+    try {
+      setSubmitting(true);
+
+      const response = await api.put(`/staff/${staffMember.user_id}`, {
+        status: newStatus,
+      });
+
+      await fetchStaff();
+
+      setSnackbar({
+        open: true,
+        message: `Staff member ${
+          newStatus === "active" ? "activated" : "deactivated"
+        } successfully`,
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Error updating staff status:", err);
+      setError(
+        err.response?.data?.detail || "Failed to update staff member status"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateStaff = async (formData) => {
+    try {
+      setSubmitting(true);
+
+      let role = formData.role;
+      formData.status = "active";
+      // delete formData.role;
+
+      // await api.post(`/staff/?role=${role}`, formData);
+      await api.post(`/staff/`, formData);
+      await fetchStaff();
+      setFormOpen(false);
+      setSnackbar({
+        open: true,
+        message: "Staff member created successfully",
+        severity: "success",
+      });
+    } catch (err) {
+      console.error("Error creating staff member:", err);
+      setError(err.response?.data?.detail || "Failed to create staff member");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateStaff = async (formData) => {
+    try {
+      setSubmitting(true);
+
+      const response = await api.put(
+        `/staff/${selectedStaff.user_id}`,
+        formData
+      );
+
+      if (response.status !== 200)
+        throw new Error("Failed to update staff member");
+
+      await fetchStaff();
+      setFormOpen(false);
+      setSnackbar({
+        open: true,
+        message: "Staff member updated successfully",
+        severity: "success",
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+      setSelectedStaff(null);
+      setEditMode(false);
+    }
+  };
+
+  const handleChangePassword = async (passwordData) => {
+    try {
+      setSubmitting(true);
+
+      const response = await api.post(
+        `/staff/${selectedStaff.user_id}/reset-password`,
+        { new_password: passwordData.new_password }
+      );
+      if (response.status !== 200) {
+        throw new Error(response.data?.detail || "Failed to reset password");
+      }
+
+      setPasswordDialogOpen(false);
+      setSnackbar({
+        open: true,
+        message: "Password reset successfully",
+        severity: "success",
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+      setSelectedStaff(null);
+    }
   };
 
   return (
@@ -138,6 +213,15 @@ const StaffManagementPage = () => {
         }}
       >
         <Typography variant="h4">Staff Management</Typography>
+        <StyledButton
+          onClick={() => {
+            setEditMode(false);
+            setSelectedStaff(null);
+            setFormOpen(true);
+          }}
+        >
+          <UserPlus />
+        </StyledButton>
       </Box>
 
       <StaffList
@@ -145,9 +229,77 @@ const StaffManagementPage = () => {
         currentUser={currentUser}
         isLoading={loading}
         error={error}
-        onEdit={handleEditRedirect}
-        onStatusChange={null}
-        onChangePassword={handlePasswordRedirect}
+        onEdit={(staff) => {
+          setSelectedStaff(staff);
+          setEditMode(true);
+          setFormOpen(true);
+        }}
+        onStatusChange={handleStatusChange}
+        onChangePassword={(staff) => {
+          setSelectedStaff(staff);
+          setPasswordDialogOpen(true);
+        }}
+      />
+      
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "left",
+          alignItems: "center",
+          gap: 2,
+          mb: 4,
+        }}
+      >
+        <Typography variant="h4">User Management</Typography>
+        <StyledButton
+          onClick={() => {
+            setEditMode(false);
+            setSelectedStaff(null);
+            setFormOpen(true);
+          }}
+        >
+          <UserPlus />
+        </StyledButton>
+      </Box>
+       <StaffList
+        staff={customers}
+        currentUser={currentUser}
+        isLoading={loading}
+        error={error}
+        onEdit={(customer) => {
+          setSelectedStaff(customer);
+          setEditMode(true);
+          setFormOpen(true);
+        }}
+        onStatusChange={handleStatusChange}
+        onChangePassword={(customer) => {
+          setSelectedStaff(customer);
+          setPasswordDialogOpen(true);
+        }}
+      />
+
+      <Dialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <StaffManagementForm
+          initialData={editMode ? selectedStaff : null}
+          onSubmit={editMode ? handleUpdateStaff : handleCreateStaff}
+          isLoading={submitting}
+          error={error}
+          mode={editMode ? "edit" : "create"}
+        />
+      </Dialog>
+
+      <PasswordChangeDialog
+        open={passwordDialogOpen}
+        onClose={() => setPasswordDialogOpen(false)}
+        onSubmit={handleChangePassword}
+        staffMember={selectedStaff}
+        isLoading={submitting}
+        error={error}
       />
 
       <Snackbar

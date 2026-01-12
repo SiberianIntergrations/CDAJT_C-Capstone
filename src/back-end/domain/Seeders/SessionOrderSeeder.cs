@@ -14,7 +14,7 @@ namespace back_end.domain.Seeders
         private readonly ILogger<SessionOrderSeeder> _logger;
         private readonly Random _rng = new();
 
-        private Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
+        private Dictionary<int, (string DisplayName, string GivenName, string Surname)> _userSeedData;
 
         public SessionOrderSeeder(ApplicationDbContext context, ILogger<SessionOrderSeeder> logger)
         {
@@ -22,7 +22,7 @@ namespace back_end.domain.Seeders
             _logger = logger;
         }
 
-        public void SetUserSeedData(Dictionary<string, (string DisplayName, string GivenName, string Surname)> userSeedData)
+        public void SetUserSeedData(Dictionary<int, (string DisplayName, string GivenName, string Surname)> userSeedData)
         {
             _userSeedData = userSeedData;
         }
@@ -33,7 +33,7 @@ namespace back_end.domain.Seeders
             if (!bills.Any()) throw new InvalidOperationException("No bills found. Seed bills first.");
 
             int created = 0;
-            var userUsageCount = new Dictionary<string, int>();
+            var userUsageCount = new Dictionary<int, int>();
 
             foreach (var bill in bills)
             {
@@ -51,14 +51,14 @@ namespace back_end.domain.Seeders
                 var numWaves = _rng.Next(waves.min, waves.max + 1);
                 var time = session.Started_At.AddMinutes(_rng.Next(5, 16));
 
-                var userOids = _userSeedData.Keys.ToList();
+                var userIds = _userSeedData.Keys.ToList();
 
                 for (int i = 0; i < numWaves; i++)
                 {
-                    var userOid = userOids[_rng.Next(userOids.Count)];
-                    var userInfo = _userSeedData[userOid];
-                    if (!userUsageCount.ContainsKey(userOid)) userUsageCount[userOid] = 0;
-                    userUsageCount[userOid]++;
+                    var userId = userIds[_rng.Next(userIds.Count)];
+                    var userInfo = _userSeedData[userId];
+                    if (!userUsageCount.ContainsKey(userId)) userUsageCount[userId] = 0;
+                    userUsageCount[userId]++;
 
                     OrderStatus status;
                     if (session.Ended_At == null)
@@ -73,7 +73,7 @@ namespace back_end.domain.Seeders
                     {
                         session_id = bill.Session_Id,
                         Bill_Id = bill.Bill_Id,
-                        User_Oid = userOid,
+                        User_Id = userId,
                         User_Name = $"{userInfo.GivenName} {userInfo.Surname}".Trim(),
                         Status = status,
                         Created_At = time,
@@ -86,27 +86,27 @@ namespace back_end.domain.Seeders
                 }
             }
 
-            var unusedUsers = _userSeedData.Keys.Where(oid => !userUsageCount.ContainsKey(oid) || userUsageCount[oid] < 2).ToList();
+            var unusedUsers = _userSeedData.Keys.Where(userId => !userUsageCount.ContainsKey(userId) || userUsageCount[userId] < 2).ToList();
     
             if (unusedUsers.Any() && bills.Any())
             {
                 int billIndex = 0;
                 
-                foreach (var oid in unusedUsers)
+                foreach (var userId in unusedUsers)
                 {
-                    var usage = userUsageCount.GetValueOrDefault(oid, 0);
+                    var usage = userUsageCount.GetValueOrDefault(userId, 0);
                     for (int i = usage; i < 2; i++)
                     {
                         var bill = bills[billIndex % bills.Count];
                         billIndex++;
                         
-                        var info = _userSeedData[oid];
+                        var info = _userSeedData[userId];
                         
                         var order = new SessionOrder
                         {
                             session_id = bill.Session_Id,
                             Bill_Id = bill.Bill_Id,
-                            User_Oid = oid,
+                            User_Id = userId,
                             User_Name = $"{info.GivenName} {info.Surname}".Trim(),
                             Status = OrderStatus.Pending,
                             Created_At = DateTime.UtcNow.AddMinutes(_rng.Next(1, 60)),

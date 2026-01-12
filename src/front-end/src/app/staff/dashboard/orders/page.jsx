@@ -205,15 +205,15 @@ const OrderDashboard = () => {
     if (currentTab === "DELIVERED") return status === "DELIVERED";
     return false;
   });
-
+  console.log(orders)
   const tabCounts = {
-    PENDING: orders.filter((o) => o.status === "PENDING").length,
+    PENDING: orders.filter((o) => o.status.toUpperCase() === "PENDING").length,
     PROCESSING: orders.filter(
-      (o) => o.status === "PROCESSING" || o.status === "APPROVED"
+      (o) => o.status.toUpperCase() === "PROCESSING" || o.status === "APPROVED"
     ).length,
-    DELIVERED: orders.filter((o) => o.status === "DELIVERED").length,
+    DELIVERED: orders.filter((o) => o.status.toUpperCase() === "DELIVERED").length,
   };
-
+  console.log(tabCounts)
   if (loading) {
     return (
       <Box

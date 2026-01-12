@@ -122,14 +122,14 @@ const StaffList = ({
       type: "actions",
       width: 140,
       getActions: (params) => [
-        <Tooltip title="Edit in Entra" key="edit">
+        <Tooltip title="Edit User" key="edit">
           <GridActionsCellItem
             icon={<Edit size={20} />}
             label="Edit"
             onClick={() => onEdit(params.row)}
           />
         </Tooltip>,
-        <Tooltip title="Reset Password in Entra" key="changePassword">
+        <Tooltip title="Reset Password" key="changePassword">
           <GridActionsCellItem
             icon={<Key size={20} />}
             label="Change Password"

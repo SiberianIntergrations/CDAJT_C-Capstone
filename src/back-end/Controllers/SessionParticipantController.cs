@@ -70,17 +70,17 @@ namespace back_end.Controllers
                     return BadRequest("Can not Join a ended Session");
                 }
 
-                // Get Oauth user info
-                var userOid = ClaimsHelpers.GetUserOid(User);
+                // Get authenticated user info
+                var userIdString = ClaimsHelpers.GetUserId(User);
                 var userName = ClaimsHelpers.GetUserDisplayName(User);
 
-                if (string.IsNullOrEmpty(userOid))
+                if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
                 {
-                    return Unauthorized("User Oid not found in claims.");
+                    return Unauthorized("User ID not found in claims or invalid format.");
                 }
 
                 var existingParticipant = await _context.SessionParticipants
-                    .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Oid == userOid && !sp.Left_At.HasValue);
+                    .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Id == userId && !sp.Left_At.HasValue);
                 if (existingParticipant != null)
                 {
                     return BadRequest("You are already A participant");
@@ -88,7 +88,7 @@ namespace back_end.Controllers
                 var newParticipant = new SessionParticipant
                 {
                     Session_Id = session_id,
-                    User_Oid = userOid,
+                    User_Id = userId,
                     User_Name = userName,
                     Joined_At = DateTime.UtcNow,
                     Left_At = null,
@@ -99,7 +99,7 @@ namespace back_end.Controllers
                 {
                     Participant_Id = newParticipant.Participant_Id,
                     Session_Id = newParticipant.Session_Id,
-                    User_Oid = newParticipant.User_Oid,
+                    User_Id = newParticipant.User_Id,
                     User_Name = newParticipant.User_Name,
                     Joined_At = newParticipant.Joined_At,
                     Left_At = newParticipant.Left_At
@@ -145,22 +145,22 @@ namespace back_end.Controllers
                     return NotFound("Dining Session was not found");
                 }
 
-                // Get Oauth user info
-                var userOid = ClaimsHelpers.GetUserOid(User);
+                // Get authenticated user info
+                var userIdString = ClaimsHelpers.GetUserId(User);
 
-                if (string.IsNullOrEmpty(userOid))
+                if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
                 {
-                    return Unauthorized("User Oid not found in claims.");
+                    return Unauthorized("User ID not found in claims or invalid format.");
                 }
 
                 var existingParticipant = await _context.SessionParticipants
-                    .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Oid == userOid && !sp.Left_At.HasValue);
+                    .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Id == userId && !sp.Left_At.HasValue);
                 if(existingParticipant is null)
                 {
                     return BadRequest("You are not a active participant to the session");
                 }
                 var activeOrders = await _context.SessionOrders
-                    .FirstOrDefaultAsync(so => so.session_id == session_id && so.User_Oid == userOid && so.Status != OrderStatus.Delivered);
+                    .FirstOrDefaultAsync(so => so.session_id == session_id && so.User_Id == userId && so.Status != OrderStatus.Delivered);
                 if (activeOrders != null)
                 {
                     return BadRequest("You can not leave a active session with active orders");

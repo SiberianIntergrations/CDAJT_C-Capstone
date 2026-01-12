@@ -1,93 +1,154 @@
 import { useState, useEffect } from "react";
-import { useMsal } from "@azure/msal-react";
-import { silentRequest } from "@/config/auth";
+import {
+  decodeToken,
+  getUserRoles,
+  isTokenExpired,
+} from "@/config/auth";
+import { getAuthToken } from "@/utils/auth";
 
+// Custom event for auth changes
+export const AUTH_EVENT = "auth-change";
+
+// Helper to dispatch auth change event
+export const dispatchAuthChange = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event(AUTH_EVENT));
+  }
+};
+
+// Helper function to clear auth tokens
+export const clearAuthTokens = () => {
+  if (typeof window === 'undefined') return;
+  
+  localStorage.removeItem("authToken");
+  localStorage.removeItem("tokenExpiresAt");
+  localStorage.removeItem("user");
+  localStorage.removeItem("guest");
+  
+  dispatchAuthChange();
+};
 
 export const useAuth = () => {
-    const { instance: msalInstance } = useMsal();
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [userRole, setUserRole] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [userEmail, setUserEmail] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [authChanged, setAuthChanged] = useState(0); // Add this state
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [userRoles, setUserRoles] = useState([]);
+  const [userId, setUserId] = useState(null);
+  const [userEmail, setUserEmail] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // Only run on client
-        if (typeof window === "undefined") return;
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = getAuthToken();
 
-        let isMounted = true;
+      if (!token) {
+        setIsAuthenticated(false);
+        setUserRole(null);
+        setUserRoles([]);
+        setUserId(null);
+        setUserEmail(null);
+        setLoading(false);
+        return;
+      }
 
-        const initAndCheckAuth = async () => {
-            setLoading(true); 
-            await msalInstance.initialize();
-            const accounts = msalInstance.getAllAccounts();
-            const account = accounts && accounts.length > 0 ? accounts[0] : null;
-            if (account) {
-                msalInstance.setActiveAccount(account);
-                setIsAuthenticated(true);
-                setUserId(account.localAccountId || account.homeAccountId || null);
-                setUserEmail(account.username || null);
+      // Check if token is expired
+      if (isTokenExpired(token)) {
+        clearAuthTokens();
+        setIsAuthenticated(false);
+        setUserRole(null);
+        setUserRoles([]);
+        setUserId(null);
+        setUserEmail(null);
+        setLoading(false);
+        return;
+      }
 
-                msalInstance.acquireTokenSilent({ ...silentRequest, account }).then((response) => {
-                    let rawRoles = response.idTokenClaims?.roles || response.idTokenClaims?.role || [];
-                    const roleList = Array.isArray(rawRoles) ? rawRoles : [rawRoles];
-                    // Map Azure AD roles to app roles
-                    if (roleList.includes("user.Admin")) setUserRole("admin");
-                    else if (roleList.includes("user.Staff")) setUserRole("staff");
-                    else setUserRole("customer");
-                    setLoading(false);
-                }).catch(() => {
-                    setIsAuthenticated(false);
-                    setUserRole(null);
-                    setUserId(null);
-                    setUserEmail(null);
-                    setLoading(false);
-                });
-            } else {
-                setIsAuthenticated(false);
-                setUserRole(null);
-                setUserId(null);
-                setUserEmail(null);
-                setLoading(false);
-            }
-        };
+      // Decode and set user info
+      try {
+        const claims = decodeToken(token);
+        
+        if (!claims) {
+          throw new Error("Failed to decode token");
+        }
 
-        initAndCheckAuth();
+        // Extract user information from token claims
+        const roles = getUserRoles(token).map(role => role.toLowerCase());;
+        const primaryRole = roles[0] || null; // Get first role as primary
+        
+        const id = claims.sub || 
+                   claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] ||
+                   claims.userId || 
+                   claims.id || 
+                   null;
+        const email = claims.email || 
+                      claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] ||
+                      claims['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+                      null;
 
-        // Listen for MSAL account changes and custom auth changed event
-        const handleMsalChange = () => {
-            setAuthChanged((prev) => prev + 1);
-        };
-        window.addEventListener("msal:accountChanged", handleMsalChange);
-        window.addEventListener("auth:changed", handleMsalChange);
+        setUserRoles(roles);
+        setUserRole(primaryRole);
+        setUserId(id);
+        setUserEmail(email);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error("Error decoding token:", error);
+        clearAuthTokens();
+        setIsAuthenticated(false);
+        setUserRole(null);
+        setUserRoles([]);
+        setUserId(null);
+        setUserEmail(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        return () => {
-            isMounted = false;
-            window.removeEventListener("msal:accountChanged", handleMsalChange);
-            window.removeEventListener("auth:changed", handleMsalChange);
-        };
-    // Add authChanged to dependency array to rerun effect
-    }, [msalInstance, authChanged]);
+    checkAuth();
+
+    // Listen for storage changes (e.g., login/logout in other tabs)
+    const handleStorageChange = (event) => {
+      if (event.key === "authToken") {
+        checkAuth();
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+
+    // Same-tab updates
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+    window.addEventListener(AUTH_EVENT, handleAuthChange);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener(AUTH_EVENT, handleAuthChange);
+    };
+  }, []);
 
   // Check if user has a specific role
   const hasRole = (role) => {
-    return userRole === role;
+    return userRoles.includes(role);
   };
 
   // Check if user has any of the specified roles
   const hasAnyRole = (roles) => {
-    return roles.includes(userRole);
+    return roles.some(role => userRoles.includes(role));
+  };
+
+  // Check if user has all of the specified roles
+  const hasAllRoles = (roles) => {
+    return roles.every(role => userRoles.includes(role));
   };
 
   return {
     isAuthenticated,
-    userRole,
+    userRole, // Primary role (first role)
+    userRoles, // All roles array
     userId,
     userEmail,
     loading,
     hasRole,
     hasAnyRole,
+    hasAllRoles,
   };
 };
 

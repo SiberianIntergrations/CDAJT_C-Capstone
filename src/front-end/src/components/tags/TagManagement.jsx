@@ -28,7 +28,7 @@ import { Plus, Edit, Image as ImageIcon, Trash2, Eye, X } from "lucide-react";
 import { styled } from "@mui/material/styles";
 import api from "@/config/api";
 import TagChip from "./TagChip";
-import { isAuthenticated } from "@/utils/token";
+//import { isAuthenticated } from "@/utils/token";
 // import { userAgentFromString } from "next/server";F
 
 const calculateColorDifference = (color1, color2) => {

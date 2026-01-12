@@ -83,11 +83,12 @@ const MenuItemManagement = () => {
         api.get("/Menu"),
         api.get("/tag/colors"), // TODO: Need Tag Controllers
       ]);
-
+      console.log(items)
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
       setMenus(Array.isArray(menusData) ? menusData : []);
       setTags(Array.isArray(tagsData) ? tagsData : []);
+      console.log(itemsData)
     } catch (err) {
       console.error("Failed to fetch data:", err);
       setError("Failed to fetch data");

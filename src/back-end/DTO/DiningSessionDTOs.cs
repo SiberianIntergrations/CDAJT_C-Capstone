@@ -22,7 +22,7 @@ namespace back_end.DTO.DiningSessionDTOs
     public int? Table_Id { get; set; }
     public int? TableGroup_Id { get; set; }
 
-    public string? Request_By_Oid { get; set; }
+    public int? Request_By_User_Id { get; set; }
     public string? Request_By_Name { get; set; }
   }
 

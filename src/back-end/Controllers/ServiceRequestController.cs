@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using back_end.domain.enums;
-using back_end.Helpers;
 
 namespace back_end.Controllers
 {
@@ -58,7 +57,6 @@ namespace back_end.Controllers
 
     [Authorize]
     [HttpPost("{session_id}")]
-    [AllowAnonymous]
     public async Task<IActionResult> CreateServiceRequest(
         int session_id,
         ServiceRequestCreateDTO request_data
@@ -77,48 +75,20 @@ namespace back_end.Controllers
           return NotFound("The Session Id was not found");
         }
 
-        var userOid = ClaimsHelpers.GetUserOid(User);
-        var userName = ClaimsHelpers.GetUserDisplayName(User);
-
-        //Check for guest users first
-        if (string.IsNullOrEmpty(userOid))
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.User_id == int.Parse(userId));
+        if (user is null)
         {
-          // If it's a guest use their values
-          if (!string.IsNullOrEmpty(request_data.Request_By_Oid))
-          {
-            userOid = request_data.Request_By_Oid;
-            userName = string.IsNullOrEmpty(request_data.Request_By_Name) ? "Guest" : request_data.Request_By_Name;
-
-            //Make sure the guest is a part of participants
-            var existingGuest = await _context.SessionParticipants
-                .FirstOrDefaultAsync(sp => sp.Session_Id == session_id && sp.User_Oid == userOid);
-
-            if (existingGuest == null)
-            {
-              var guestParticipant = new SessionParticipant
-              {
-                Session_Id = session_id,
-                User_Oid = userOid,
-                User_Name = userName,
-                Joined_At = DateTime.UtcNow
-              };
-              _context.SessionParticipants.Add(guestParticipant);
-              await _context.SaveChangesAsync();
-            }
-          }
-          else
-          {
-            return BadRequest("Issue in processing your request: user oid not found");
-          }
+          return BadRequest("Issue in processing your request");
         }
 
         var participant = await _context.SessionParticipants
             .FirstOrDefaultAsync(sp => sp.Session_Id == session_id &&
-                                      sp.User_Oid == userOid &&
+                                      sp.User_Id == user.User_id &&
                                       sp.Left_At == null);
         if (participant is null)
         {
-          return BadRequest("Session participant not found");
+          return BadRequest("Issue in processing your request for session");
         }
 
         // Determine the table ID for the service request
@@ -144,9 +114,8 @@ namespace back_end.Controllers
         {
           Session_Id = session.Session_Id,
           Table_Id = tableId.Value,
-          Request_By_Oid = userOid,
-          Request_By_Name = userName,
-          Notes = request_data.Notes ?? string.Empty,
+          Request_By = user.User_id,
+          Notes = request_data.Notes,
           Status = ServiceRequestStatus.Pending
         };
 
@@ -161,8 +130,7 @@ namespace back_end.Controllers
           Request_Id = serviceRequest.request_id,
           Session_Id = serviceRequest.Session_Id,
           Table_Id = serviceRequest.Table_Id,
-          Request_By_Oid = serviceRequest.Request_By_Oid,
-          Request_By_Name = serviceRequest.Request_By_Name,
+          Requested_By = serviceRequest.Request_By,
           Status = serviceRequest.Status,
           Notes = serviceRequest.Notes,
           Created_At = serviceRequest.Created_At,
@@ -198,7 +166,7 @@ namespace back_end.Controllers
     /// The service request status will be updated to 'Completed' and the completion timestamp will be set.
     /// The current authenticated user will be assigned as the user who completed the request.
     /// </remarks>
-    [Authorize(Policy = "staffOnly")]
+    [Authorize(Roles = "Admin,Staff")]
     [HttpPost("{request_id}/complete")]
     public async Task<IActionResult> CompleteServiceRequest(int request_id)
     {
@@ -206,26 +174,24 @@ namespace back_end.Controllers
       {
         var sessionRequest = await _context.ServiceRequests
             .FirstOrDefaultAsync(sr => sr.request_id == request_id);
+
         if (sessionRequest is null)
         {
           return NotFound("The service request was not found");
         }
 
-        // var claimedByUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        // Get Oauth user info for staff completing the request
-        var claimedByOid = ClaimsHelpers.GetUserOid(User);
-        var claimedByName = ClaimsHelpers.GetUserDisplayName(User);
-
-        sessionRequest.Claimed_By_Oid = claimedByOid;
-        sessionRequest.Claimed_By_Name = claimedByName;
-        sessionRequest.Completed_At = DateTime.UtcNow;
-
         sessionRequest.Status = ServiceRequestStatus.Completed;
-        // sessionRequest.ClaimedByUser = claimedByUser;
+
+        var claimedByUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var claimedByUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.User_id == int.Parse(claimedByUserId));
+
+        sessionRequest.ClaimedByUser = claimedByUser;
         sessionRequest.Completed_At = DateTime.UtcNow;
+
         _context.ServiceRequests.Update(sessionRequest);
         await _context.SaveChangesAsync();
+
         return Ok(sessionRequest);
       }
       catch (Exception ex)
@@ -256,7 +222,7 @@ namespace back_end.Controllers
     /// This endpoint requires Admin or Staff role authorization.
     /// Only returns service requests with 'Pending' status.
     /// </remarks>
-    [Authorize(Policy = "staffOnly")]
+    [Authorize(Roles = "Admin,Staff")]
     [HttpGet("by-session/{session_id}")]
     public async Task<IActionResult> GetSessionServiceRequest(int session_id)
     {
@@ -281,10 +247,8 @@ namespace back_end.Controllers
           Session_Id = sr.Session_Id,
           Table_Id = sr.Table_Id,
           Status = sr.Status,
-          Request_By_Oid = sr.Request_By_Oid,
-          Request_By_Name = sr.Request_By_Name,
-          Claimed_By_Oid = sr.Claimed_By_Oid,
-          Claimed_By_Name = sr.Claimed_By_Name,
+          Requested_By = sr.Request_By,
+          Claimed_By = sr.Claimed_By,
           Notes = sr.Notes,
           Created_At = sr.Created_At,
           Table_Number = sr.Table?.table_number ?? 0
@@ -316,28 +280,12 @@ namespace back_end.Controllers
     {
       try
       {
-        var requests = await _context.ServiceRequests
+        var request = await _context.ServiceRequests
             .Include(sr => sr.Table)
+            .Include(sr => sr.RequestedByUser)
+            .Include(sr => sr.ClaimedByUser)
             .ToListAsync();
-
-        var response = requests.Select(sr => new ServiceRequestResponseDTO
-        {
-          Request_Id = sr.request_id,
-          Session_Id = sr.Session_Id,
-          Table_Id = sr.Table_Id,
-          Status = sr.Status,
-          Request_By_Oid = sr.Request_By_Oid,
-          Request_By_Name = sr.Request_By_Name,
-          Claimed_By_Oid = sr.Claimed_By_Oid,
-          Claimed_By_Name = sr.Claimed_By_Name,
-          Notes = sr.Notes,
-          Created_At = sr.Created_At,
-          Claimed_At = sr.Claimed_At,
-          Completed_At = sr.Completed_At,
-          Table_Number = sr.Table?.table_number ?? 0
-        }).ToList();
-
-        return Ok(response);
+        return Ok(request);
       }
       catch (Exception ex)
       {
@@ -348,7 +296,7 @@ namespace back_end.Controllers
 
     //GET api/servicerequest/pending
     //Get all pending service requests
-    [Authorize(Policy = "staffOnly")]
+    [Authorize(Roles = "Admin,Staff")]
     [HttpGet("pending")]
     public async Task<ActionResult<IEnumerable<ServiceRequestResponseDTO>>> GetAllPendingServiceRequests()
     {
@@ -356,6 +304,7 @@ namespace back_end.Controllers
       {
         var pendingRequests = await _context.ServiceRequests
             .Include(sr => sr.Table)
+            .Include(sr => sr.RequestedByUser)
             .Include(sr => sr.DiningSession)
             .Where(sr => sr.Status == ServiceRequestStatus.Pending)
             .OrderBy(sr => sr.Created_At)
@@ -367,10 +316,8 @@ namespace back_end.Controllers
           Session_Id = sr.Session_Id,
           Table_Id = sr.Table_Id,
           Status = sr.Status,
-          Request_By_Oid = sr.Request_By_Oid,
-          Request_By_Name = sr.Request_By_Name,
-          Claimed_By_Oid = sr.Claimed_By_Oid,
-          Claimed_By_Name = sr.Claimed_By_Name,
+          Requested_By = sr.Request_By,
+          Claimed_By = sr.Claimed_By,
           Notes = sr.Notes,
           Created_At = sr.Created_At,
           Table_Number = sr.Table?.table_number ?? 0
