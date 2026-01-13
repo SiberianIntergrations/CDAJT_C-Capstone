@@ -7,6 +7,13 @@ namespace back_end.domain.enums
         Suspended,
         Deleted
     }
+    public enum UserRoles
+    {
+        Admin,
+        Employee,
+        Customer,
+        Staff
+    }
 
     public enum ServiceRequestStatus
     {
@@ -15,13 +22,7 @@ namespace back_end.domain.enums
         Completed,
         Cancelled
     }
-    public enum UserRoles
-    {
-        Admin,
-        Employee,
-        Customer,
-        Staff
-    }
+
     public enum OrderStatus
     {
         Pending,

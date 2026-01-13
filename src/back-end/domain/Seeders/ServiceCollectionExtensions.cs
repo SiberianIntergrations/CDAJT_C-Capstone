@@ -20,6 +20,7 @@ namespace back_end.domain.Seeders
       services.AddScoped<TableSeeder>();
       services.AddScoped<DiningSessionSeeder>();
       services.AddScoped<TableGroupSeeder>();
+      services.AddScoped<UserSeeder>();
       services.AddScoped<SessionParticipantSeeder>();
       services.AddScoped<BillSeeder>();
       services.AddScoped<SessionOrderSeeder>();

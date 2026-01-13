@@ -30,7 +30,7 @@ const StaffManagementForm = ({
     last_name: initialData?.last_name || "",
     role: initialData?.role || "staff",
     status: initialData?.status || "active",
-    location_id: initialData?.location_id || "",
+    location_Id: initialData?.location_Id || initialData?.location_id || "",
   });
 
   // Fetch locations when component mounts
@@ -151,8 +151,8 @@ const StaffManagementForm = ({
           <FormControl fullWidth>
             <InputLabel>Location</InputLabel>
             <Select
-              name="location_id"
-              value={formData.location_id}
+              name="location_Id"
+              value={formData.location_Id}
               onChange={handleChange}
               label="Location"
             >

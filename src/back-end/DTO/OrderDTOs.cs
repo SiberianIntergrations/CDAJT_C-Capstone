@@ -94,7 +94,7 @@ namespace back_end.DTO.OrdersDTOs
         [JsonPropertyName("bill_id")]
         public int Bill_Id { get; set; }
 
-        public string? Request_By_Oid { get; set; }
+        public int? Request_By_User_Id { get; set; }
         public string? Request_By_Name { get; set; }
     }
 
@@ -109,7 +109,7 @@ namespace back_end.DTO.OrdersDTOs
         public int Order_Id { get; set; }
         public int Session_Id { get; set; }
         public int Bill_Id { get; set; }
-        public string? User_Oid { get; set; }
+        public int? User_Id { get; set; }
         public string? User_Name { get; set; }
         public OrderStatus Status { get; set; }
         public DateTime Created_At { get; set; }

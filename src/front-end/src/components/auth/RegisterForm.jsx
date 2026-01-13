@@ -13,7 +13,9 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { UserPlus } from "lucide-react";
-import { registerUser } from "@/utils/auth";
+//import { registerUser } from "@/utils/auth";
+import { registerUser } from "@/config/auth";
+
 
 const RegisterForm = () => {
   const router = useRouter();
@@ -47,14 +49,15 @@ const RegisterForm = () => {
       setLoading(false);
       return;
     }
-
     try {
-      await registerUser({
+      const request =await registerUser({
         email: formData.email,
         password: formData.password,
         first_name: formData.firstName,
         last_name: formData.lastName,
       });
+      localStorage.setItem("access_token",request.data.access_token)
+      localStorage.setItem("authToken",request.data.access_token)
 
       setIsSuccess(true);
 
@@ -66,9 +69,9 @@ const RegisterForm = () => {
         firstName: "",
         lastName: "",
       });
+      router.push("/")
     } catch (err) {
       console.error("Registration error:", err);
-
       if (err.response) {
         const status = err.response.status;
         const detail = err.response.data?.detail;

@@ -23,6 +23,7 @@ namespace back_end.domain.DbContexts
     public DbSet<TableEntity> Tables { get; set; } = null!;
     public DbSet<TableGroup> TableGroups { get; set; } = null!;
     public DbSet<Tag> Tags { get; set; } = null!;
+    public DbSet<User> Users { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -86,6 +87,18 @@ namespace back_end.domain.DbContexts
               "CK_DiningSession_TableAssignment",
               "(Table_Id IS NOT NULL AND TableGroup_Id IS NULL) OR (Table_Id IS NULL AND TableGroup_Id IS NOT NULL) OR (Table_Id IS NULL AND TableGroup_Id IS NULL)"));
 
+              // ServiceRequest relationships
+      modelBuilder.Entity<ServiceRequest>()
+          .HasOne(sr => sr.RequestedByUser)
+          .WithMany(u => u.RequestedServices)
+          .HasForeignKey(sr => sr.Request_By)
+          .OnDelete(DeleteBehavior.Restrict);
+
+      modelBuilder.Entity<ServiceRequest>()
+          .HasOne(sr => sr.ClaimedByUser)
+          .WithMany(u => u.ClaimedServices)
+          .HasForeignKey(sr => sr.Claimed_By)
+          .OnDelete(DeleteBehavior.SetNull);
       base.OnModelCreating(modelBuilder);
     }
   }

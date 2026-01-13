@@ -8,6 +8,7 @@ import {
   Paper,
   Alert,
   CircularProgress,
+  Divider,
 } from "@mui/material";
 import { Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -36,18 +37,26 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
+      console.log("Logging in");
       const response = await loginUser(formData.email, formData.password);
 
+      console.log("AfterLogin");
       router.push("/");
     } catch (err) {
       console.error("Login error:", err);
       setError(
         err.response?.data?.detail ||
+          err.response?.data?.message ||
           "Login failed. Please check your credentials and try again."
       );
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    // Implement Google OAuth login here
+    console.log("Google login clicked");
   };
 
   const handleForgotPassword = () => {
@@ -66,13 +75,14 @@ const LoginForm = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        padding: 6,
+        padding: { xs: 2, sm: 4, md: 6 },
       }}
     >
       <Paper
         sx={{
-          padding: 8,
+          padding: { xs: 3, sm: 5, md: 8 },
           width: "100%",
+          maxWidth: "500px",
           backgroundColor: "white",
           borderRadius: 2,
         }}
@@ -82,13 +92,23 @@ const LoginForm = () => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 4,
+            gap: { xs: 2, sm: 3, md: 4 },
           }}
         >
           <Box
-            sx={{ borderRadius: "50%", backgroundColor: "red.100", padding: 1 }}
+            sx={{
+              borderRadius: "50%",
+              backgroundColor: "red.100",
+              padding: { xs: 0.75, sm: 1 },
+            }}
           >
-            <Lock sx={{ width: 40, height: 40, color: "red.600" }} />
+            <Lock
+              sx={{
+                width: { xs: 32, sm: 40 },
+                height: { xs: 32, sm: 40 },
+                color: "red.600",
+              }}
+            />
           </Box>
 
           <Typography
@@ -98,7 +118,8 @@ const LoginForm = () => {
               fontWeight: "bold",
               textAlign: "center",
               color: "gray.900",
-              marginBottom: 4,
+              marginBottom: { xs: 2, sm: 3, md: 4 },
+              fontSize: { xs: "1.5rem", sm: "2rem", md: "2.125rem" },
             }}
           >
             Login to Sushi Toshi
@@ -107,21 +128,73 @@ const LoginForm = () => {
           {error && (
             <Alert
               severity="error"
-              sx={{ width: "100%", marginBottom: 4, fontSize: "0.95rem" }}
+              sx={{
+                width: "100%",
+                marginBottom: { xs: 2, sm: 3, md: 4 },
+                fontSize: { xs: "0.875rem", sm: "0.95rem" },
+              }}
             >
               {error}
             </Alert>
           )}
 
-          <form
+          <Box
+            component="form"
             onSubmit={handleSubmit}
             sx={{
               width: "100%",
               display: "flex",
               flexDirection: "column",
-              gap: 4,
+              gap: { xs: 2, sm: 3 },
             }}
           >
+            {/* Google Sign In Button */}
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={handleGoogleLogin}
+              sx={{
+                borderColor: "gray.300",
+                color: "gray.700",
+                paddingY: { xs: 1.5, sm: 2 },
+                fontSize: { xs: "1rem", sm: "1.1rem" },
+                height: { xs: 48, sm: 56 },
+                textTransform: "none",
+                "&:hover": {
+                  borderColor: "gray.400",
+                  backgroundColor: "gray.50",
+                },
+                display: "flex",
+                gap: 2,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20">
+                <path
+                  fill="#4285F4"
+                  d="M19.6 10.23c0-.82-.1-1.42-.25-2.05H10v3.72h5.5c-.15.96-.74 2.31-2.04 3.22v2.45h3.16c1.89-1.73 2.98-4.3 2.98-7.34z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M13.46 15.13c-.83.59-1.96 1-3.46 1-2.64 0-4.88-1.74-5.68-4.15H1.07v2.52C2.72 17.75 6.09 20 10 20c2.7 0 4.96-.89 6.62-2.42l-3.16-2.45z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M3.99 10c0-.69.12-1.35.32-1.97V5.51H1.07A9.973 9.973 0 000 10c0 1.61.39 3.14 1.07 4.49l3.24-2.52c-.2-.62-.32-1.28-.32-1.97z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M10 3.88c1.88 0 3.13.81 3.85 1.48l2.84-2.76C14.96.99 12.7 0 10 0 6.09 0 2.72 2.25 1.07 5.51l3.24 2.52C5.12 5.62 7.36 3.88 10 3.88z"
+                />
+              </svg>
+              Continue with Google
+            </Button>
+
+            <Divider sx={{ marginY: { xs: 1, sm: 2 } }}>
+              <Typography variant="body2" color="text.secondary">
+                OR
+              </Typography>
+            </Divider>
+
             <TextField
               label="Email Address"
               name="email"
@@ -131,8 +204,8 @@ const LoginForm = () => {
               required
               fullWidth
               variant="outlined"
-              sx={{ backgroundColor: "white", marginBottom: 4 }}
-              size="large"
+              sx={{ backgroundColor: "white" }}
+              size="medium"
             />
 
             <TextField
@@ -144,8 +217,8 @@ const LoginForm = () => {
               required
               fullWidth
               variant="outlined"
-              sx={{ backgroundColor: "white", marginBottom: 2 }}
-              size="large"
+              sx={{ backgroundColor: "white" }}
+              size="medium"
             />
 
             <Button
@@ -159,16 +232,15 @@ const LoginForm = () => {
                   backgroundColor: "red.700",
                 },
                 color: "white",
-                paddingY: 2,
-                marginBottom: 4,
-                fontSize: "1.1rem",
-                height: 56,
+                paddingY: { xs: 1.5, sm: 2 },
+                fontSize: { xs: "1rem", sm: "1.1rem" },
+                height: { xs: 48, sm: 56 },
                 textTransform: "none",
-                marginTop: "1rem",
+                marginTop: { xs: "0.5rem", sm: "1rem" },
               }}
             >
               {loading ? (
-                <CircularProgress size={28} sx={{ color: "white" }} />
+                <CircularProgress size={24} sx={{ color: "white" }} />
               ) : (
                 "Sign In"
               )}
@@ -179,16 +251,22 @@ const LoginForm = () => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: 3,
+                gap: { xs: 2, sm: 3 },
+                marginTop: { xs: 1, sm: 2 },
               }}
             >
               <Button
                 onClick={handleForgotPassword}
+                fullWidth
+                variant="text"
                 sx={{
                   color: "gray.600",
-                  "&:hover": { color: "gray.800" },
-                  fontSize: "1rem",
-                  padding: "0rem 1rem",
+                  "&:hover": {
+                    color: "gray.800",
+                    backgroundColor: "gray.50",
+                  },
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  paddingY: { xs: 1, sm: 1.5 },
                   textTransform: "none",
                 }}
               >
@@ -197,18 +275,23 @@ const LoginForm = () => {
 
               <Button
                 onClick={handleRegister}
+                fullWidth
+                variant="text"
                 sx={{
                   color: "gray.600",
-                  "&:hover": { color: "gray.800" },
-                  fontSize: "1rem",
-                  padding: "0rem 1rem",
+                  "&:hover": {
+                    color: "gray.800",
+                    backgroundColor: "gray.50",
+                  },
+                  fontSize: { xs: "0.875rem", sm: "1rem" },
+                  paddingY: { xs: 1, sm: 1.5 },
                   textTransform: "none",
                 }}
               >
                 Create New Account
               </Button>
             </Box>
-          </form>
+          </Box>
         </Box>
       </Paper>
     </Box>

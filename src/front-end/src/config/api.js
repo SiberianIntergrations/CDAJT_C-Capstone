@@ -1,10 +1,10 @@
 import axios from "axios";
-import msalInstance from "@/config/msalInstance";
-import { loginRequest } from "@/config/auth"; // use loginRequest, not silentRequest
 
 export const API_BASE_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) ||
   "http://localhost:5264";
+
+console.log(API_BASE_URL);
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -14,42 +14,45 @@ export const api = axios.create({
   },
 });
 
-api.interceptors.request.use(async (config) => {
-
-    //Skip MSAL for guest users
-  if (typeof window !== "undefined" && localStorage.getItem("guest") === "true") {
-    return config;
-  }
-
-  try {
-    // Get the currently signed-in account
-    const activeAccount = msalInstance.getActiveAccount();
-    if (!activeAccount) {
-      throw new Error("No active account! Please sign in before making API calls.");
-    }
-
-    // Acquire token silently for the active account
-    const tokenResponse = await msalInstance.acquireTokenSilent({
-      ...loginRequest,
-      account: activeAccount,
-    });
-
-    config.headers.Authorization = `Bearer ${tokenResponse.accessToken}`;
-    return config;
-
-  } catch (error) {
-    console.warn("Silent token acquisition failed:", error);
-
-    // Optional fallback to popup if the token is expired or missing
-    try {
-      const popupResponse = await msalInstance.acquireTokenPopup(loginRequest);
-      config.headers.Authorization = `Bearer ${popupResponse.accessToken}`;
+// Simple token-based auth interceptor
+api.interceptors.request.use(
+  (config) => {
+    // Skip auth for guest users or login endpoint
+    if (
+      typeof window !== "undefined" &&
+      (localStorage.getItem("guest") === "true" || 
+       config.url?.includes("/auth/login"))
+    ) {
       return config;
-    } catch (popupError) {
-      console.error("Token acquisition failed completely:", popupError);
-      return Promise.reject(popupError);
     }
+
+    // Add token from localStorage if it exists
+    const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+    
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-});
+);
+
+// Optional: Handle 401 responses (token expired)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear token and redirect to login
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("authToken");
+        window.location.href = "/login";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

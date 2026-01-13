@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getUserName, isAuthenticated } from "@/utils/token";
-import msalInstance from "@/config/msalInstance";
+import { decodeToken, isTokenExpired } from "@/config/auth";
+import { getAuthToken } from "@/utils/auth";
 import AppBarWithTitle from "@/components/AppBarWithTitle";
 import { useRouter } from "next/navigation";
+import useAuth from "@/hooks/useAuth";
 
 const HomePage = () => {
   const [userName, setUserName] = useState(null);
@@ -12,27 +13,28 @@ const HomePage = () => {
   const [ready, setReady] = useState(false);
   const [tableNumber, setTableNumber] = useState("");
   const router = useRouter();
+  const { isAuthenticated: isAuthenticatedHook, userEmail } = useAuth();
 
   useEffect(() => {
     const init = async () => {
       let name = null;
       let guestMode = false;
 
-      if (isAuthenticated()) {
-        name = getUserName();
+      // Check if user is authenticated via token
+      const token = getAuthToken();
+      if (token && !isTokenExpired(token)) {
+        const claims = decodeToken(token);
+        if (claims) {
+          // Try to get name from different possible claim fields
+          name = claims.name || 
+                 claims.given_name || 
+                 claims.email?.split('@')[0] || 
+                 userEmail?.split('@')[0] ||
+                 "User";
+        }
       }
 
-      if (!name) {
-        try {
-          await msalInstance.initialize();
-          const accounts = msalInstance.getAllAccounts();
-          if (accounts?.length > 0) {
-            const acc = accounts[0];
-            name = acc.name || acc.username || "User";
-          }
-        } catch {}
-      }
-
+      // Check if guest mode
       if (!name && localStorage.getItem("guest") === "true") {
         guestMode = true;
         name = "Guest";
@@ -44,7 +46,7 @@ const HomePage = () => {
     };
 
     init();
-  }, []);
+  }, [userEmail]);
 
   const handleContinueAsGuest = () => {
     localStorage.setItem("guest", "true");
@@ -104,47 +106,46 @@ const HomePage = () => {
           </button>
         )}
 
-  {isGuest && (
-    <div style={{ marginTop: "2rem" }}>
-      {localStorage.getItem("tableNumber") ? (
-        <h3>
-          You’re seated at table {localStorage.getItem("tableNumber")}
-        </h3>
-      ) : (
-        <>
-          <h3>Enter Your Table Number</h3>
-          <input
-            type="number"
-            placeholder="Table #"
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            style={{
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              marginRight: "10px",
-            }}
-          />
-          <button
-            onClick={() => {
-              if (!tableNumber.trim()) return alert("Please enter a table number.");
-              localStorage.setItem("tableNumber", tableNumber.trim());
-              router.push(`/join?table=${tableNumber.trim()}`);
-            }}
-            style={{
-              backgroundColor: "#388e3c",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "10px 22px",
-              cursor: "pointer",
-            }}
-          >
-            Join Table
-          </button>
-        </>
-      )}
-
+        {isGuest && (
+          <div style={{ marginTop: "2rem" }}>
+            {localStorage.getItem("tableNumber") ? (
+              <h3>
+                You're seated at table {localStorage.getItem("tableNumber")}
+              </h3>
+            ) : (
+              <>
+                <h3>Enter Your Table Number</h3>
+                <input
+                  type="number"
+                  placeholder="Table #"
+                  value={tableNumber}
+                  onChange={(e) => setTableNumber(e.target.value)}
+                  style={{
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #ccc",
+                    marginRight: "10px",
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (!tableNumber.trim()) return alert("Please enter a table number.");
+                    localStorage.setItem("tableNumber", tableNumber.trim());
+                    router.push(`/join?table=${tableNumber.trim()}`);
+                  }}
+                  style={{
+                    backgroundColor: "#388e3c",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 22px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Join Table
+                </button>
+              </>
+            )}
 
             <div style={{ marginTop: "1.5rem" }}>
               <button

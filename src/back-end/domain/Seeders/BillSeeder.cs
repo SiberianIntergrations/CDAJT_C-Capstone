@@ -19,7 +19,7 @@ namespace back_end.domain.Seeders
     private readonly ILogger<BillSeeder> _logger;
     private readonly Random _rng = new();
 
-    private Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
+    private Dictionary<int, (string DisplayName, string GivenName, string Surname)> _userSeedData;
 
     public BillSeeder(ApplicationDbContext context, ILogger<BillSeeder> logger)
     {
@@ -27,7 +27,7 @@ namespace back_end.domain.Seeders
       _logger = logger;
     }
 
-    public void SetUserSeedData(Dictionary<string, (string DisplayName, string GivenName, string Surname)> userSeedData)
+    public void SetUserSeedData(Dictionary<int, (string DisplayName, string GivenName, string Surname)> userSeedData)
     {
       _userSeedData = userSeedData;
     }
@@ -49,8 +49,8 @@ namespace back_end.domain.Seeders
       }
 
       int created = 0;
-      var userUsageCount = new Dictionary<string, int>();
-      var userOids = _userSeedData.Keys.ToList();
+      var userUsageCount = new Dictionary<int, int>();
+      var userIds = _userSeedData.Keys.ToList();
 
       var sessionsToProcess = sessions.Take(20).ToList();
 
@@ -83,8 +83,8 @@ namespace back_end.domain.Seeders
           if (remaining <= 0) break;
 
           // Pick a random user as the bill owner
-          var userOid = userOids[_rng.Next(userOids.Count)];
-          var info = _userSeedData[userOid];
+          var userId = userIds[_rng.Next(userIds.Count)];
+          var info = _userSeedData[userId];
 
           var maxGuests = Math.Min(remaining, 6);
           var adult = _rng.Next(1, maxGuests + 1);
@@ -123,14 +123,14 @@ namespace back_end.domain.Seeders
           var billName = $"Table {string.Join(" & ", tableNumbersStr)} - Party of {total}";
 
           var participant = _context.SessionParticipants
-              .FirstOrDefault(p => p.Session_Id == s.Session_Id && p.User_Oid == userOid);
+              .FirstOrDefault(p => p.Session_Id == s.Session_Id && p.User_Id == userId);
 
           var createdAt = (participant?.Joined_At ?? s.Started_At).AddMinutes(_rng.Next(5, 31));
 
           // Track user usage
-          if (!userUsageCount.ContainsKey(userOid))
-            userUsageCount[userOid] = 0;
-          userUsageCount[userOid]++;
+          if (!userUsageCount.ContainsKey(userId))
+            userUsageCount[userId] = 0;
+          userUsageCount[userId]++;
 
           var bill = new Billing
           {

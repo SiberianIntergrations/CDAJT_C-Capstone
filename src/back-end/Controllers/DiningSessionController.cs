@@ -9,6 +9,7 @@ using back_end.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
 using back_end.Helpers;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace back_end.controllers
 {
@@ -118,14 +119,14 @@ namespace back_end.controllers
                 {
                     var existingParticipant = await _context.SessionParticipants
                         .FirstOrDefaultAsync(p => p.Session_Id == existingSession.Session_Id &&
-                                              p.User_Oid == sessionData.Request_By_Oid);
+                                              p.User_Id == sessionData.Request_By_User_Id);
 
                     if (existingParticipant == null)
                     {
                         _context.SessionParticipants.Add(new SessionParticipant
                         {
                             Session_Id = existingSession.Session_Id,
-                            User_Oid = sessionData.Request_By_Oid,
+                            User_Id = sessionData.Request_By_User_Id,
                             User_Name = sessionData.Request_By_Name ?? "Guest",
                             Joined_At = DateTime.UtcNow
                         });
@@ -190,17 +191,17 @@ namespace back_end.controllers
                 .OrderByDescending(s => s.Session_Id)
                 .FirstOrDefaultAsync();
 
-            if (sessionData.Request_By_Oid != null && sessionData.Request_By_Name == "Guest")
+            if (sessionData.Request_By_User_Id != null && sessionData.Request_By_Name == "Guest")
             {
                 var alreadyExists = _context.SessionParticipants
-                    .Any(sp => sp.Session_Id == newDiningSession.Session_Id && sp.User_Oid == sessionData.Request_By_Oid);
+                    .Any(sp => sp.Session_Id == newDiningSession.Session_Id && sp.User_Id == sessionData.Request_By_User_Id);
 
                 if (!alreadyExists)
                 {
                     var guestParticipant = new SessionParticipant
                     {
                         Session_Id = newDiningSession.Session_Id,
-                        User_Oid = sessionData.Request_By_Oid,
+                        User_Id = sessionData.Request_By_User_Id,
                         User_Name = "Guest",
                         Joined_At = DateTime.UtcNow
                     };
@@ -262,7 +263,9 @@ namespace back_end.controllers
     {
       try
       {
-        var query = _context.DiningSessions
+        var user = ClaimsHelpers.GetUserId(User);
+        var location = await _context.Users.Where(u => u.User_id.ToString() == user).Select(u => u.Location_id).FirstOrDefaultAsync();
+        var query = _context.DiningSessions.Where(ds => ds.Location_Id == location)
             .Include(s => s.Table)
             .Include(s => s.TableGroup)
                 .ThenInclude(tg => tg.Tables)
@@ -724,15 +727,15 @@ namespace back_end.controllers
     {
       try
       {
-        // Get current user Oid from claims using ClaimsHelpers
-        var userOid = ClaimsHelpers.GetUserOid(User);
+        // Get current user ID from claims using ClaimsHelpers
+        var userIdString = ClaimsHelpers.GetUserId(User);
 
-        _logger.LogInformation($"USER OID: '{userOid}'");
+        _logger.LogInformation($"USER ID: '{userIdString}'");
 
 
-        if (string.IsNullOrEmpty(userOid))
+        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
         {
-          return Unauthorized(new { message = "User not authenticated" });
+          return Unauthorized(new { message = "User not authenticated or invalid user ID" });
         }
 
         var activeSessionId = await _context.DiningSessions
@@ -741,7 +744,7 @@ namespace back_end.controllers
                 ds => ds.Session_Id,
                 sp => sp.Session_Id,
                 (ds, sp) => new { ds, sp })
-            .Where(x => x.sp.User_Oid == userOid &&
+            .Where(x => x.sp.User_Id == userId &&
                         x.ds.Ended_At == null)
             .OrderByDescending(x => x.ds.Started_At) // Added to ensure the most recent session is shown
             .Select(x => x.ds.Session_Id)
@@ -774,17 +777,17 @@ namespace back_end.controllers
     {
         try
         {
-            var userOid = ClaimsHelpers.GetUserOid(User);
+            var userIdString = ClaimsHelpers.GetUserId(User);
 
-            if (string.IsNullOrEmpty(userOid))
-                return Unauthorized(new { message = "User not authenticated" });
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
+                return Unauthorized(new { message = "User not authenticated or invalid user ID" });
 
             var latestSessionId = await _context.DiningSessions
                 .Join(_context.SessionParticipants,
                     ds => ds.Session_Id,
                     sp => sp.Session_Id,
                     (ds, sp) => new { ds, sp })
-                .Where(x => x.sp.User_Oid == userOid &&
+                .Where(x => x.sp.User_Id == userId &&
                             x.ds.Ended_At == null)
                 .OrderByDescending(x => x.ds.Started_At)
                 .Select(x => x.ds.Session_Id)
@@ -946,7 +949,7 @@ namespace back_end.controllers
 
         //Check if guest is already in this session
         bool alreadyJoined = await _context.SessionParticipants
-            .AnyAsync(sp => sp.Session_Id == dto.Session_Id && sp.User_Oid == dto.User_Oid);
+            .AnyAsync(sp => sp.Session_Id == dto.Session_Id && sp.User_Id == dto.User_Id);
         if (alreadyJoined)
             return BadRequest(new { message = "Guest already joined this session" });
 
@@ -955,7 +958,7 @@ namespace back_end.controllers
         {
             Session_Id = dto.Session_Id,
             User_Name = "Guest",
-            User_Oid = dto.User_Oid,
+            User_Id = dto.User_Id,
             Joined_At = DateTime.UtcNow
         };
 
@@ -964,5 +967,53 @@ namespace back_end.controllers
 
         return Ok(new { message = "Guest added successfully" });
     }
+
+    [HttpPost("addguestparticipant/v2")]
+    [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AddGuestParticipantV2(
+      [FromBody] AddGuestParticipantV2DTO request)
+    {
+
+      try
+      {
+        var table_id = request.TableId;
+        var location_id = request.LocationId;
+        var userIdString = ClaimsHelpers.GetUserId(User);
+        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
+        {
+          return Unauthorized(new { message = "User not authenticated or invalid user ID" });
+        }
+        //Find the next available empty session for the table
+        if (!_context.DiningSessions.Any(ds => (ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id) ))
+        {
+          return NotFound(new { message = "No active session found for the specified table" });
+        }
+
+        var newParticipant = new SessionParticipant
+        {
+          Session_Id = await _context.DiningSessions
+              .Where(ds => ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id)
+              .Select(ds => ds.Session_Id)
+              .FirstOrDefaultAsync(),
+          User_Name = await _context.Users
+              .Where(u => u.User_id == userId)
+              .Select(u => u.Email)
+              .FirstOrDefaultAsync(),
+          User_Id = int.Parse(userIdString),
+          Joined_At = DateTime.UtcNow
+        };
+        await _context.SessionParticipants.AddAsync(newParticipant);
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Guest participant added successfully" });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message }); 
+      }
+
+    }
   }
+
 }

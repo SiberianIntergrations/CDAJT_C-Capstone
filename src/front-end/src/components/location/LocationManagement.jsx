@@ -36,11 +36,11 @@ const LocationManagement = () => {
       const data = Array.isArray(response.data) ? response.data : [];
 
       const normalized = data.map((r) => {
-        const locationId = r.location_id ?? r.location_Id ?? r.locationId ?? r.id ?? r.ID ?? null;
+        const locationId = r.location_Id ?? r.location_id ?? r.locationId ?? r.id ?? r.ID ?? null;
 
         return {
           ...r,
-          location_id: locationId,
+          location_Id: locationId,
           id: locationId, // DataGrid default id field
           name: r.name ?? r.Name,
           address_one: r.address_one ?? r.address_Primary ?? r.addressPrimary ?? r.address1,
@@ -108,7 +108,7 @@ const LocationManagement = () => {
 
   const handleDeleteConfirm = async () => {
     try {
-      await api.delete(`/Location/${locationToDelete.location_id}`);
+      await api.delete(`/Location/${locationToDelete.location_Id}`);
       await fetchLocations();
       setDeleteDialogOpen(false);
       setLocationToDelete(null);
@@ -147,7 +147,7 @@ const LocationManagement = () => {
         await api.post("/Location", formData);
       } else {
         // TODO: Need endpoint to /Location/{id} on the backend
-        await api.put(`/Location/${selectedLocation.location_id}`,
+        await api.put(`/Location/${selectedLocation.location_Id}`,
           formData
         );
       }
@@ -197,7 +197,7 @@ const LocationManagement = () => {
   }));
 
   const columns = [
-    { field: "location_id", headerName: "ID", width: 90 },
+    { field: "location_Id", headerName: "ID", width: 90 },
     { field: "name", headerName: "Name", width: 200 },
     { field: "address_one", headerName: "Address 1", width: 200 },
     {
@@ -252,7 +252,7 @@ const LocationManagement = () => {
         rows={locations}
         columns={columns}
         loading={loading}
-        getRowId={(row) => row.location_id}
+        getRowId={(row) => row.location_Id}
         disableSelectionOnClick
         sx={{
           bgcolor: "background.paper",
