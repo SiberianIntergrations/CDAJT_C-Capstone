@@ -46,7 +46,7 @@ namespace back_end.Controllers
         /// <response code="409">The user is already an active participant in the session.</response>
         /// <response code="500">An unexpected error occurred while joining the session.</response>
         [Authorize]
-        [HttpPost("{session_id:int}/join")]
+        [HttpPost("{session_id:int}/{table_id:int?}/join")]
         [Produces("application/json")]
         [SwaggerOperation(
             OperationId = "JoinSession",
@@ -55,7 +55,8 @@ namespace back_end.Controllers
         )]
         [ProducesResponseType(typeof(SessionParticipantResponseDTO), StatusCodes.Status200OK)]
         public async Task<IActionResult> JoinSession(
-            int session_id
+            int session_id,
+            int table_id = 0
         )
         {
             try
@@ -138,7 +139,8 @@ namespace back_end.Controllers
         )
         {
             try
-            {
+            {   
+                
                 var session = await _context.DiningSessions.FirstOrDefaultAsync(ds => ds.Session_Id == session_id);
                 if (session is null)
                 {

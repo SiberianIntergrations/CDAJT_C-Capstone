@@ -14,7 +14,8 @@ namespace back_end.Controllers
     /// </summary>
     [ApiController]
     [Route("api/admin/qr")]
-    [Authorize(Roles = "user.Admin,user.Staff")]
+    //[Authorize(Roles = "user.Admin,user.Staff")]
+    [Authorize(Roles = "Admin")]
     public class AdminQrCodeController : ControllerBase
     {
         private readonly QrGeneratorService _qrService;

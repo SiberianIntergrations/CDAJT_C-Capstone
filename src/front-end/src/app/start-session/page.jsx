@@ -42,6 +42,7 @@ export default function StartSessionPage() {
 
       // 2. Look up the table_id from table_number and location_id
       const tableResponse = await api.get('/TableEntity');
+      console.log(`Table Response: ${tableResponse.data}`)
       const allTables = tableResponse.data;
 
       const table = allTables.find(
@@ -72,17 +73,26 @@ export default function StartSessionPage() {
       }
 
       // 4. Create the dining session
+      // const sessionData = {
+      //   menu_id: defaultMenu.menu_id,
+      //   location_id: parseInt(locationId),
+      //   table_id: table.table_Id,
+      //   tablegroup_id: null
+      // };
       const sessionData = {
         menu_id: defaultMenu.menu_id,
-        location_id: parseInt(locationId),
-        table_id: table.table_Id,
+        locationId: parseInt(locationId),
+        tableId: table.table_Id,
         tablegroup_id: null
       };
-
       console.log('Creating session with data:', sessionData);
 
-      const sessionResponse = await api.post(
-        '/DiningSession/Create_Dinning_Session',
+      // const sessionResponse = await api.post(
+      //   '/DiningSession/Create_Dinning_Session',
+      //   sessionData
+      // );
+            const sessionResponse = await api.post(
+        '/DiningSession/addguestparticipant/v2',
         sessionData
       );
 

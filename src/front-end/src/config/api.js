@@ -4,6 +4,8 @@ export const API_BASE_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) ||
   "http://localhost:5264";
 
+console.log(API_BASE_URL);
+
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
   timeout: 1000000,

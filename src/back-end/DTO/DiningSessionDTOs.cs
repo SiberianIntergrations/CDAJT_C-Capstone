@@ -66,4 +66,10 @@ namespace back_end.DTO.DiningSessionDTOs
   {
     public bool ActiveOnly { get; set; } = false;
   }
+
+  public class AddGuestParticipantV2DTO
+  {
+    public int TableId { get; set; }
+    public int LocationId { get; set; }
+  }
 }

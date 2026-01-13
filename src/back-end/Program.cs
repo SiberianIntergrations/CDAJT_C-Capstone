@@ -138,7 +138,7 @@ builder.Services.AddCors(options =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173","http://192.168.1.68:3000")
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();
@@ -158,6 +158,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddHttpContextAccessor();
 // Services
 builder.Services.AddScoped<IPricingService, PricingService>();
+builder.Services.AddScoped<QrGeneratorService>();
 
 // Temporary //**
 Console.WriteLine(">>> USING CONNECTION STRING:");

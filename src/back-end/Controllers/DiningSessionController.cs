@@ -9,6 +9,7 @@ using back_end.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
 using back_end.Helpers;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace back_end.controllers
 {
@@ -965,5 +966,53 @@ namespace back_end.controllers
 
         return Ok(new { message = "Guest added successfully" });
     }
+
+    [HttpPost("addguestparticipant/v2")]
+    [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AddGuestParticipantV2(
+      [FromBody] AddGuestParticipantV2DTO request)
+    {
+
+      try
+      {
+        var table_id = request.TableId;
+        var location_id = request.LocationId;
+        var userIdString = ClaimsHelpers.GetUserId(User);
+        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
+        {
+          return Unauthorized(new { message = "User not authenticated or invalid user ID" });
+        }
+        //Find the next available empty session for the table
+        if (!_context.DiningSessions.Any(ds => (ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id) ))
+        {
+          return NotFound(new { message = "No active session found for the specified table" });
+        }
+
+        var newParticipant = new SessionParticipant
+        {
+          Session_Id = await _context.DiningSessions
+              .Where(ds => ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id)
+              .Select(ds => ds.Session_Id)
+              .FirstOrDefaultAsync(),
+          User_Name = await _context.Users
+              .Where(u => u.User_id == userId)
+              .Select(u => u.Email)
+              .FirstOrDefaultAsync(),
+          User_Id = int.Parse(userIdString),
+          Joined_At = DateTime.UtcNow
+        };
+        await _context.SessionParticipants.AddAsync(newParticipant);
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Guest participant added successfully" });
+      }
+      catch (Exception ex)
+      {
+        return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message }); 
+      }
+
+    }
   }
+
 }
