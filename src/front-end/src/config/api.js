@@ -4,7 +4,7 @@ export const API_BASE_URL =
   (typeof process !== "undefined" && process.env.NEXT_PUBLIC_API_URL) ||
   "http://localhost:5264";
 
-console.log(API_BASE_URL);
+
 
 export const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -18,17 +18,14 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     // Skip auth for guest users or login endpoint
-    if (
-      typeof window !== "undefined" &&
-      (localStorage.getItem("guest") === "true" || 
-       config.url?.includes("/auth/login"))
-    ) {
+    if (config.url?.includes("/auth/login")) 
+    {
       return config;
     }
 
     // Add token from localStorage if it exists
     const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-    
+    console.log(`Api Request: ${token}`)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

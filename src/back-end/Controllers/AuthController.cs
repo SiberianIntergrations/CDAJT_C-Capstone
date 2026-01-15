@@ -10,6 +10,7 @@ using System.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using back_end.domain.enums;
+using Google.Apis.Auth;
 
 
 namespace back_end.controllers
@@ -180,6 +181,99 @@ namespace back_end.controllers
             return Ok(new { 
                 access_token = GenerateJwtToken(SendNewTokenUser),
                 message = "User created successfully" });
+        }
+
+
+        [HttpPost("google")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleTokenDTO request)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(request.IdToken))
+                {
+                    return BadRequest(new { message = "Token is required" });
+                }
+
+                // Verify the Google token
+                var settings = new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = new[] { "913755751162-t0grfn5dn2np3lds6sca84l6all5rl4d.apps.googleusercontent.com" }
+                };
+
+                GoogleJsonWebSignature.Payload payload;
+                
+                try
+                {
+                    payload = await GoogleJsonWebSignature.ValidateAsync(request.IdToken, settings);
+                }
+                catch (InvalidJwtException)
+                {
+                    return Unauthorized(new { message = "Invalid Google token" });
+                }
+
+                // Extract user info from verified token
+                string userEmail = payload.Email.ToLower().Trim();
+                string userName = payload.Name;
+                string userPicture = payload.Picture;
+                string googleId = payload.Subject;
+                bool emailVerified = payload.EmailVerified;
+
+                // Check if user exists
+                var existingUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == userEmail);
+                
+                domain.Entities.User user;
+                
+                if (existingUser != null)
+                {
+                    // Existing user - update info if needed
+                    user = existingUser;
+                    
+                    if (string.IsNullOrEmpty(user.First_name))
+                    {
+                        user.First_name = userName;
+                    }
+
+                    if (string.IsNullOrEmpty(user.GoogleSocial))
+                    {
+                        user.GoogleSocial = googleId;
+                    }
+                    
+                    await _context.SaveChangesAsync();
+                }
+                else
+                {
+                    // New user - create account
+                    user = new domain.Entities.User
+                    {
+                        Email = userEmail,
+                        First_name = userName,
+                        GoogleSocial = googleId,
+                        Is_email_confirmed = emailVerified,
+                        Created_at = DateTime.UtcNow
+                    };
+                    
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Generate JWT tokens
+                var accessToken = GenerateJwtToken(user);
+
+                return Ok(new
+                {
+                    access_token = accessToken,
+                    message = existingUser != null ? "Login successful" : "Account created successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Google login error: {ex.Message}");
+                return StatusCode(500, new { message = "Authentication failed", error = ex.Message });
+            }
         }
 
         /// <summary>

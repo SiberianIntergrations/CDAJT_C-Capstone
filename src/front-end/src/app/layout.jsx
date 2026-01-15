@@ -104,9 +104,14 @@ export default function RootLayout({ children }) {
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          <MenuProvider>
-            <Layout>{children}</Layout>
-          </MenuProvider>
+          <NotificationProvider>
+            <MenuProvider>
+              <OrderProvider>
+                <Layout>{children}</Layout>
+              </OrderProvider>
+            </MenuProvider>
+            <NotificationSystem />
+          </NotificationProvider>
         </ThemeProvider>
       </body>
     </html>

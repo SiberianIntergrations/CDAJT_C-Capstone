@@ -1,2 +1,2 @@
-SELECT * FROM session_participant
-WHERE Session_Id = 102;
+select * from users
+WHere Email = "tim.torpy@gmail.com"

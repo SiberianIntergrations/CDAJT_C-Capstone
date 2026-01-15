@@ -3,47 +3,61 @@
 import React, { useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import publicApi from "@/config/publicApi";
+import {api} from "@/config/api"
 import { Container, Box, Typography, CircularProgress } from "@mui/material";
 
 function JoinInner() {
   const searchParams = useSearchParams();
   const tableNumber = searchParams.get("table");
+  const locationNumber = searchParams.get("location")
 
-  useEffect(() => {
-    const joinAsGuest = async () => {
-      if (!tableNumber) return;
+useEffect(() => {
+  const joinAsGuest = async () => {
+    if (!tableNumber || !locationNumber) {
+      console.error('Missing table or location number');
+      return;
+    }
 
-      try {
-        const guestOid = `guest-${crypto.randomUUID()}`;
+    try {
+      const guestOid = `guest-${crypto.randomUUID()}`;
+      
+      // ✅ DEFINE payload FIRST
+      const payload = {
+        TableId: parseInt(tableNumber),      // Use PascalCase for C#
+        LocationId: parseInt(locationNumber),
+        GuestName: localStorage.getItem("access_token") || "guest"
+      };
 
-        const payload = {
-          menu_Id: 1,
-          location_Id: 1,
-          table_Id: parseInt(tableNumber),
-          request_By_Oid: guestOid,
-          request_By_Name: "Guest",
-        };
+      // const res = await publicApi.post(
+      //   `/DiningSession/addguestparticipant/v2`,
+      //   payload
+      // );
+      const res = await api.post(
+        `/DiningSession/addguestparticipant/v2`,
+         payload
+      );
 
-        const res = await publicApi.post(
-          `/DiningSession/Create_Dinning_Session?assignmentType=table`,
-          payload
-        );
+      console.log('Success response:', res.data.returnedSession);
+      
 
-        // Store guest session
-        localStorage.setItem("guest", "true");
-        localStorage.setItem("session_id", res.data.session_Id);
-        localStorage.setItem("guest_oid", guestOid);
+      // Store guest session
+      localStorage.setItem("session_id", res.data.returnedSession.sessionId);
+      localStorage.setItem("guest_oid", guestOid);
+      localStorage.setItem("tableNumber", tableNumber);
+      localStorage.setItem("locationId", locationNumber);
 
-        // Force full reload so HomePage re-runs and shows AppBar
-        window.location.href = "/";
-      } catch (err) {
-        console.error("Error creating guest session:", err);
-        alert("Unable to join this table.");
-      }
-    };
+      // Redirect to home or menu
+      window.location.href = "/";
+      
+    } catch (err) {
+      console.log(err)
+      alert(err?.response?.data?.message || "Unable to join this table.");
+      window.location.href = "/";
+    }
+  };
 
-    joinAsGuest();
-  }, [tableNumber]);
+  joinAsGuest();
+}, [tableNumber, locationNumber]); // ← Add locationNumber to dependencies
 
   return (
     <Container>

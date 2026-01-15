@@ -138,7 +138,7 @@ builder.Services.AddCors(options =>
     {
         if (builder.Environment.IsDevelopment())
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173","http://192.168.1.68:3000")
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173","http://192.168.1.68:3000","https://twittery-tawanna-desireless.ngrok-free.dev")
                   .AllowAnyMethod()
                   .AllowAnyHeader()
                   .AllowCredentials();

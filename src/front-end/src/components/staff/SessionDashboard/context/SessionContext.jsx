@@ -90,9 +90,12 @@ export const SessionProvider = ({ children }) => {
   const createSession = useCallback(
     async (menuId, locationId, tableId, tableGroupId, tableAssignmentType) => {
       try {
+
         const sessionData = {
           Menu_Id: menuId,
           Location_Id: locationId,
+          // TableGroup_Id: tableGroupId,
+          AssignmentType: tableAssignmentType
         };
 
         if (tableAssignmentType === "table" && tableId) {
@@ -100,6 +103,7 @@ export const SessionProvider = ({ children }) => {
         } else if (tableAssignmentType === "tableGroup" && tableGroupId) {
           sessionData.TableGroup_Id = tableGroupId;
         }
+        console.log(`session Data: ${sessionData.TableGroup_Id}`)
 
         // Use the notification-enabled action
         const result = await createDiningSession(sessionData);

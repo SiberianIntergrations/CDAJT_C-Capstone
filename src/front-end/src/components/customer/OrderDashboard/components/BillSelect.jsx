@@ -18,7 +18,8 @@ import publicApi from "@/config/publicApi";
 const BillSelect = (props) => {
   // Accept both prop names; prefer `session_id` if provided
   const { session_id, _session_id, value, onChange, disabled, message } = props;
-  const effectiveSessionId = session_id ?? _session_id ?? null;
+//  const effectiveSessionId = session_id ?? _session_id ?? null;
+const effectiveSessionId = localStorage.getItem("session_id")
 
   const [bills, setBills] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,6 +36,8 @@ const BillSelect = (props) => {
 
   useEffect(() => {
     const fetchBills = async () => {
+    //console.log('Effective Session props:', JSON.stringify(props, null, 2))
+    console.log(`Effective Session ${effectiveSessionId}`)
       if (!effectiveSessionId) {
         setBills([]);
         setLoading(false);

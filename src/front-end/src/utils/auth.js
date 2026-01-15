@@ -1,6 +1,7 @@
 import api from "@/config/api";
 import { decodeToken, getUserRoles } from "@/config/auth";
 
+
 // Import dispatchAuthChange from useAuth hook
 let dispatchAuthChange;
 if (typeof window !== 'undefined') {
@@ -8,6 +9,40 @@ if (typeof window !== 'undefined') {
     dispatchAuthChange = module.dispatchAuthChange;
   });
 }
+
+// export const GoogleSocialLogin = () => {
+//   const passport = require('passport')
+//   const GoogleStategy = require('passport-google-oauth20').Strategy
+//   passport.use(
+//     new GoogleStategy(
+//       {
+//         clientID: process.env.GOOGLE_CLIENT_ID,
+//         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+//         callbackURL:'/auth/google/callback'
+
+//       },
+//           async (accessToken, refreshToken, profile, done) => {
+//       try {
+//         // Check if user exists
+//         let user = await User.findOne({ googleId: profile.id })
+//         if (!user) {
+//           // Create new user if not found
+//           user = new User({
+//             googleId: profile.id,
+//             username: profile.displayName,
+//             email: profile.emails[0].value,
+//           })
+//           await user.save()
+//           console.log(user)
+//         }
+//         return done(null, user)
+//       } catch (error) {
+//         return done(error, false)
+//       }
+//     }
+//     )
+//   )
+// }
 
 /**
  * Get stored auth token
@@ -56,10 +91,7 @@ export const loginUser = async (email, password) => {
 export const logoutUser = () => {
   localStorage.removeItem("authToken");
   localStorage.removeItem("access_token");
-  localStorage.removeItem("tokenExpiresAt");
-  localStorage.removeItem("user");
-  localStorage.removeItem("guest");
-  
+  localStorage.clear();
   // Dispatch auth change event
   if (typeof window !== 'undefined' && dispatchAuthChange) {
     dispatchAuthChange();

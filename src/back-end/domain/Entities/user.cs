@@ -25,9 +25,11 @@ namespace back_end.domain.Entities
 
     public Locations? PrimaryLocation { get; set; }
 
-    [Required]
+    
     [MaxLength(255)]
-    public string Password_hash { get; set; } = string.Empty;
+    public string? Password_hash { get; set; } = string.Empty;
+    
+    public string? GoogleSocial {get; set;} = string.Empty;
 
     [Required]
     [MaxLength(100)]

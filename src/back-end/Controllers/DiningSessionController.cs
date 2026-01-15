@@ -84,8 +84,8 @@ namespace back_end.controllers
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> create_dining_session(
-        [FromBody] CreateSessionRequestDTO sessionData,
-        [FromQuery] string assignmentType = "none")
+        [FromBody] CreateSessionRequestDTO sessionData)
+
     {
         try
         {
@@ -95,7 +95,7 @@ namespace back_end.controllers
             var location = await _context.Locations.Where(l => l.Location_Id == sessionData.Location_Id).FirstOrDefaultAsync();
             if (location == null) return BadRequest("Location Does not Exist");
 
-            assignmentType = assignmentType.ToLower();
+            string assignmentType = sessionData.AssignmentType?.ToLower() ?? "none";
             int? tableId = null;
             int? tableGroupId = null;
             List<int> tableNumbers = new();
@@ -143,7 +143,7 @@ namespace back_end.controllers
                 tableId = table.Table_Id;
                 tableNumbers.Add(table.table_number);
             }
-            else if (assignmentType == "table_group")
+            else if (assignmentType == "tablegroup")
             {
                 if (!sessionData.TableGroup_Id.HasValue)
                     return BadRequest("TableGroup_Id is required when assignmentType is 'table_group'");
@@ -231,7 +231,6 @@ namespace back_end.controllers
             return StatusCode(500, new { message = "An error occurred while processing your request.", error = ex.Message });
         }
     }
-
 
     /// <summary>
     /// Retrieves a list of dining sessions filtered by their active status.
@@ -972,6 +971,7 @@ namespace back_end.controllers
     [ProducesResponseType(typeof(DiningSessionResponseDTO), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [AllowAnonymous]
     public async Task<IActionResult> AddGuestParticipantV2(
       [FromBody] AddGuestParticipantV2DTO request)
     {
@@ -981,24 +981,55 @@ namespace back_end.controllers
         var table_id = request.TableId;
         var location_id = request.LocationId;
         var userIdString = ClaimsHelpers.GetUserId(User);
-        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
+        if (request.GuestName.ToLower() != "guest" )
         {
-          return Unauthorized(new { message = "User not authenticated or invalid user ID" });
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
+            {
+              return Unauthorized(new { message = "User not authenticated or invalid user ID" });
+            }
+        }
+        else
+        {
+            //Assign a temporary negative user id for guest users
+            userIdString = _context.Users.Where(u => u.Email == "guestemail@email.com").Select(u => u.User_id.ToString()).FirstOrDefault();
+        }
+        var SessionParticipant = new SessionParticipant();
+        int sessionId = 0;
+        if (_context.TableGroups.Any(tg => tg.Tables.Any(t => t.Table_Id == table_id && tg.Location_Id == location_id && tg.Is_Active)))
+        {
+          int TableGroupNumber = _context.Tables.Where(t => t.Table_Id == table_id && t.Location_Id == location_id && t.is_active)
+              .Select(t => t.TableGroup_Id ?? 0)
+              .FirstOrDefault();
+          sessionId = await _context.DiningSessions.Where(ds => ds.Ended_At == null && ds.TableGroup_Id == TableGroupNumber && ds.Location_Id == location_id)
+              .Select(ds => ds.Session_Id)
+              .FirstOrDefaultAsync();
+        }
+        else
+        {
+          sessionId = await _context.DiningSessions.Where(ds => ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id)
+              .Select(ds => ds.Session_Id)
+              .FirstOrDefaultAsync();
         }
         //Find the next available empty session for the table
-        if (!_context.DiningSessions.Any(ds => (ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id) ))
+        // if (!_context.DiningSessions.Any(ds => (ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id) ))
+        // {
+        //   return NotFound(new { message = "No active session found for the specified table" });
+        // }
+        var returnedSession= new AddGuestParticipantResponseDTO
         {
-          return NotFound(new { message = "No active session found for the specified table" });
+          SessionId = 0,
+        };
+        if (_context.SessionParticipants.Any(sp => sp.Session_Id == sessionId && sp.User_Id.ToString() == userIdString))
+        {
+          returnedSession.SessionId = sessionId;
+          return Ok(new { returnedSession, message = "Guest participant already in session", sessionId = sessionId });
         }
 
         var newParticipant = new SessionParticipant
         {
-          Session_Id = await _context.DiningSessions
-              .Where(ds => ds.Ended_At == null && ds.Table_Id == table_id && ds.Location_Id == location_id)
-              .Select(ds => ds.Session_Id)
-              .FirstOrDefaultAsync(),
+          Session_Id = sessionId,
           User_Name = await _context.Users
-              .Where(u => u.User_id == userId)
+              .Where(u => u.User_id == int.Parse(userIdString))
               .Select(u => u.Email)
               .FirstOrDefaultAsync(),
           User_Id = int.Parse(userIdString),
@@ -1006,7 +1037,8 @@ namespace back_end.controllers
         };
         await _context.SessionParticipants.AddAsync(newParticipant);
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Guest participant added successfully" });
+        returnedSession.SessionId = sessionId;
+        return Ok(new { returnedSession,message = "Guest participant added successfully" });
       }
       catch (Exception ex)
       {
