@@ -67,6 +67,7 @@ export const useSessionActions = (onSuccess) => {
             TableGroup_Id: sessionData?.TableGroup_Id
               ? toInt(sessionData?.TableGroup_Id)
               : null,
+            AssignmentType: sessionData.AssignmentType 
           };
 
           if (!payload.Menu_Id) throw new Error("Menu ID is required");

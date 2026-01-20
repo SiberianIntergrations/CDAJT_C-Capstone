@@ -30,6 +30,7 @@ import {
   Users,
   BarChart,
   Tag,
+  QrCode,
   Phone,
   MapPin,
   Table,
@@ -38,7 +39,9 @@ import {
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/hooks/useAuth";
-import { logoutUser, loginUser } from "@/utils/auth";
+import { logoutUser } from "@/utils/auth";
+import { dispatchAuthChange } from "@/hooks/useAuth";
+import { login, logout } from '@/utils/auth';
 import api from "@/config/api";
 import storage from "@/utils/storage";
 import { LocationOn } from "@mui/icons-material";
@@ -57,7 +60,13 @@ const AppBarWithTitle = ({ title }) => {
   const { notifySuccess, notifyError, notifyInfo } = useNotification();
   const isGuest = typeof window !== "undefined" && localStorage.getItem("guest") === "true";
 
-
+  console.log("AppBar Debug:", { 
+    isAuthenticated, 
+    userRole, 
+    loading, 
+    isGuest 
+  });
+  
   useEffect(() => {
     const fetchAllLocations = async () => {
       try {
@@ -85,39 +94,35 @@ const AppBarWithTitle = ({ title }) => {
     fetchAllLocations();
   }, [isAuthenticated, userRole, loading, notifyError, notifyInfo]);
 
-  useEffect(() => {
-    // Listen for MSAL account changes and force rerender
-    const handleAuthEvent = () => {
-      // This will cause useAuth to rerun and update component
-      // No need to set local state, just force update by calling setState
-      // But since useAuth uses useState, this will update automatically
-      // So just force update by calling setState on a dummy state
-      setDrawerOpen(false); // This is enough to trigger rerender if needed
-    };
-    window.addEventListener("msal:accountChanged", handleAuthEvent);
-    window.addEventListener("auth:changed", handleAuthEvent);
-    return () => {
-      window.removeEventListener("msal:accountChanged", handleAuthEvent);
-      window.removeEventListener("auth:changed", handleAuthEvent);
-    };
-  }, []);
+  // useEffect(() => {
+  //   // Listen for auth changes
+  //   const handleAuthEvent = () => {
+  //     setDrawerOpen(false);
+  //   };
+  //   // Remove MSAL event, keep only Auth0 event
+  //   window.addEventListener("auth:changed", handleAuthEvent);
+  //   return () => {
+  //     window.removeEventListener("auth:changed", handleAuthEvent);
+  //   };
+  // }, []);
+  
+const handleLogout = async () => {
+  await logoutUser(true); // true = redirect to login
+  setDrawerOpen(false);
+};
 
-  const handleLogout = async () => {
-    await logoutUser();
-    setDrawerOpen(false);
-    window.dispatchEvent(new Event("auth:changed"));
-  };
-
-  const handleLogin = async () => {
+  const handleLogin = () => {
+    // Clear guest mode
     if (typeof window !== "undefined") {
       localStorage.removeItem("guest");
       localStorage.removeItem("session_id");
       localStorage.removeItem("guest_oid");
+      localStorage.removeItem("tableNumber");
     }
-    await loginUser();
-    window.dispatchEvent(new Event("auth:changed"));
+    
+    setDrawerOpen(false);
+    router.push("/login");
   };
-
   const handleNavigation = (path) => {
     router.push(path);
     setDrawerOpen(false);
@@ -152,27 +157,26 @@ const AppBarWithTitle = ({ title }) => {
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
       { icon: Table, label: "Tables", path: "/dashboard/tables" },
-      { icon: Users, label: "Order Management", path: "/staff/dashboard/orders" },
+      { icon: Users, label: "Orders", path: "/staff/dashboard/orders" },
+      { icon: QrCode, label: "QR Codes", path: "/admin/qr-codes" },
     ],
     admin: [
       { icon: Home, label: "Home", path: "/" },
       { icon: Clock, label: "Sessions", path: "/dashboard/sessions" },
       { icon: Table, label: "Tables", path: "/dashboard/tables" },
-      {
-        icon: MapPin,
-        label: "Manage Locations",
-        path: "/location/menu-location",
-      },
+      { icon: MapPin,label: "Manage Locations",path: "/location/menu-location",},
+      { icon: Users, label: "Orders", path: "/staff/dashboard/orders" },
       { icon: MenuIcon, label: "Manage Menu Items", path: "/admin/menu-items" },
       { icon: Group, label: "Manage Menu Categories", path: "/admin/menu-categories" },
       { icon: Users, label: "Manage Staff", path: "/admin/staff" },
       { icon: Tag, label: "Manage Tags", path: "/tags/tag-management" },
+      { icon: QrCode, label: "QR Codes", path: "/admin/qr-codes" },
       { icon: BarChart, label: "Analytics", path: "/analytics/analytic-page" },
     ],
   };
 
   const effectiveRole = userRole || (isGuest ? "customer" : null);
-
+ console.log(effectiveRole)
   const renderMenuList = () => (
     <List
       sx={{
@@ -345,11 +349,11 @@ const AppBarWithTitle = ({ title }) => {
           <Button
             color="inherit"
             onClick={
-              isAuthenticated || isGuest
+              isAuthenticated
                 ? handleLogout
-                : handleLogin
+                : () => handleNavigation("/auth/login")
             }
-            startIcon={isAuthenticated || isGuest ? <LogOut /> : <LogIn />}
+            startIcon={isAuthenticated ? <LogOut /> : <LogIn />}
             sx={{
               minWidth: { xs: 40, sm: "auto" },
               px: { xs: 1, sm: 2 },

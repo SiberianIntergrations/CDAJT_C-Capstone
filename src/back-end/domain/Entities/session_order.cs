@@ -16,9 +16,9 @@ namespace back_end.domain.Entities
         [ForeignKey(nameof(Bill))]
         public int Bill_Id { get; set; }
 
-        // Replacing User_Id with User_Oid and User_Name
-        [MaxLength(100)]
-        public string? User_Oid { get; set; }
+        // User information - nullable to support guest orders
+        [ForeignKey(nameof(User))]
+        public int? User_Id { get; set; }
         [MaxLength(200)]
         public string? User_Name { get; set; }
 
@@ -30,6 +30,7 @@ namespace back_end.domain.Entities
 
         public DiningSession DiningSession { get; set; } = null!;
         public Billing Bill { get; set; } = null!;
+        public User? User { get; set; }
         public ICollection<OrderItems> OrderItems { get; set; } = new List<OrderItems>();
 
     }

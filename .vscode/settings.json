@@ -27,7 +27,8 @@
             "driver": "MySQL",
             "name": "sushi_toshi_db",
             "database": "sushi_toshi_db",
-            "username": "app_user"
+            "username": "app_user",
+            "askForPassword": true
         }
     ],
     "github.copilot.nextEditSuggestions.enabled": false,

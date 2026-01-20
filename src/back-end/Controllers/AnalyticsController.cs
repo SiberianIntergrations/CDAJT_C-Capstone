@@ -278,7 +278,7 @@ namespace back_end.controllers
             try
             {
                 // Use ClaimsHelpers for user identification
-                string userOid = ClaimsHelpers.GetUserOid(User);
+                string userIdString = ClaimsHelpers.GetUserId(User);
 
                 // Get user's location from claims (if available)
                 // string? locationIdStr = User.FindFirst("location_id")?.Value;

@@ -10,8 +10,8 @@ namespace back_end.DTO.SessionParticipantDTOs
         public int Participant_Id { get; set; }
         [JsonPropertyName("session_id")]
         public int Session_Id { get; set; }
-        [JsonPropertyName("user_oid")]
-        public string? User_Oid { get; set; }
+        [JsonPropertyName("user_id")]
+        public int? User_Id { get; set; }
         [JsonPropertyName("user_name")]
         public string? User_Name { get; set; }
         [JsonPropertyName("joined_at")]

@@ -27,7 +27,7 @@ const MenuAssignmentForm = ({ location, onClose, api }) => {
         const [allMenusRes, assignedMenusRes] = await Promise.all([
           api.get("/Menu"),
           // TODO: Endpoint to get menus assigned to a location (old project api: /locations/{locationId}/menus)
-          api.get(`/Location/${location.location_id}/menus`),
+          api.get(`/Location/${location.location_Id}/menus`),
         ]);
 
         setMenus(allMenusRes.data);
@@ -69,7 +69,7 @@ const MenuAssignmentForm = ({ location, onClose, api }) => {
   const handleAssign = async (menuId) => {
     try {
       // old project api: /locations/{locationId}/menus
-      await api.post(`/Location/${location.location_id}/menus`, {
+      await api.post(`/Location/${location.location_Id}/menus`, {
         menu_id: menuId,
       });
       setAssignedMenus([...assignedMenus, menuId]);
@@ -106,7 +106,7 @@ const MenuAssignmentForm = ({ location, onClose, api }) => {
     try {
       // old project api: /locations/{locationId}/menus/{menuId}
       await api.delete(
-        `/Location/${location.location_id}/menus/${menuId}`
+        `/Location/${location.location_Id}/menus/${menuId}`
       );
       setAssignedMenus(assignedMenus.filter((id) => id !== menuId));
     } catch (err) {

@@ -22,7 +22,9 @@ namespace back_end.DTO.DiningSessionDTOs
     public int? Table_Id { get; set; }
     public int? TableGroup_Id { get; set; }
 
-    public string? Request_By_Oid { get; set; }
+    public string? AssignmentType { get; set; }
+
+    public int? Request_By_User_Id { get; set; }
     public string? Request_By_Name { get; set; }
   }
 
@@ -65,5 +67,20 @@ namespace back_end.DTO.DiningSessionDTOs
   public class ListDiningSessionsRequestDTO
   {
     public bool ActiveOnly { get; set; } = false;
+  }
+
+  public class AddGuestParticipantV2DTO
+  {
+    public int TableId { get; set; }
+    public int LocationId { get; set; }
+    
+    public string? GuestName { get; set; }
+  }
+
+  public class AddGuestParticipantResponseDTO
+  {
+    public int SessionId { get; set; }
+
+
   }
 }

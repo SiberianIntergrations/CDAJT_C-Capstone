@@ -430,7 +430,7 @@ namespace back_end.Controllers
                 {
                     var oldImageRelativePath = item.image_url.TrimStart('/');
                     var oldImageFullPath = Path.Combine(publicRoot, oldImageRelativePath);
-                    
+
                     if (System.IO.File.Exists(oldImageFullPath))
                     {
                         try
@@ -447,6 +447,7 @@ namespace back_end.Controllers
                 }
 
                 // 7) Save uploaded file with new name
+                newFileName = newFileName.Replace(' ', '_');
                 var filePath = Path.Combine(targetFolder, newFileName);
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {

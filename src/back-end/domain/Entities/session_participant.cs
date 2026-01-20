@@ -12,9 +12,9 @@ namespace back_end.domain.Entities
         [ForeignKey(nameof(DiningSession))]
         public int Session_Id { get; set; }
         
-        // Replacing User_Id with User_Oid and User_Name
-        [MaxLength(100)]
-        public string? User_Oid { get; set; }
+        [ForeignKey(nameof(User))]
+        public int? User_Id { get; set; }
+
         [MaxLength(200)]
         public string? User_Name { get; set; }
 
@@ -24,7 +24,8 @@ namespace back_end.domain.Entities
 
 
         public DiningSession DiningSession { get; set; } = null!;
-        // Removed: public User? User { get; set; } = null!;
+        public User? User { get; set; } = null!;
+        
     }
 
 }

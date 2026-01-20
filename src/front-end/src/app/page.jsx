@@ -1,38 +1,81 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getUserName, isAuthenticated } from "@/utils/token";
-import msalInstance from "@/config/msalInstance";
+import { decodeToken, isTokenExpired } from "@/config/auth";
+import { getAuthToken } from "@/utils/auth";
 import AppBarWithTitle from "@/components/AppBarWithTitle";
 import { useRouter } from "next/navigation";
+import { api } from '@/config/api'
+import useAuth from "@/hooks/useAuth";
+import { loginUser } from "@/utils/auth";
 
 const HomePage = () => {
   const [userName, setUserName] = useState(null);
   const [isGuest, setIsGuest] = useState(false);
   const [ready, setReady] = useState(false);
   const [tableNumber, setTableNumber] = useState("");
+  const [locations, setLocations] = useState([]); // ← Changed from location to locations
+  const [selectedLocation, setSelectedLocation] = useState(""); // ← Added this state
+  const [selectedLocationName , setSelectedLocationName] = useState("")
+  const [loading, setLoading] = useState(false); // ← Added loading state
   const router = useRouter();
+  const { isAuthenticated: isAuthenticatedHook, userEmail } = useAuth();
+
+
+useEffect(() => {
+  const getLocation = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/location");
+      setLocations(response.data);
+      console.log(`Locations: ${JSON.stringify(response.data, null, 2)}`);
+      
+      // Auto-select first location if only one exists
+      if (response.data && response.data.length === 1) {
+        setSelectedLocation(response.data[0].name);
+      }
+      
+      // ✅ Use response.data instead of selectedLocation
+      const locationId = Number(localStorage.getItem("locationId"));
+      const filteredLocation = response.data.find(loc => loc.location_Id === locationId);
+      console.log('Filtered location:', filteredLocation);
+      
+      // If you want to set it in state
+      if (filteredLocation) {
+        setSelectedLocationName(filteredLocation.name);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  getLocation();
+}, []);
+
 
   useEffect(() => {
     const init = async () => {
       let name = null;
       let guestMode = false;
 
-      if (isAuthenticated()) {
-        name = getUserName();
+      // Check if user is authenticated via token
+      const token = getAuthToken();
+      if (token && !isTokenExpired(token)) {
+        const claims = decodeToken(token);
+        if (claims) {
+          // Try to get name from different possible claim fields
+          name = claims.name || 
+                 claims.given_name || 
+                 claims.email?.split('@')[0] || 
+                 userEmail?.split('@')[0] ||
+                 "User";
+        }
       }
 
-      if (!name) {
-        try {
-          await msalInstance.initialize();
-          const accounts = msalInstance.getAllAccounts();
-          if (accounts?.length > 0) {
-            const acc = accounts[0];
-            name = acc.name || acc.username || "User";
-          }
-        } catch {}
-      }
-
+      // Check if guest mode
       if (!name && localStorage.getItem("guest") === "true") {
         guestMode = true;
         name = "Guest";
@@ -44,9 +87,13 @@ const HomePage = () => {
     };
 
     init();
-  }, []);
+  }, [userEmail]);
 
-  const handleContinueAsGuest = () => {
+  const handleContinueAsGuest = async() => {
+    const response = await loginUser(guestEmail,guestPassword);
+
+    console.log("AfterLogin");
+    router.push("/");
     localStorage.setItem("guest", "true");
     setIsGuest(true);
     setUserName("Guest");
@@ -54,8 +101,15 @@ const HomePage = () => {
   };
 
   const handleJoinTable = () => {
-    if (!tableNumber.trim()) return alert("Please enter a table number.");
-    router.push(`/join?table=${tableNumber.trim()}`);
+    if (!selectedLocation) {
+      alert("Please select a location.");
+      return;
+    }
+    if (!tableNumber.trim()) {
+      alert("Please enter a table number.");
+      return;
+    }
+    router.push(`/join?location=${selectedLocation}&table=${tableNumber.trim()}`);
   };
 
   const handleGuestLogout = () => {
@@ -68,7 +122,7 @@ const HomePage = () => {
   const showGuestButton = !userName && !isGuest;
 
   return (
-    <div>
+<div>
       {(userName || isGuest) && <AppBarWithTitle />}
 
       <div
@@ -87,80 +141,150 @@ const HomePage = () => {
           All You Can Eat Authentic Japanese Food.
         </p>
 
-        {showGuestButton && (
-          <button
-            onClick={handleContinueAsGuest}
-            style={{
-              backgroundColor: "#1976d2",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "10px 22px",
-              fontSize: "1rem",
-              cursor: "pointer",
-            }}
-          >
-            Continue as Guest
-          </button>
-        )}
-
-  {isGuest && (
-    <div style={{ marginTop: "2rem" }}>
-      {localStorage.getItem("tableNumber") ? (
-        <h3>
-          You’re seated at table {localStorage.getItem("tableNumber")}
-        </h3>
-      ) : (
-        <>
-          <h3>Enter Your Table Number</h3>
-          <input
-            type="number"
-            placeholder="Table #"
-            value={tableNumber}
-            onChange={(e) => setTableNumber(e.target.value)}
-            style={{
-              padding: "10px",
-              borderRadius: "6px",
-              border: "1px solid #ccc",
-              marginRight: "10px",
-            }}
-          />
-          <button
-            onClick={() => {
-              if (!tableNumber.trim()) return alert("Please enter a table number.");
-              localStorage.setItem("tableNumber", tableNumber.trim());
-              router.push(`/join?table=${tableNumber.trim()}`);
-            }}
-            style={{
-              backgroundColor: "#388e3c",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "10px 22px",
-              cursor: "pointer",
-            }}
-          >
-            Join Table
-          </button>
-        </>
-      )}
 
 
-            <div style={{ marginTop: "1.5rem" }}>
-              <button
-                onClick={handleGuestLogout}
-                style={{
-                  backgroundColor: "#d32f2f",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "8px",
-                  padding: "10px 22px",
-                  cursor: "pointer",
-                }}
-              >
-                Logout as Guest
-              </button>
-            </div>
+        {/* Show join table section for both guests AND logged-in users */}
+        {(isGuest || userName) && (
+          <div style={{ marginTop: "2rem" }}>
+            {localStorage.getItem("tableNumber") ? (
+              <>
+                <h3>Welcome To {selectedLocationName} </h3>
+                <h3>
+                  You're seated at table: {localStorage.getItem("tableNumber")}
+                  {/* {localStorage.getItem("locationId") && ` at location ${localStorage.getItem("locationId")}`} */}
+                </h3>
+                <div style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "1rem",
+                  marginTop: "1rem"
+                }}>
+                  <button
+                    // onClick={() => {
+                    //   localStorage.removeItem("tableNumber");
+                    //   localStorage.removeItem("locationId");
+                    //   window.location.reload();
+                    //   handleJoinTable
+                    // }}
+                    onClick={() => {
+                      const locationId = localStorage.getItem("locationId");
+                      const tableNum = localStorage.getItem("tableNumber");
+                      
+                      if (locationId && tableNum) {
+                        router.push(`/join?location=${locationId}&table=${tableNum}`);
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#388e3c",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Join Session
+                  </button>
+                  <button
+                    onClick={() => {
+                      // localStorage.removeItem("tableNumber");
+                      // localStorage.removeItem("locationId");
+                      window.location.reload();
+                    }}
+                    style={{
+                      backgroundColor: "#f57c00",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Change Table
+                  </button>
+                </div>
+
+
+              </>
+            ) : (
+              <>
+                <h3>Join a Table</h3>
+                
+                {/* Location Picker */}
+                <select
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                  disabled={loading || locations.length === 0}
+                  style={{
+                    padding: "10px",
+                    borderRadius: "6px",
+                    border: "1px solid #ccc",
+                    marginRight: "10px",
+                    marginBottom: "10px",
+                    width: "100%",
+                    maxWidth: "300px",
+                  }}
+                >
+                  <option value="">Select Location</option>
+                  {locations.map((location) => (
+                    <option key={location.location_Id} value={location.location_Id}>
+                      {location.name || location.address || `Location ${location.location_number}`}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Table Number Input */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", justifyContent: "center" }}>
+                  <input
+                    type="number"
+                    placeholder="Table #"
+                    value={tableNumber}
+                    onChange={(e) => setTableNumber(e.target.value)}
+                    disabled={!selectedLocation}
+                    style={{
+                      padding: "10px",
+                      borderRadius: "6px",
+                      border: "1px solid #ccc",
+                      flex: 1,
+                      maxWidth: "200px",
+                    }}
+                  />
+                  <button
+                    onClick={handleJoinTable}
+                    disabled={!selectedLocation || !tableNumber.trim()}
+                    style={{
+                      backgroundColor: selectedLocation && tableNumber.trim() ? "#388e3c" : "#ccc",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "10px 22px",
+                      cursor: selectedLocation && tableNumber.trim() ? "pointer" : "not-allowed",
+                    }}
+                  >
+                    Join Table
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* Only show logout for guests */}
+            {isGuest && (
+              <div style={{ marginTop: "1.5rem" }}>
+                <button
+                  onClick={handleGuestLogout}
+                  style={{
+                    backgroundColor: "#d32f2f",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 22px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Logout as Guest
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

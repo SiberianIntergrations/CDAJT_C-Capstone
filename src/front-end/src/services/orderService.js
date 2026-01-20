@@ -24,7 +24,8 @@ export const orderService = {
     orderData.Request_By_Name = "Guest";
   }
 
-    const apiClient = isGuest() ? publicApi : api;
+    //const apiClient = isGuest() ? publicApi : api;
+    const apiClient =  api;
 
     try {
       const response = await apiClient.post("/Order", orderData);

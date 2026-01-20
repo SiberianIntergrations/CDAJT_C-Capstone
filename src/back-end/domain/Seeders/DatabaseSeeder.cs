@@ -23,6 +23,7 @@ namespace back_end.domain.Seeders
     private readonly TableSeeder _tableSeeder;
     private readonly TableGroupSeeder _tableGroupSeeder;
     private readonly LocationSeeder _locationSeeder;
+    private readonly UserSeeder _userSeeder;
     private readonly DiningSessionSeeder _diningSessionSeeder;
     private readonly SessionParticipantSeeder _sessionParticipantSeeder;
     private readonly BillSeeder _billSeeder;
@@ -31,6 +32,7 @@ namespace back_end.domain.Seeders
     private readonly ServiceRequestSeeder _serviceRequestSeeder;
 
     private readonly Dictionary<string, (string DisplayName, string GivenName, string Surname)> _userSeedData;
+    private Dictionary<int, (string DisplayName, string GivenName, string Surname)> _userIdSeedData;
 
     public DatabaseSeeder(
         ApplicationDbContext context,
@@ -42,6 +44,7 @@ namespace back_end.domain.Seeders
         TableSeeder tableSeeder,
         TableGroupSeeder tableGroupSeeder,
         LocationSeeder locationSeeder,
+        UserSeeder userSeeder,
         DiningSessionSeeder diningSessionSeeder,
         SessionParticipantSeeder sessionParticipantSeeder,
         BillSeeder billSeeder,
@@ -59,6 +62,7 @@ namespace back_end.domain.Seeders
       _tableSeeder = tableSeeder;
       _tableGroupSeeder = tableGroupSeeder;
       _locationSeeder = locationSeeder;
+      _userSeeder = userSeeder;
       _diningSessionSeeder = diningSessionSeeder;
       _sessionParticipantSeeder = sessionParticipantSeeder;
       _billSeeder = billSeeder;
@@ -67,11 +71,6 @@ namespace back_end.domain.Seeders
       _serviceRequestSeeder = serviceRequestSeeder;
 
       _userSeedData = LoadUserSeedData();
-      // Pass userSeedData to seeders that need it
-      billSeeder.SetUserSeedData(_userSeedData);
-      sessionParticipantSeeder.SetUserSeedData(_userSeedData);
-      sessionOrderSeeder.SetUserSeedData(_userSeedData);
-      serviceRequestSeeder.SetUserSeedData(_userSeedData);
     }
 
     private Dictionary<string, (string DisplayName, string GivenName, string Surname)> LoadUserSeedData()
@@ -133,6 +132,21 @@ namespace back_end.domain.Seeders
       return userSeedMap;
     }
 
+    private void CreateUserIdMapping()
+    {
+        // Create a simple mapping using existing users
+        var users = _context.Users.Take(20).ToList(); // Get first 20 users
+        _userIdSeedData = new Dictionary<int, (string DisplayName, string GivenName, string Surname)>();
+        
+        foreach (var user in users)
+        {
+            var displayName = $"{user.First_name} {user.Last_name}".Trim();
+            _userIdSeedData[user.User_id] = (displayName, user.First_name, user.Last_name);
+        }
+        
+        _logger.LogInformation($"Created user ID mapping for {_userIdSeedData.Count} users");
+    }
+
     /// <summary>Seeds all tables with initial data.</summary>
     public async Task SeedDatabase(bool reset = false)
     {
@@ -160,6 +174,19 @@ namespace back_end.domain.Seeders
         await _context.SaveChangesAsync();
         _tableGroupSeeder.Seed(); _logger.LogInformation("Table groups seeded successfully");
         await _context.SaveChangesAsync();
+
+        // Users must be seeded before session-driven data
+        _userSeeder.Seed(); _logger.LogInformation("Users seeded successfully");
+        await _context.SaveChangesAsync();
+        
+        // Create user ID mapping after users are seeded
+        CreateUserIdMapping();
+        
+        // Pass userSeedData to seeders that need it
+        _billSeeder.SetUserSeedData(_userIdSeedData);
+        _sessionParticipantSeeder.SetUserSeedData(_userIdSeedData);
+        _sessionOrderSeeder.SetUserSeedData(_userIdSeedData);
+        _serviceRequestSeeder.SetUserSeedData(_userIdSeedData);
 
         // Sessions then session-driven data
         _diningSessionSeeder.Seed(); _logger.LogInformation("Dining sessions seeded successfully");

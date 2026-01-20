@@ -30,7 +30,7 @@ export const useSessionData = (updateTrigger = 0) => {
 
         return [];
       }
-
+      console.log(storedLocationId)
       const response = await api.get(
         `/Dashboard/sessions?locationId=${storedLocationId}`
       );

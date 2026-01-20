@@ -552,12 +552,12 @@ namespace back_end.controllers
     {
       try
       {
-        // Retrieve current user Oid from claims (Entra ID Oauth) using ClaimsHelpers
-        var userOid = ClaimsHelpers.GetUserOid(User);
+        // Retrieve current user ID from claims using ClaimsHelpers
+        var userIdString = ClaimsHelpers.GetUserId(User);
 
-        if (string.IsNullOrEmpty(userOid))
+        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var userId))
         {
-          return Unauthorized(new { detail = "User Oid not found in claims." });
+          return Unauthorized(new { detail = "User ID not found in claims or invalid format." });
         }
 
         // Get all bills for user's active session using joins
@@ -572,7 +572,7 @@ namespace back_end.controllers
                 (bill, participant) => new { bill, participant }
             )
             .Where(x =>
-                x.participant.User_Oid == userOid &&
+                x.participant.User_Id == userId &&
                 x.participant.Left_At == null &&  // User hasn't left
                 x.bill.DiningSession.Ended_At == null        // Session is active
             )
@@ -586,7 +586,7 @@ namespace back_end.controllers
         }
 
         // Convert bills to response model
-        _logger.LogInformation($"Found {bills.Count} bills for user {userOid}'s active session");
+        _logger.LogInformation($"Found {bills.Count} bills for user {userId}'s active session");
 
         var billResponses = bills.Select(bill => new BillResponse
         {
