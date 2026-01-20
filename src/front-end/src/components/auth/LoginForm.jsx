@@ -12,13 +12,20 @@ import {
 } from "@mui/material";
 import { Lock } from "lucide-react";
 import { api } from '@/config/api';
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser } from "@/utils/auth";
 import { GoogleLogin,GoogleOAuthProvider } from '@react-oauth/google';
+
 
 const googleClientID =  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
 console.log(googleClientID)
 const LoginForm = () => {
+  const guestEmail = "guestemail@email.com"
+  const guestPassword = "GuestUser!"
+  const [userName, setUserName] = useState(null);
+  const [isGuest, setIsGuest] = useState(false);
+  const [ready, setReady] = useState(false);
+  const searchParams = useSearchParams();
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: "admin.user@sushitoshi.ca",
@@ -42,8 +49,13 @@ const LoginForm = () => {
     setLoading(true);
 
     try {
+
       console.log("Logging in");
       localStorage.clear()
+
+      localStorage.setItem("locationId",searchParams.get("locationId"))
+      localStorage.setItem("tableNumber",searchParams.get("tableNumber"))
+      console.log()
       const response = await loginUser(formData.email, formData.password);
 
       console.log("AfterLogin");
@@ -60,14 +72,33 @@ const LoginForm = () => {
     }
   };
 
+  const handleContinueAsGuest = async() => {
+      localStorage.clear()
+
+      localStorage.setItem("locationId",searchParams.get("locationId"))
+      localStorage.setItem("tableNumber",searchParams.get("tableNumber"))
+    const response = await loginUser(guestEmail,guestPassword);
+
+    console.log("AfterLogin");
+    router.push("/");
+    localStorage.setItem("guest", "true");
+    setIsGuest(true);
+    setUserName("Guest");
+    setReady(true);
+};
+
+
   const handleGoogleSuccess= async (credentialResponse)=> {
     // Implement Google OAuth login here
     localStorage.clear()
+    localStorage.setItem("locationId",searchParams.get("locationId"))
+    localStorage.setItem("tableNumber",searchParams.get("tableNumber"))
     console.log('Credential received:', credentialResponse)
     try{
       const response = await api.post(`/auth/google`, {
         idToken: credentialResponse.credential
       })
+
       const data = response.data;
       console.log(`BackEnd Response: ${data}`)
       localStorage.setItem("authToken", response.data.access_token);
@@ -238,6 +269,32 @@ const LoginForm = () => {
                 "Sign In"
               )}
             </Button>
+
+
+            <Button
+              onClick={handleContinueAsGuest}
+              fullWidth
+              variant="contained"
+              disabled={loading}
+              sx={{
+                backgroundColor: "red.600",
+                "&:hover": {
+                  backgroundColor: "red.700",
+                },
+                color: "white",
+                paddingY: { xs: 1.5, sm: 2 },
+                fontSize: { xs: "1rem", sm: "1.1rem" },
+                height: { xs: 48, sm: 56 },
+                textTransform: "none",
+                marginTop: { xs: "0.5rem", sm: "1rem" },
+              }}
+            >
+              {loading ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : (
+                "Sign In As Guest"
+              )}
+            </Button>           
 
             <Box
               sx={{

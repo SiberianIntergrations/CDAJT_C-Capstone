@@ -160,7 +160,7 @@ namespace back_end.Services
             var baseUrl = _config["QRCodeSettings:SessionPageUrl"]
                        ?? _config["Restaurant:BaseUrl"]
                        ?? "http://localhost:3000";
-            return $"{baseUrl}/start-session?locationId={locationId}&tableNumber={table}";
+            return $"{baseUrl}/auth/login?locationId={locationId}&tableNumber={table}";
         }
 
         // ---------- Private: rendering ----------

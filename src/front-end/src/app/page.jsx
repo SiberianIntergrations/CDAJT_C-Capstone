@@ -16,32 +16,45 @@ const HomePage = () => {
   const [tableNumber, setTableNumber] = useState("");
   const [locations, setLocations] = useState([]); // ← Changed from location to locations
   const [selectedLocation, setSelectedLocation] = useState(""); // ← Added this state
+  const [selectedLocationName , setSelectedLocationName] = useState("")
   const [loading, setLoading] = useState(false); // ← Added loading state
   const router = useRouter();
   const { isAuthenticated: isAuthenticatedHook, userEmail } = useAuth();
 
-  const guestEmail = "guestemail@email.com"
-  const guestPassword = "GuestUser!"
-  useEffect(() => {
-    const getLocation = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get("/location");
-        setLocations(response.data); // ← Changed to setLocations
-        
-        // Auto-select first location if only one exists
-        if (response.data && response.data.length === 1) {
-          setSelectedLocation(response.data[0].id);
-        }
-      } catch (error) {
-        console.error('Error fetching locations:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    getLocation();
-  }, []);
+useEffect(() => {
+  const getLocation = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/location");
+      setLocations(response.data);
+      console.log(`Locations: ${JSON.stringify(response.data, null, 2)}`);
+      
+      // Auto-select first location if only one exists
+      if (response.data && response.data.length === 1) {
+        setSelectedLocation(response.data[0].name);
+      }
+      
+      // ✅ Use response.data instead of selectedLocation
+      const locationId = Number(localStorage.getItem("locationId"));
+      const filteredLocation = response.data.find(loc => loc.location_Id === locationId);
+      console.log('Filtered location:', filteredLocation);
+      
+      // If you want to set it in state
+      if (filteredLocation) {
+        setSelectedLocationName(filteredLocation.name);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  getLocation();
+}, []);
+
 
   useEffect(() => {
     const init = async () => {
@@ -128,50 +141,70 @@ const HomePage = () => {
           All You Can Eat Authentic Japanese Food.
         </p>
 
-        {showGuestButton && (
-          <button
-            onClick={handleContinueAsGuest}
-            style={{
-              backgroundColor: "#1976d2",
-              color: "white",
-              border: "none",
-              borderRadius: "8px",
-              padding: "10px 22px",
-              fontSize: "1rem",
-              cursor: "pointer",
-            }}
-          >
-            Continue as Guest
-          </button>
-        )}
+
 
         {/* Show join table section for both guests AND logged-in users */}
         {(isGuest || userName) && (
           <div style={{ marginTop: "2rem" }}>
             {localStorage.getItem("tableNumber") ? (
               <>
+                <h3>Welcome To {selectedLocationName} </h3>
                 <h3>
-                  You're seated at table {localStorage.getItem("tableNumber")}
-                  {localStorage.getItem("locationId") && ` at location ${localStorage.getItem("locationId")}`}
+                  You're seated at table: {localStorage.getItem("tableNumber")}
+                  {/* {localStorage.getItem("locationId") && ` at location ${localStorage.getItem("locationId")}`} */}
                 </h3>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("tableNumber");
-                    localStorage.removeItem("locationId");
-                    window.location.reload();
-                  }}
-                  style={{
-                    backgroundColor: "#f57c00",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "8px",
-                    padding: "8px 16px",
-                    marginTop: "1rem",
-                    cursor: "pointer",
-                  }}
-                >
-                  Change Table
-                </button>
+                <div style={{
+                  display: "flex",
+                  justifyContent: "center",
+                  gap: "1rem",
+                  marginTop: "1rem"
+                }}>
+                  <button
+                    // onClick={() => {
+                    //   localStorage.removeItem("tableNumber");
+                    //   localStorage.removeItem("locationId");
+                    //   window.location.reload();
+                    //   handleJoinTable
+                    // }}
+                    onClick={() => {
+                      const locationId = localStorage.getItem("locationId");
+                      const tableNum = localStorage.getItem("tableNumber");
+                      
+                      if (locationId && tableNum) {
+                        router.push(`/join?location=${locationId}&table=${tableNum}`);
+                      }
+                    }}
+                    style={{
+                      backgroundColor: "#388e3c",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Join Session
+                  </button>
+                  <button
+                    onClick={() => {
+                      // localStorage.removeItem("tableNumber");
+                      // localStorage.removeItem("locationId");
+                      window.location.reload();
+                    }}
+                    style={{
+                      backgroundColor: "#f57c00",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 16px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Change Table
+                  </button>
+                </div>
+
+
               </>
             ) : (
               <>
