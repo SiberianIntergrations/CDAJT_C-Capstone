@@ -11,25 +11,24 @@ import {
   Divider,
 } from "@mui/material";
 import { Lock } from "lucide-react";
-import { api } from '@/config/api';
+import { api } from "@/config/api";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loginUser } from "@/utils/auth";
-import { GoogleLogin,GoogleOAuthProvider } from '@react-oauth/google';
+import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 
-
-const googleClientID =  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
-console.log(googleClientID)
+const googleClientID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+console.log(googleClientID);
 const LoginForm = () => {
-  const guestEmail = "guestemail@email.com"
-  const guestPassword = "GuestUser!"
+  const guestEmail = "guestemail@email.com";
+  const guestPassword = "GuestUser!";
   const [userName, setUserName] = useState(null);
   const [isGuest, setIsGuest] = useState(false);
   const [ready, setReady] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const [formData, setFormData] = useState({
-    email: "admin.user@sushitoshi.ca",
-    password: "AdminPass123!",
+    email: process.env.NEXT_PUBLIC_DEFAULT_EMAIL || "",
+    password: process.env.NEXT_PUBLIC_DEFAULT_PASSWORD || "",
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,19 +42,17 @@ const LoginForm = () => {
   };
 
   const handleSubmit = async (e) => {
-    
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-
       console.log("Logging in");
-      localStorage.clear()
+      localStorage.clear();
 
-      localStorage.setItem("locationId",searchParams.get("locationId"))
-      localStorage.setItem("tableNumber",searchParams.get("tableNumber"))
-      console.log()
+      localStorage.setItem("locationId", searchParams.get("locationId"));
+      localStorage.setItem("tableNumber", searchParams.get("tableNumber"));
+      console.log();
       const response = await loginUser(formData.email, formData.password);
 
       console.log("AfterLogin");
@@ -65,19 +62,19 @@ const LoginForm = () => {
       setError(
         err.response?.data?.detail ||
           err.response?.data?.message ||
-          "Login failed. Please check your credentials and try again."
+          "Login failed. Please check your credentials and try again.",
       );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleContinueAsGuest = async() => {
-      localStorage.clear()
+  const handleContinueAsGuest = async () => {
+    localStorage.clear();
 
-      localStorage.setItem("locationId",searchParams.get("locationId"))
-      localStorage.setItem("tableNumber",searchParams.get("tableNumber"))
-    const response = await loginUser(guestEmail,guestPassword);
+    localStorage.setItem("locationId", searchParams.get("locationId"));
+    localStorage.setItem("tableNumber", searchParams.get("tableNumber"));
+    const response = await loginUser(guestEmail, guestPassword);
 
     console.log("AfterLogin");
     router.push("/");
@@ -85,32 +82,28 @@ const LoginForm = () => {
     setIsGuest(true);
     setUserName("Guest");
     setReady(true);
-};
+  };
 
-
-  const handleGoogleSuccess= async (credentialResponse)=> {
+  const handleGoogleSuccess = async (credentialResponse) => {
     // Implement Google OAuth login here
-    localStorage.clear()
-    localStorage.setItem("locationId",searchParams.get("locationId"))
-    localStorage.setItem("tableNumber",searchParams.get("tableNumber"))
-    console.log('Credential received:', credentialResponse)
-    try{
+    localStorage.clear();
+    localStorage.setItem("locationId", searchParams.get("locationId"));
+    localStorage.setItem("tableNumber", searchParams.get("tableNumber"));
+    console.log("Credential received:", credentialResponse);
+    try {
       const response = await api.post(`/auth/google`, {
-        idToken: credentialResponse.credential
-      })
+        idToken: credentialResponse.credential,
+      });
 
       const data = response.data;
-      console.log(`BackEnd Response: ${data}`)
+      console.log(`BackEnd Response: ${data}`);
       localStorage.setItem("authToken", response.data.access_token);
-      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem("access_token", data.access_token);
 
       router.push("/");
-
+    } catch (e) {
+      console.log(`Error: ${e}`);
     }
-    catch(e){
-      console.log(`Error: ${e}`)
-    }
-
   };
 
   const handleForgotPassword = () => {
@@ -206,12 +199,11 @@ const LoginForm = () => {
               <GoogleLogin
                 onSuccess={handleGoogleSuccess}
                 onError={() => {
-                  console.log('Login Failed');
-                  notifyError('Google login failed');
+                  console.log("Login Failed");
+                  notifyError("Google login failed");
                 }}
               />
             </GoogleOAuthProvider>
-
 
             <Divider sx={{ marginY: { xs: 1, sm: 2 } }}>
               <Typography variant="body2" color="text.secondary">
@@ -270,7 +262,6 @@ const LoginForm = () => {
               )}
             </Button>
 
-
             <Button
               onClick={handleContinueAsGuest}
               fullWidth
@@ -294,7 +285,7 @@ const LoginForm = () => {
               ) : (
                 "Sign In As Guest"
               )}
-            </Button>           
+            </Button>
 
             <Box
               sx={{
