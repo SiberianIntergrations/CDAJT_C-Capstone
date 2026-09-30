@@ -16,13 +16,12 @@ import { UserPlus } from "lucide-react";
 //import { registerUser } from "@/utils/auth";
 import { registerUser } from "@/config/auth";
 
-
 const RegisterForm = () => {
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: "jamie2@example.com",
-    password: "somethingCool1",
-    confirmPassword: "somethingCool1",
+    password: "",
+    confirmPassword: "",
     firstName: "James",
     lastName: "Smith",
   });
@@ -50,14 +49,14 @@ const RegisterForm = () => {
       return;
     }
     try {
-      const request =await registerUser({
+      const request = await registerUser({
         email: formData.email,
         password: formData.password,
         first_name: formData.firstName,
         last_name: formData.lastName,
       });
-      localStorage.setItem("access_token",request.data.access_token)
-      localStorage.setItem("authToken",request.data.access_token)
+      localStorage.setItem("access_token", request.data.access_token);
+      localStorage.setItem("authToken", request.data.access_token);
 
       setIsSuccess(true);
 
@@ -69,7 +68,7 @@ const RegisterForm = () => {
         firstName: "",
         lastName: "",
       });
-      router.push("/")
+      router.push("/");
     } catch (err) {
       console.error("Registration error:", err);
       if (err.response) {
@@ -79,8 +78,7 @@ const RegisterForm = () => {
         if (status === 400) {
           setError(detail || "Password or Email invalid");
         } else if (status === 422) {
-          const errorMessage =
-            detail || "Invalid input data";
+          const errorMessage = detail || "Invalid input data";
           setError(errorMessage);
         } else if (status === 409) {
           setError("Email already registered");
